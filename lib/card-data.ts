@@ -180,11 +180,13 @@ export const CREDIT_CARDS: CreditCard[] = [
         label: "當地實體消費",
         cap: 1200,
         maxSpending: 36363,
-        ruleNote: "海外實體+精選（含 Apple Pay 儲值交通卡等）；假日一般消費 2% 請以銀行公告為準",
+        ruleNote:
+          "海外實體+精選（含 Apple Pay 儲值交通卡等）；台灣高鐵購票可評估 3.3% 台新 Point（官網／T-EX App／車站臨櫃等，依登錄）。須搭配 Richart 帳戶自動扣繳卡款並切換「天天刷」方案。假日一般消費 2% 請以銀行公告為準",
       },
     ],
     foreignFee: FOREIGN_FEE,
-    notes: "Richart／FlyGo 玩旅刷精選通路 3.3%（2026/04/01–06/30）。含海外實體及線上、指定航空、Uber／Grab、Apple Pay 儲值 SUICA／ICOCA／PASMO、訂房平台等。當期一般消費達 NT$20,000 享機場接送禮遇（依登錄）。",
+    notes:
+      "Richart／FlyGo 玩旅刷精選通路 3.3%（2026/04/01–06/30）。含海外實體及線上、指定航空、Uber／Grab、Apple Pay 儲值 SUICA／ICOCA／PASMO、訂房平台等。台灣高鐵：官網、T-EX 行動購票、車站售票窗口等享 3.3% 台新 Point（須 Richart 自動扣繳＋「天天刷」）。當期一般消費達 NT$20,000 享機場接送禮遇（依登錄）。",
     perks: { shuttle: 2, lounge: 2, insurance: 3000 },
   },
   // ═══════════════════════════════════════════════════════════════════════════

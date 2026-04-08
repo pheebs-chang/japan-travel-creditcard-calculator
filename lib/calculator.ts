@@ -758,6 +758,22 @@ function getEffectiveRate(
     };
   }
 
+  // 台新 FlyGo：台灣高鐵購票 3.3%（玩旅刷／天天刷結構；引擎以 3.3%＋帳單上限試算）
+  if (card.id === "taishin-flygo" && category === "local") {
+    const brandIds = new Set(categorySelections.map((s) => s.brandId ?? ""));
+    if (brandIds.has("taiwan_hsr_all")) {
+      return {
+        rate: 3.3,
+        cap: rule.cap,
+        isKumamonBonus: false,
+        isDbsEcoBonus: false,
+        isDbsEcoBaseOnly: false,
+        specialNote:
+          "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）",
+      };
+    }
+  }
+
   // Default
   return {
     rate: rule.rate,
@@ -1196,11 +1212,12 @@ function waterfallForCategorySegmentsV2(
           category === "local" && DOMESTIC_TRANSPORT_BRAND_IDS.has(seg.brandId ?? "");
         const feeRate = isDomesticTransport ? 0 : (card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE));
 
-        // ── 國內交通專屬：CUBE 優先，其餘卡以一般國內消費 1% 試算 ──
+        // ── 國內交通專屬：桃園機捷以 CUBE 5% 為首選；台灣高鐵 CUBE／FlyGo 並列 3.3%；其餘 1% ──
         if (isDomesticTransport) {
           const isTaoyuanMetro = seg.brandId === "taoyuan_airport_metro";
           const isTaiwanHsr = seg.brandId === "taiwan_hsr_all";
-          /** 機捷限感應／實體；高鐵全通路含臨櫃、App、售票機（線上視為 App） */
+          const enrolledBoost = enrolled ? 50 : 0;
+          /** 機捷限感應／實體；高鐵含官網、App、臨櫃等（與卡面活動一致） */
           const isCubeDomesticBoost =
             card.id === "cathay-cube" &&
             (isTaiwanHsr ||
@@ -1212,7 +1229,7 @@ function waterfallForCategorySegmentsV2(
               phase: "standard-uncapped",
               effectiveRatePercent: 5.0,
               maxSpend: remainingSeg,
-              priority: 100000,
+              priority: 100000 + enrolledBoost,
               roundingMode,
               feeRate,
               capUsesPoints: false,
@@ -1224,13 +1241,65 @@ function waterfallForCategorySegmentsV2(
               phase: "standard-uncapped",
               effectiveRatePercent: 3.3,
               maxSpend: remainingSeg,
-              priority: 100000,
+              priority: 100000 + enrolledBoost,
               roundingMode,
               feeRate,
               capUsesPoints: false,
               segmentSpecialNote:
                 "🎟️ 需切換至「趣旅行」方案，並登入 App 領取高鐵加碼券",
             });
+          } else if (card.id === "taishin-flygo" && isTaiwanHsr) {
+            const flyGoRule = card.cashback.find((r) => r.category === "local");
+            const capState = standardCapStateByCardId.get(card.id);
+            const hsrNote =
+              "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）";
+            let flyGoPushed = false;
+            if (capState && capState.remainingPoints > 0.01 && flyGoRule) {
+              let holderIndex = 0;
+              let holderRemaining = capState.holderRemainingPoints[0] ?? 0;
+              for (let i = 0; i < capState.holderRemainingPoints.length; i++) {
+                if ((capState.holderRemainingPoints[i] ?? 0) > 0.01) {
+                  holderIndex = i;
+                  holderRemaining = capState.holderRemainingPoints[i] ?? 0;
+                  break;
+                }
+              }
+              if (holderRemaining > 0.01) {
+                const maxSpend = Math.min(
+                  remainingSeg,
+                  maxSpendForPointsCap(holderRemaining, 3.3, roundingMode)
+                );
+                if (maxSpend > 0.01) {
+                  candidates.push({
+                    card,
+                    phase: "standard-cap",
+                    effectiveRatePercent: 3.3,
+                    maxSpend,
+                    priority: 100000 + enrolledBoost,
+                    roundingMode,
+                    feeRate,
+                    capInitialPoints: capState.initialPoints,
+                    capUsesPoints: true,
+                    segmentSpecialNote: hsrNote,
+                    holderIndex,
+                  });
+                  flyGoPushed = true;
+                }
+              }
+            }
+            if (!flyGoPushed) {
+              candidates.push({
+                card,
+                phase: "standard-uncapped",
+                effectiveRatePercent: 1.0,
+                maxSpend: remainingSeg,
+                priority: 1000,
+                roundingMode,
+                feeRate,
+                capUsesPoints: false,
+                segmentSpecialNote: "國內交通以一般國內消費 1% 試算（不套用日本旅遊加碼）",
+              });
+            }
           } else {
             candidates.push({
               card,
@@ -1725,13 +1794,21 @@ function waterfallForCategorySegmentsV2(
         break;
       }
 
-      candidates.sort((a, b) => b.priority - a.priority);
+      candidates.sort((a, b) => {
+        const d = b.priority - a.priority;
+        if (Math.abs(d) > 0.001) return d;
+        return a.card.id.localeCompare(b.card.id);
+      });
 
       if (opts?.indivisible) {
         const need = remainingSeg;
         let pool = candidates.filter((c) => c.maxSpend >= need - 0.01);
         if (!pool.length) pool = candidates;
-        pool.sort((a, b) => b.priority - a.priority);
+        pool.sort((a, b) => {
+          const d = b.priority - a.priority;
+          if (Math.abs(d) > 0.001) return d;
+          return a.card.id.localeCompare(b.card.id);
+        });
         candidates.length = 0;
         candidates.push(...pool);
       }
@@ -1963,6 +2040,25 @@ function waterfallForCategorySegmentsV2(
           : seg.travelerIndex;
 
       const labels = resolveSegmentStepLabels(category, seg);
+
+      if (
+        category === "local" &&
+        seg.brandId === "taiwan_hsr_all" &&
+        Math.abs(chosen.effectiveRatePercent - 3.3) < 0.01 &&
+        cards.some((c) => c.id === "cathay-cube") &&
+        cards.some((c) => c.id === "taishin-flygo")
+      ) {
+        const extra =
+          chosen.card.id === "cathay-cube"
+            ? "同回饋亦可用台新 FlyGo（3.3% 台新 Point，須 Richart 自動扣繳＋「天天刷」）。"
+            : chosen.card.id === "taishin-flygo"
+              ? "同回饋亦可用國泰 CUBE（3.3% 小樹點，須「趣旅行」＋App 領高鐵加碼券）。"
+              : "";
+        if (extra) {
+          specialNote = specialNote ? `${specialNote} ${extra}` : extra;
+        }
+      }
+
       steps.push({
         stepIndex: stepIndexRef.v++,
         category,
@@ -2071,6 +2167,7 @@ export function calculateOptimalCombination(
     if (category === "hotel") {
       const expenses = spending.accommodationExpenses.filter((e) => e.amount > 0.01);
       for (const exp of expenses) {
+        console.log("Calculating for:", category, "Amount:", exp.amount);
         const categorySegments = patternSelections.filter(
           (s) => s.category === "hotel" && s.expenseId === exp.id
         );
@@ -2122,6 +2219,7 @@ export function calculateOptimalCombination(
     if (category === "flight") {
       const flightTotal = spending.flight ?? 0;
       if (flightTotal <= 0) continue;
+      console.log("Calculating for:", category, "Amount:", flightTotal);
       const flightSegs = patternSelections.filter((s) => s.category === "flight");
       const tickets = splitFlightTicketAmounts(flightTotal, partySize);
       const multiTraveler = partySize > 1;
@@ -2153,7 +2251,19 @@ export function calculateOptimalCombination(
     const amount = category === "rental" ? spending.rental : spending.local;
     if (!amount || amount <= 0) continue;
 
-    const categorySegments = patternSelections.filter((s) => s.category === category);
+    console.log("Calculating for:", category, "Amount:", amount);
+
+    let categorySegments = patternSelections.filter((s) => s.category === category);
+    const segSumInit = categorySegments.reduce((a, s) => a + s.amount, 0);
+    if (segSumInit > amount + 0.01) {
+      const scale = amount / segSumInit;
+      categorySegments = categorySegments.map((s) => ({ ...s, amount: s.amount * scale }));
+      console.warn(
+        "[calculator] Segment sum exceeded category total; scaled segments",
+        { category, total: amount, segSumBefore: segSumInit, scale }
+      );
+    }
+
     const steps = waterfallForCategorySegmentsV2(
       category,
       amount,

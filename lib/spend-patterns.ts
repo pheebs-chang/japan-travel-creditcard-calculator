@@ -16,6 +16,8 @@ export interface BrandItem {
   specialNote?: string;
   /** UI：交通等類別的醒目子選項 */
   highlight?: boolean;
+  /** UI：取代泛用行銷標籤（如高鐵並列 CUBE／FlyGo） */
+  preferredRewardsLabel?: string;
 }
 
 /** A named group of brands within a pattern (e.g. "IC卡儲值" inside transport) */
@@ -282,7 +284,9 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
             id: "taiwan_hsr_all",
             name: "🚄 台灣高鐵 (全通路購票)",
             unitPrice: 1490,
-            specialNote: "含臨櫃、App、自動售票機購票",
+            specialNote:
+              "含臨櫃、T-EX App、高鐵官網、自動售票機等購票（通路認定依各卡活動公告）。",
+            preferredRewardsLabel: "CUBE／FlyGo 3.3%",
           },
         ],
       },

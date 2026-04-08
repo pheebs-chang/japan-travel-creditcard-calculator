@@ -1,5 +1,6 @@
 "use client";
 
+import type { Dispatch, SetStateAction } from "react";
 import { Hotel, Plane, Star, Info, Users, Plus, Trash2 } from "lucide-react";
 import type { AccommodationExpense, SpendingInput, PaymentChannel } from "@/lib/calculator";
 import {
@@ -61,7 +62,7 @@ interface SpendingInputPanelProps {
   onFlightBrandIdChange?: (brandId: string | null) => void;
   isKumamonFlightJpy?: boolean;
   onKumamonFlightJpyChange?: (enabled: boolean) => void;
-  onChange: (spending: SpendingInput) => void;
+  onChange: Dispatch<SetStateAction<SpendingInput>>;
 }
 
 function formatNum(n: number) {
@@ -97,40 +98,47 @@ export function SpendingInputPanel({
   const handleFlightChange = (raw: string) => {
     const unit = parseFloat(raw.replace(/,/g, "")) || 0;
     const total = partySize > 1 ? unit * partySize : unit;
-    onChange({ ...spending, flight: total });
+    onChange((prev) => ({ ...prev, flight: total }));
   };
 
   const selectFlightBrand = (brandId: string, unitPrice: number) => {
     onFlightBrandIdChange?.(brandId);
-    if (!spending.flight) {
+    onChange((prev) => {
+      if (prev.flight) return prev;
       const total = partySize > 1 ? unitPrice * partySize : unitPrice;
-      onChange({ ...spending, flight: total });
-    }
+      return { ...prev, flight: total };
+    });
   };
 
   const addAccommodation = () => {
-    const nextIndex = accommodationList.length + 1;
-    onChange({
-      ...spending,
-      accommodationExpenses: [
-        ...accommodationList,
-        { id: newExpenseId(), name: `住宿 ${nextIndex}`, amount: 0, paymentMethod: "online" },
-      ],
+    onChange((prev) => {
+      const list = prev.accommodationExpenses ?? [];
+      const nextIndex = list.length + 1;
+      return {
+        ...prev,
+        accommodationExpenses: [
+          ...list,
+          { id: newExpenseId(), name: `住宿 ${nextIndex}`, amount: 0, paymentMethod: "online" },
+        ],
+      };
     });
   };
 
   const updateAccommodation = (id: string, patch: Partial<AccommodationExpense>) => {
-    onChange({
-      ...spending,
-      accommodationExpenses: accommodationList.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+    onChange((prev) => {
+      const list = prev.accommodationExpenses ?? [];
+      return {
+        ...prev,
+        accommodationExpenses: list.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+      };
     });
   };
 
   const removeAccommodation = (id: string) => {
-    onChange({
-      ...spending,
-      accommodationExpenses: accommodationList.filter((e) => e.id !== id),
-    });
+    onChange((prev) => ({
+      ...prev,
+      accommodationExpenses: (prev.accommodationExpenses ?? []).filter((e) => e.id !== id),
+    }));
   };
 
   const selectedFlightBrand = FLIGHT_BOOKING_BRANDS.find((b) => b.id === flightBrandId);
@@ -227,7 +235,7 @@ export function SpendingInputPanel({
                   <PaymentMethodField
                     idPrefix="flight"
                     value={spending.flightPaymentMethod ?? "online"}
-                    onChange={(v) => onChange({ ...spending, flightPaymentMethod: v })}
+                    onChange={(v) => onChange((prev) => ({ ...prev, flightPaymentMethod: v }))}
                   />
                 </div>
               </div>

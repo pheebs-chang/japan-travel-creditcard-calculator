@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import {
   ShoppingBag,
   Building2,
@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 
 const IC_CARD_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
+/** 國內交通等：不顯示「DBS 5%」行銷標籤（與星展權益試算邏輯無關） */
+const HIDE_DBS_GENERIC_BADGE = new Set(["taiwan_hsr_all", "taoyuan_airport_metro"]);
 
 const PATTERN_PAY_OPTIONS: { value: PaymentChannel; label: string }[] = [
   { value: "physical", label: "實體刷卡" },
@@ -49,8 +51,8 @@ interface SpendingPatternPanelProps {
   onApplePayByBrandChange?: (brandId: string, value: boolean) => void;
   patternPaymentByKey?: Record<string, PaymentChannel>;
   onPatternPaymentChange?: (key: string, channel: PaymentChannel) => void;
-  onChange: (amounts: Record<string, number>) => void;
-  onBrandChange: (brands: Record<string, string>) => void;
+  onChange: Dispatch<SetStateAction<Record<string, number>>>;
+  onBrandChange: Dispatch<SetStateAction<Record<string, string>>>;
 }
 
 // ── Icon map ──────────────────────────────────────────────────────────────────
@@ -144,7 +146,16 @@ function BrandInputRow({
                 {"KKday"}
               </span>
             )}
-            {!brand.isDbsEcoExcluded && !brand.isKumamonEligible && !isKkday && (
+            {brand.preferredRewardsLabel && (
+              <span className="inline-flex items-center rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[8px] font-semibold text-violet-700 dark:text-violet-200">
+                {brand.preferredRewardsLabel}
+              </span>
+            )}
+            {!brand.isDbsEcoExcluded &&
+              !brand.isKumamonEligible &&
+              !isKkday &&
+              !HIDE_DBS_GENERIC_BADGE.has(brand.id) &&
+              !brand.preferredRewardsLabel && (
               <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-medium text-emerald-600">
                 {"DBS 5%"}
               </span>
@@ -312,18 +323,22 @@ export function SpendingPatternPanel({
         return next;
       });
     }
-    onChange({ ...patternAmounts, [pattern.id]: patternAmounts[pattern.id] ?? 0 });
+    onChange((prev) => ({ ...prev, [pattern.id]: prev[pattern.id] ?? 0 }));
   };
 
   const removePattern = (id: string) => {
     setAddedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
     setExpandedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
-    const nextAmounts = { ...patternAmounts };
-    delete nextAmounts[id];
-    onChange(nextAmounts);
-    const nextBrands = { ...selectedBrands };
-    delete nextBrands[id];
-    onBrandChange(nextBrands);
+    onChange((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    onBrandChange((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     setBrandAmounts((prev) => {
       const n = { ...prev };
       for (const k of Object.keys(n)) { if (k.startsWith(`${id}:`)) delete n[k]; }
@@ -358,11 +373,11 @@ export function SpendingPatternPanel({
     setBrandAmounts(nextBrandAmounts);
 
     const total = recalcTotal(pattern, nextBrandAmounts);
-    onChange({ ...patternAmounts, [pattern.id]: total });
+    onChange((prev) => ({ ...prev, [pattern.id]: total }));
 
     // Update selected brand (last brand with amount > 0)
     if (newAmount > 0) {
-      onBrandChange({ ...selectedBrands, [pattern.id]: selectedBrandId });
+      onBrandChange((prev) => ({ ...prev, [pattern.id]: selectedBrandId }));
     }
   };
 
@@ -387,16 +402,19 @@ export function SpendingPatternPanel({
     }
     setBrandAmounts(nextBrandAmounts);
     const total = recalcTotal(pattern, nextBrandAmounts);
-    onChange({ ...patternAmounts, [pattern.id]: total });
+    onChange((prev) => ({ ...prev, [pattern.id]: total }));
 
     if (!exists) {
-      onBrandChange({ ...selectedBrands, [pattern.id]: brandId });
-    } else if (selectedBrands[pattern.id] === brandId) {
-      const fallback = nextSelected[0];
-      const nextBrands = { ...selectedBrands };
-      if (fallback) nextBrands[pattern.id] = fallback;
-      else delete nextBrands[pattern.id];
-      onBrandChange(nextBrands);
+      onBrandChange((prev) => ({ ...prev, [pattern.id]: brandId }));
+    } else {
+      onBrandChange((prev) => {
+        if (prev[pattern.id] !== brandId) return prev;
+        const next = { ...prev };
+        const fallback = nextSelected[0];
+        if (fallback) next[pattern.id] = fallback;
+        else delete next[pattern.id];
+        return next;
+      });
     }
   };
 
@@ -519,7 +537,7 @@ export function SpendingPatternPanel({
             partySize={partySize}
             placeholder={sg.perPerson ? `${brand.unitPrice ?? 0}` : "請輸入總金額"}
             onChange={(newAmount, brandId) => handleBrandAmount(pattern, brand, newAmount, brandId)}
-            onSelect={(brandId) => onBrandChange({ ...selectedBrands, [pattern.id]: brandId })}
+            onSelect={(brandId) => onBrandChange((prev) => ({ ...prev, [pattern.id]: brandId }))}
             showApplePayToggle={IC_CARD_IDS.has(brand.id)}
             applePayEnabled={
               brand.id === "jp_ic_wallet_topup"
@@ -598,7 +616,7 @@ export function SpendingPatternPanel({
             partySize={partySize}
             placeholder={pattern.perPerson ? `${brand.unitPrice ?? 0}` : "請輸入總金額"}
             onChange={(newAmount, brandId) => handleBrandAmount(pattern, brand, newAmount, brandId)}
-            onSelect={(brandId) => onBrandChange({ ...selectedBrands, [pattern.id]: brandId })}
+            onSelect={(brandId) => onBrandChange((prev) => ({ ...prev, [pattern.id]: brandId }))}
             showApplePayToggle={IC_CARD_IDS.has(brand.id)}
             applePayEnabled={
               brand.id === "jp_ic_wallet_topup"
