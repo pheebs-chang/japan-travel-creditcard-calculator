@@ -769,7 +769,7 @@ function getEffectiveRate(
         isDbsEcoBonus: false,
         isDbsEcoBaseOnly: false,
         specialNote:
-          "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）",
+          "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）。試算未逐筆扣除帳單回饋上限，實際仍以銀行公告為準",
       };
     }
   }
@@ -1249,57 +1249,18 @@ function waterfallForCategorySegmentsV2(
                 "🎟️ 需切換至「趣旅行」方案，並登入 App 領取高鐵加碼券",
             });
           } else if (card.id === "taishin-flygo" && isTaiwanHsr) {
-            const flyGoRule = card.cashback.find((r) => r.category === "local");
-            const capState = standardCapStateByCardId.get(card.id);
-            const hsrNote =
-              "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）";
-            let flyGoPushed = false;
-            if (capState && capState.remainingPoints > 0.01 && flyGoRule) {
-              let holderIndex = 0;
-              let holderRemaining = capState.holderRemainingPoints[0] ?? 0;
-              for (let i = 0; i < capState.holderRemainingPoints.length; i++) {
-                if ((capState.holderRemainingPoints[i] ?? 0) > 0.01) {
-                  holderIndex = i;
-                  holderRemaining = capState.holderRemainingPoints[i] ?? 0;
-                  break;
-                }
-              }
-              if (holderRemaining > 0.01) {
-                const maxSpend = Math.min(
-                  remainingSeg,
-                  maxSpendForPointsCap(holderRemaining, 3.3, roundingMode)
-                );
-                if (maxSpend > 0.01) {
-                  candidates.push({
-                    card,
-                    phase: "standard-cap",
-                    effectiveRatePercent: 3.3,
-                    maxSpend,
-                    priority: 100000 + enrolledBoost,
-                    roundingMode,
-                    feeRate,
-                    capInitialPoints: capState.initialPoints,
-                    capUsesPoints: true,
-                    segmentSpecialNote: hsrNote,
-                    holderIndex,
-                  });
-                  flyGoPushed = true;
-                }
-              }
-            }
-            if (!flyGoPushed) {
-              candidates.push({
-                card,
-                phase: "standard-uncapped",
-                effectiveRatePercent: 1.0,
-                maxSpend: remainingSeg,
-                priority: 1000,
-                roundingMode,
-                feeRate,
-                capUsesPoints: false,
-                segmentSpecialNote: "國內交通以一般國內消費 1% 試算（不套用日本旅遊加碼）",
-              });
-            }
+            candidates.push({
+              card,
+              phase: "standard-uncapped",
+              effectiveRatePercent: 3.3,
+              maxSpend: remainingSeg,
+              priority: 100000 + enrolledBoost,
+              roundingMode,
+              feeRate,
+              capUsesPoints: false,
+              segmentSpecialNote:
+                "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）。試算未逐筆扣除帳單回饋上限，實際仍以銀行公告為準",
+            });
           } else {
             candidates.push({
               card,

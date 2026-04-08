@@ -21,6 +21,7 @@ import {
   Star,
   Info,
   Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { CREDIT_CARDS } from "@/lib/card-data";
@@ -62,7 +63,7 @@ const DATA_SOURCE_NOTE =
   "本工具數據來自各發卡銀行官網，權益可能隨時變動，實際回饋依銀行最終帳單為準。";
 const LEGAL_CREDIT_ALERT = "謹慎理財，信用至上";
 const LEGAL_CYCLE_RATE_LINE =
-  "循環信用利率：5%~15%，基準日：2026/04/08。預借現金手續費：預借金額×3%+NT$100。";
+  "循環信用利率：5%~15%，基準日：2026/04/08。預借現金手續費：預借金額x3%+NT$100。";
 const PRIVACY_STATEMENT =
   "隱私權聲明：本站為創業驗證工具，僅進行即時試算，不會儲存任何使用者的信用卡卡號、身分證字號或個人消費紀錄。我們僅使用匿名 Cookie 進行流量統計。";
 
@@ -88,6 +89,25 @@ const APPLY_RECOMMENDATION_CARD_IDS = [
   "ctbc-uniopen",
   "dbs-eco",
 ] as const;
+
+/** 辦卡 CTA 按鈕漸層（依品牌區分） */
+const CARD_APPLY_BUTTON_CLASS: Record<string, string> = {
+  "esun-kumamon":
+    "bg-gradient-to-r from-rose-600 to-violet-700 hover:from-rose-500 hover:to-violet-600 shadow-md shadow-rose-900/25",
+  "cathay-cube":
+    "bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 shadow-md shadow-indigo-900/30",
+  "fubon-j":
+    "bg-gradient-to-r from-blue-700 to-cyan-700 hover:from-blue-600 hover:to-cyan-600 shadow-md shadow-blue-900/25",
+  "sinopac-doublebei":
+    "bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 shadow-md shadow-emerald-900/20",
+  "taishin-flygo":
+    "bg-gradient-to-r from-violet-700 to-fuchsia-700 hover:from-violet-600 hover:to-fuchsia-600 shadow-md shadow-violet-900/25",
+  "union-jinghe":
+    "bg-gradient-to-r from-sky-700 to-blue-800 hover:from-sky-600 hover:to-blue-700 shadow-md shadow-sky-900/20",
+  "ctbc-uniopen":
+    "bg-gradient-to-r from-slate-800 to-zinc-900 hover:from-slate-700 hover:to-zinc-800 shadow-md shadow-black/25",
+  "dbs-eco": "bg-gradient-to-r from-red-800 to-rose-900 hover:from-red-700 hover:to-rose-800 shadow-md shadow-red-950/30",
+};
 
 const CARD_CORE_HIGHLIGHT: Record<string, string> = {
   "esun-kumamon": "日本指定通路最高 8.5% 小樹點（每期加碼有上限，依公告）",
@@ -420,9 +440,14 @@ export function ResultPanel({
     if (!recommendationContext || totalSpending <= 0) return [];
     const enrolledSet = new Set(recommendationContext.enrolledCards);
     const currentNet = Math.round(totalNetCashback);
+    const selectedIds = recommendationContext.selectedCardIds;
+
     const rows = APPLY_RECOMMENDATION_CARD_IDS.map((id) => {
       const card = CREDIT_CARDS.find((c) => c.id === id);
       if (!card) return null;
+      const applyUrl = CARD_APPLY_URLS[id];
+      if (!applyUrl) return null;
+
       const solo = calculateOptimalCombination(
         recommendationContext.mergedSpending,
         [card],
@@ -441,21 +466,47 @@ export function ResultPanel({
         },
         recommendationContext.partySize
       );
-      const soloNet = Math.round(solo?.totalNetCashback ?? 0);
-      const extra = Math.max(0, soloNet - currentNet);
-      const applyUrl = CARD_APPLY_URLS[id];
-      if (!applyUrl) return null;
+      const tripSaving = Math.round(solo?.totalNetCashback ?? 0);
+
+      const poolIds = new Set(selectedIds);
+      poolIds.add(id);
+      const poolCards = CREDIT_CARDS.filter((c) => poolIds.has(c.id));
+      const withCardOpt = calculateOptimalCombination(
+        recommendationContext.mergedSpending,
+        poolCards,
+        enrolledSet,
+        recommendationContext.patternSelections,
+        recommendationContext.selectedBrands,
+        recommendationContext.holderCounts,
+        recommendationContext.isDbsEcoNewUser,
+        recommendationContext.kumamonWalletPaypayExcluded,
+        recommendationContext.isKumamonFlightJpy,
+        recommendationContext.dateRange,
+        recommendationContext.sinopacLevel,
+        {
+          isSinopacNewUser: recommendationContext.isSinopacNewUser,
+          isUnionJingheNewUser: recommendationContext.isUnionJingheNewUser,
+        },
+        recommendationContext.partySize
+      );
+      const extraVsCurrent = Math.max(0, Math.round(withCardOpt?.totalNetCashback ?? 0) - currentNet);
+
       return {
         cardId: id,
         cardName: card.name,
         shortName: card.shortName,
         highlight: CARD_CORE_HIGHLIGHT[id] ?? card.notes ?? "",
-        soloNet,
-        extra,
+        tripSaving,
+        extraVsCurrent,
         applyUrl,
       };
     }).filter((x): x is NonNullable<typeof x> => x != null);
-    rows.sort((a, b) => (b.extra !== a.extra ? b.extra - a.extra : b.soloNet - a.soloNet));
+
+    rows.sort((a, b) =>
+      b.extraVsCurrent !== a.extraVsCurrent
+        ? b.extraVsCurrent - a.extraVsCurrent
+        : b.tripSaving - a.tripSaving
+    );
     return rows.slice(0, 4);
   }, [recommendationContext, totalSpending, totalNetCashback]);
 
@@ -1141,7 +1192,7 @@ export function ResultPanel({
           </div>
           <div className="divide-y divide-border dark:divide-white/10">
             {registrationTasks.map((task) => (
-              <div key={task.cardId} className="px-4 py-4 sm:px-6 flex items-center gap-3">
+              <div key={task.cardId} className="px-4 py-4 sm:px-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-foreground dark:text-white">{task.cardName}</p>
                   <p className="text-[11px] text-muted-foreground dark:text-white/60 mt-1 leading-relaxed">
@@ -1149,17 +1200,73 @@ export function ResultPanel({
                     {task.bonus != null ? `，可再省 ${formatTWD(task.bonus)}` : ""}
                   </p>
                 </div>
-                <a
-                  href={task.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex shrink-0 items-center rounded-lg border border-border bg-background/80 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 hover:bg-muted dark:border-white/20 dark:bg-white/10 dark:text-amber-200 dark:hover:bg-white/15 dark:hover:border-white/30 transition-colors"
-                >
-                  點我登錄
-                </a>
+                <div className="flex shrink-0 flex-col items-stretch sm:items-end gap-1.5">
+                  <a
+                    href={task.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => console.log("Conversion Track:", task.cardName)}
+                    className="inline-flex items-center justify-center rounded-lg border border-border bg-background/80 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 hover:bg-muted dark:border-white/20 dark:bg-white/10 dark:text-amber-200 dark:hover:bg-white/15 dark:hover:border-white/30 transition-colors"
+                  >
+                    點我登錄
+                  </a>
+                  <ApplyCardLegalBlock />
+                </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {applyCardRecommendations.length > 0 && recommendationContext && (
+        <div className="mt-8 rounded-2xl border border-violet-500/30 bg-gradient-to-b from-violet-500/[0.07] to-background overflow-hidden">
+          <div className="border-b border-violet-500/20 bg-violet-500/10 px-4 py-3.5 sm:px-5">
+            <p className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Sparkles className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />
+              最佳辦卡建議（推薦與辦卡）
+            </p>
+            <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
+              依目前消費與通路試算：左欄為「僅使用該卡」之預估淨回饋；若將該卡加入卡包後整體試算可再提升，將顯示於按鈕文案。排序依可增加的淨回饋由高到低（最多 4 張）。
+            </p>
+          </div>
+          <ul className="list-none space-y-3 p-3 sm:p-4">
+            {applyCardRecommendations.map((row) => {
+              const ctaAmount = row.extraVsCurrent > 0 ? row.extraVsCurrent : row.tripSaving;
+              const btnClass =
+                CARD_APPLY_BUTTON_CLASS[row.cardId] ??
+                "bg-gradient-to-r from-violet-600 to-indigo-700 hover:opacity-95 shadow-md shadow-violet-900/25";
+              return (
+                <li
+                  key={row.cardId}
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                >
+                  <p className="text-sm font-semibold text-foreground">{row.cardName}</p>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">{row.highlight}</p>
+                  <p className="mt-3 text-lg font-bold font-mono tracking-tight text-violet-700 dark:text-violet-300">
+                    這趟旅程預計省下 {formatTWD(row.tripSaving)}
+                  </p>
+                  {row.extraVsCurrent > 0 && (
+                    <p className="mt-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                      加入卡包後，與目前方案相較約可再增加 {formatTWD(row.extraVsCurrent)} 淨回饋
+                    </p>
+                  )}
+                  <a
+                    href={row.applyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => console.log("Conversion Track:", row.cardName)}
+                    className={cn(
+                      "mt-3 flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.99]",
+                      btnClass
+                    )}
+                  >
+                    立即辦卡，再省 {formatTWD(ctaAmount)}
+                  </a>
+                  <ApplyCardLegalBlock />
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </section>

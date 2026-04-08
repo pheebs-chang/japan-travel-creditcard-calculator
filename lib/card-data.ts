@@ -181,7 +181,7 @@ export const CREDIT_CARDS: CreditCard[] = [
         cap: 1200,
         maxSpending: 36363,
         ruleNote:
-          "海外實體+精選（含 Apple Pay 儲值交通卡等）；台灣高鐵購票可評估 3.3% 台新 Point（官網／T-EX App／車站臨櫃等，依登錄）。須搭配 Richart 帳戶自動扣繳卡款並切換「天天刷」方案。假日一般消費 2% 請以銀行公告為準",
+          "海外實體+精選（含 Apple Pay 儲值交通卡等）；台灣高鐵購票可評估 3.3% 台新 Point（官網／T-EX App／車站臨櫃等，依登錄）。須搭配 Richart 帳戶自動扣繳卡款並切換「天天刷」方案。本試算之高鐵金額與 CUBE 高鐵列同為未逐筆扣除帳單回饋上限之模型，實際仍依銀行公告。假日一般消費 2% 請以銀行公告為準",
       },
     ],
     foreignFee: FOREIGN_FEE,
