@@ -1,11 +1,17 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { MapPin, ChevronDown, Calculator, Users, Minus, Plus } from "lucide-react";
+import { MapPin, Calculator, Users, Minus, Plus } from "lucide-react";
 import { SpendingInputPanel } from "@/components/spending-input";
 import { SpendingPatternPanel } from "@/components/spending-pattern";
 import { CardSelector } from "@/components/card-selector";
-import { ResultPanel } from "@/components/result-panel";
+import {
+  ResultPanel,
+  DataRecencyBlock,
+  PRIVACY_STATEMENT,
+  LEGAL_CREDIT_ALERT,
+  LEGAL_CYCLE_RATE_LINE,
+} from "@/components/result-panel";
 import { Switch } from "@/components/ui/switch";
 import {
   SpendingInput,
@@ -27,10 +33,11 @@ const DEFAULT_SPENDING: SpendingInput = {
   rental: 0,
   local: 0,
   flightPaymentMethod: "online",
+  flightPurchaseMode: "together",
+  taoyuanMetroPurchaseMode: "split",
+  taiwanHsrPurchaseMode: "together",
 };
 
-const DESTINATIONS = ["日本", "韓國"] as const;
-type Destination = (typeof DESTINATIONS)[number];
 type PageSearchParams = Record<string, string | string[] | undefined>;
 type TravelDateRange = { from: string; to: string };
 
@@ -53,12 +60,11 @@ export default function HomePage(props: {
   const [selectedBrands, setSelectedBrands] = useState<Record<string, string>>({});
   const [selectedCards, setSelectedCards] = useState<string[]>(CREDIT_CARDS.map((c) => c.id));
   const [enrolledCards, setEnrolledCards] = useState<string[]>([]);
-  const [destination, setDestination] = useState<Destination>("日本");
+  const destination = "日本" as const;
   const [dateRange, setDateRange] = useState<TravelDateRange>(() => {
     const today = new Date().toISOString().slice(0, 10);
     return { from: today, to: today };
   });
-  const [destOpen, setDestOpen] = useState(false);
   const [partySize, setPartySize] = useState<number>(1);
   const [holderCounts, setHolderCounts] = useState<Record<string, number>>({});
   const [flightBrandId, setFlightBrandId] = useState<string | null>(null);
@@ -71,6 +77,8 @@ export default function HomePage(props: {
   const [isUnionJingheNewUser, setIsUnionJingheNewUser] = useState(false);
   const [isSinopacNewUser, setIsSinopacNewUser] = useState(false);
   const [patternPaymentByKey, setPatternPaymentByKey] = useState<Record<string, PaymentChannel>>({});
+  /** 與 SpendingPatternPanel 內 brandAmounts 同步，供國內交通（機捷／高鐵）拆段試算 */
+  const [patternBrandAmounts, setPatternBrandAmounts] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState(false);
   const [showExpirationWarning, setShowExpirationWarning] = useState(false);
 
@@ -102,9 +110,10 @@ export default function HomePage(props: {
         selectedBrands,
         flightBrandId,
         applePayByBrand,
-        paymentMergeOpts
+        paymentMergeOpts,
+        patternBrandAmounts
       ),
-    [spending, patternAmounts, selectedBrands, flightBrandId, applePayByBrand, paymentMergeOpts]
+    [spending, patternAmounts, selectedBrands, flightBrandId, applePayByBrand, paymentMergeOpts, patternBrandAmounts]
   );
 
   const hasInput = useMemo(() => {
@@ -118,6 +127,45 @@ export default function HomePage(props: {
   }, [mergedSpending]);
 
   const canCalculate = hasInput && selectedCards.length > 0;
+
+  const recommendationContext = useMemo(
+    () =>
+      hasInput
+        ? {
+            mergedSpending,
+            patternSelections,
+            selectedBrands,
+            holderCounts,
+            enrolledCards,
+            selectedCardIds: selectedCards,
+            isDbsEcoNewUser,
+            kumamonWalletPaypayExcluded,
+            isKumamonFlightJpy,
+            dateRange,
+            sinopacLevel,
+            isSinopacNewUser,
+            isUnionJingheNewUser,
+            partySize,
+          }
+        : null,
+    [
+      hasInput,
+      mergedSpending,
+      patternSelections,
+      selectedBrands,
+      holderCounts,
+      enrolledCards,
+      selectedCards,
+      isDbsEcoNewUser,
+      kumamonWalletPaypayExcluded,
+      isKumamonFlightJpy,
+      dateRange,
+      sinopacLevel,
+      isSinopacNewUser,
+      isUnionJingheNewUser,
+      partySize,
+    ]
+  );
 
   useEffect(() => {
     if (!canCalculate) {
@@ -202,7 +250,6 @@ export default function HomePage(props: {
     mergedSpending,
     selectedCards,
     enrolledCards,
-    destination,
     patternAmounts,
     patternSelections,
     selectedBrands,
@@ -235,47 +282,6 @@ export default function HomePage(props: {
             <span className="font-semibold text-sm text-foreground tracking-tight">刷卡試算</span>
           </div>
 
-          {/* Destination pill */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setDestOpen((o) => !o)}
-              className="flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-              aria-expanded={destOpen}
-              aria-haspopup="listbox"
-            >
-              {destination === "日本" ? "🇯🇵" : "🇰🇷"} {destination}
-              <ChevronDown className={cn("h-3 w-3 transition-transform", destOpen && "rotate-180")} />
-            </button>
-
-            {destOpen && (
-              <div
-                role="listbox"
-                className="absolute right-0 top-full mt-1.5 w-28 rounded-xl border border-border bg-card shadow-lg overflow-hidden z-30"
-              >
-                {DESTINATIONS.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    role="option"
-                    aria-selected={destination === d}
-                    onClick={() => {
-                      setDestination(d);
-                      setDestOpen(false);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors",
-                      destination === d
-                        ? "bg-foreground text-background"
-                        : "text-foreground hover:bg-secondary"
-                    )}
-                  >
-                    {d === "日本" ? "🇯🇵" : "🇰🇷"} {d}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </header>
 
@@ -284,7 +290,7 @@ export default function HomePage(props: {
         {/* Hero */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground tracking-tight text-balance leading-tight">
-            日韓旅遊
+            日本旅遊
             <br />
             最強刷卡組合計算機
           </h1>
@@ -453,8 +459,17 @@ export default function HomePage(props: {
               onPatternPaymentChange={(key, channel) =>
                 setPatternPaymentByKey((prev) => ({ ...prev, [key]: channel }))
               }
+              onPatternBrandAmountsChange={setPatternBrandAmounts}
               onChange={setPatternAmounts} 
               onBrandChange={setSelectedBrands}
+              taoyuanMetroPurchaseMode={spending.taoyuanMetroPurchaseMode ?? "together"}
+              taiwanHsrPurchaseMode={spending.taiwanHsrPurchaseMode ?? "together"}
+              onTaoyuanMetroPurchaseModeChange={(mode) =>
+                setSpending((prev) => ({ ...prev, taoyuanMetroPurchaseMode: mode }))
+              }
+              onTaiwanHsrPurchaseModeChange={(mode) =>
+                setSpending((prev) => ({ ...prev, taiwanHsrPurchaseMode: mode }))
+              }
             />
           </section>
 
@@ -481,7 +496,13 @@ export default function HomePage(props: {
           {result && (
             <>
               <div className="h-px bg-border" role="separator" />
-              <ResultPanel result={result} destination={destination} stepNumber={3} partySize={partySize} holderCounts={holderCounts} />
+              <ResultPanel
+                result={result}
+                stepNumber={3}
+                partySize={partySize}
+                holderCounts={holderCounts}
+                recommendationContext={recommendationContext}
+              />
             </>
           )}
         </div>
@@ -489,13 +510,21 @@ export default function HomePage(props: {
 
       {/* Footer */}
       <footer className="border-t border-border py-8 px-4">
-        <div className="mx-auto max-w-2xl">
-          <p className="text-xs text-muted-foreground/75 text-center leading-relaxed">
-            最新權益基準日：2026/04/08
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground/65 text-center leading-relaxed">
+        <div className="mx-auto max-w-2xl space-y-4">
+          <DataRecencyBlock className="text-center" />
+          <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-center text-[10px] text-muted-foreground leading-relaxed">
+            <p className="font-semibold text-foreground/80">{LEGAL_CREDIT_ALERT}</p>
+            <p className="mt-1 text-muted-foreground/85">{LEGAL_CYCLE_RATE_LINE}</p>
+          </div>
+          <p className="text-xs text-muted-foreground/65 text-center leading-relaxed">
             免責聲明：本工具之計算結果僅供參考，各信用卡回饋詳情、登錄限額及活動期限悉依各發卡銀行官網公告為準。本站不保證資訊之即時性與精確性，亦不負擔任何因使用本工具而產生之消費爭議或損失。刷卡前請務必再次確認銀行最新條款。
           </p>
+          <details className="mx-auto max-w-lg text-[10px] text-muted-foreground/75">
+            <summary className="cursor-pointer list-none text-center font-medium text-muted-foreground hover:text-foreground">
+              隱私權聲明
+            </summary>
+            <p className="mt-2 leading-relaxed text-left">{PRIVACY_STATEMENT}</p>
+          </details>
         </div>
       </footer>
     </div>

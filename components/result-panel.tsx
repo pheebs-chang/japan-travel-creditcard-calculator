@@ -33,12 +33,27 @@ import {
   type SpendingInput,
   type TravelDateRange,
   type WaterfallStep,
+  type SavingsBreakdown,
 } from "@/lib/calculator";
 import { cn } from "@/lib/utils";
 
 const CUBE_COUPON_URL =
   "https://www.cathaybk.com.tw/cathaybk/promo/event/credit-card/product/japanrewards/index.html";
 const IC_TOPUP_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
+
+/** 預留 GA4／gtag：辦卡、登錄連結等轉換追蹤（目前為 no-op，接入時在此呼叫 gtag / dataLayer） */
+export function trackConversion(
+  cardName: string,
+  kind: "apply_card" | "register_task" = "apply_card"
+): void {
+  void cardName;
+  void kind;
+  if (typeof window === "undefined") return;
+  const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+  if (typeof gtag === "function") {
+    // 例：gtag("event", "conversion", { send_to: "...", ... });
+  }
+}
 
 /** 與試算引擎同步，供「單卡的全額試算」重跑 */
 export interface ResultPanelRecommendationContext {
@@ -122,9 +137,27 @@ const CARD_CORE_HIGHLIGHT: Record<string, string> = {
 
 function ApplyCardLegalBlock() {
   return (
-    <div className="mt-1.5 space-y-0.5">
-      <p className="text-[10px] font-semibold text-muted-foreground">{LEGAL_CREDIT_ALERT}</p>
-      <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{LEGAL_CYCLE_RATE_LINE}</p>
+    <div className="mt-1.5 w-full space-y-0.5">
+      <p className="block w-full text-[10px] font-semibold leading-snug text-muted-foreground">
+        {LEGAL_CREDIT_ALERT}
+      </p>
+      <p className="block w-full text-[9px] leading-relaxed text-muted-foreground/75">
+        {LEGAL_CYCLE_RATE_LINE} 實際年費、違約金與各項費率依發卡機構最新約定為準。
+      </p>
+    </div>
+  );
+}
+
+/** 登錄任務列表底部：合規警語獨立一區，不與標題列搶版面 */
+function RegistrationFooterLegalBlock() {
+  return (
+    <div className="mt-2 block w-full border-t border-border/60 pt-3 dark:border-white/10">
+      <p className="block w-full text-[10px] font-semibold leading-snug text-muted-foreground">
+        {LEGAL_CREDIT_ALERT}
+      </p>
+      <p className="mt-1 block w-full text-[10px] leading-relaxed text-muted-foreground/80">
+        {LEGAL_CYCLE_RATE_LINE} 實際年費、違約金與各項費率依發卡機構最新約定為準。
+      </p>
     </div>
   );
 }
@@ -189,12 +222,19 @@ function strategyDisclaimerPrefix(step: WaterfallStep): string | null {
 function formatStrategySourceLine(step: WaterfallStep): string {
   const sub = step.subCategory ?? step.categoryLabel;
   const detail = step.detailLabel;
-  const emoji = strategyEmoji(step.subCategory ?? sub, detail);
+  const subStr = sub ?? "";
+  /** 標題已含圖示（如機捷／高鐵）時不再疊加 strategyEmoji */
+  const hasLeadingTransportEmoji = /^[🚄🚅🚃🚆✈️🏨🚗🛍️🍽️💊🏪📌]/u.test(subStr);
+  const emoji = hasLeadingTransportEmoji ? "" : strategyEmoji(step.subCategory ?? sub, detail);
   if (step.category === "hotel" && step.expenseLabel && !step.detailLabel) {
     return `${emoji} 訂購住宿（${step.expenseLabel}）`;
   }
-  if (detail) return `${emoji} ${sub}（${detail}）`;
-  return `${emoji} ${sub}`;
+  if (detail) {
+    return hasLeadingTransportEmoji
+      ? `${sub}（${detail}）`
+      : `${emoji} ${sub}（${detail}）`;
+  }
+  return hasLeadingTransportEmoji ? subStr : `${emoji} ${sub}`;
 }
 
 function formatStrategyCardLine(step: WaterfallStep, partySize: number): string {
@@ -204,6 +244,18 @@ function formatStrategyCardLine(step: WaterfallStep, partySize: number): string 
   return step.cardName;
 }
 
+/** 操作提醒標籤前綴：已含圖示則不再加；其餘領券類 💡，其餘 ⚠️ */
+function prefixActionNoteLabel(note: string): string {
+  if (/^\s*[💡⚠️]/u.test(note)) return note;
+  if (/領券|^\s*APP\b/u.test(note)) return `💡 ${note}`;
+  return `⚠️ ${note}`;
+}
+
+const CUBE_PRE_SPEND_REMINDER =
+  "💡 刷前必做：切換方案 (日本賞/趣旅行) ＋ 領加碼券";
+const FLYGO_PRE_SPEND_REMINDER =
+  "💡 刷前必做：切換天天刷方案 ＋ Richart 扣繳";
+
 function transportTopupRankTag(step: WaterfallStep): string | null {
   if (!IC_TOPUP_IDS.has(step.brandId ?? "")) return null;
   if (step.cardId === "fubon-j") return "[交通儲值首選]";
@@ -211,32 +263,149 @@ function transportTopupRankTag(step: WaterfallStep): string | null {
   return null;
 }
 
-type DisplayStepItem =
-  | { type: "single"; step: WaterfallStep; stepIndex: number }
-  | { type: "merged"; steps: WaterfallStep[]; stepIndex: number };
+/** 推薦區「主要省在」：以步驟層級加總淨回饋，對齊機票／住宿／租車／國內鐵路／日本店名等情境 */
+function recommendationStepKey(step: WaterfallStep, partySize: number): string {
+  if (step.category === "flight") {
+    if (step.travelerIndex != null && partySize > 1) {
+      return `訂購機票（旅客 ${step.travelerIndex + 1}）`;
+    }
+    return "訂購機票";
+  }
+  if (step.category === "hotel") {
+    return step.expenseLabel ? `住宿（${step.expenseLabel}）` : "訂購住宿";
+  }
+  if (step.category === "rental") return "租車費用";
+  if (step.category === "local") {
+    if (step.brandId === "taoyuan_airport_metro") return "桃園機場捷運";
+    if (step.brandId === "taiwan_hsr_all") return "台灣高鐵";
+    if (step.brandId === "taiwan_rail_all") return "台灣鐵路";
+    const blob = `${step.detailLabel ?? ""}${step.subCategory ?? ""}`;
+    if (/松本清|マツキヨ|matsukiyo/i.test(blob)) return "松本清";
+    if (/唐吉訶德|donki/i.test(blob)) return "唐吉訶德";
+    const clean = (step.detailLabel ?? "").replace(/^[🛍️🚆💊🏪]+\s*/u, "").trim();
+    if (clean.length > 0 && clean.length <= 28) return clean;
+    const sub = (step.subCategory ?? "").replace(/^[🛍️🚄🚅🚃]+\s*/u, "").trim();
+    if (sub && sub !== "實體消費") return sub.length > 28 ? `${sub.slice(0, 26)}…` : sub;
+    return "日本當地消費";
+  }
+  return "其他";
+}
 
-function buildDisplayStepItems(steps: WaterfallStep[]): DisplayStepItem[] {
-  const out: DisplayStepItem[] = [];
-  for (let i = 0; i < steps.length; i++) {
-    const curr = steps[i];
-    if (!curr.splitGroupKey) {
-      out.push({ type: "single", step: curr, stepIndex: curr.stepIndex });
-      continue;
+function netCashbackByRecommendationKey(
+  steps: WaterfallStep[],
+  partySize: number
+): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const s of steps) {
+    const k = recommendationStepKey(s, partySize);
+    m.set(k, (m.get(k) ?? 0) + s.netCashback);
+  }
+  return m;
+}
+
+/** 相較目前方案，加入該卡後「淨回饋」貢獻最大之單一情境（步驟彙總優先，必要時對齊 savingsBreakdown 粗項） */
+function findPrimaryMarginalSaving(
+  currentSteps: WaterfallStep[],
+  nextSteps: WaterfallStep[],
+  partySize: number,
+  currentBd: SavingsBreakdown,
+  nextBd: SavingsBreakdown
+): { label: string; delta: number } | null {
+  const cur = netCashbackByRecommendationKey(currentSteps, partySize);
+  const nxt = netCashbackByRecommendationKey(nextSteps, partySize);
+  let bestLabel = "";
+  let bestDelta = 0;
+  const keys = new Set<string>([...cur.keys(), ...nxt.keys()]);
+  for (const k of keys) {
+    const d = (nxt.get(k) ?? 0) - (cur.get(k) ?? 0);
+    if (d > bestDelta) {
+      bestDelta = d;
+      bestLabel = k;
     }
-    const group = [curr];
-    let j = i + 1;
-    while (j < steps.length && steps[j].splitGroupKey === curr.splitGroupKey) {
-      group.push(steps[j]);
-      j += 1;
+  }
+  const coarse: { label: string; k: keyof SavingsBreakdown }[] = [
+    { label: "訂購機票", k: "flightNet" },
+    { label: "訂購住宿", k: "hotelNet" },
+    { label: "國內交通", k: "domesticTransportNet" },
+    { label: "日本購物與當地消費", k: "japanShoppingNet" },
+  ];
+  for (const { label, k } of coarse) {
+    const d = nextBd[k] - currentBd[k];
+    if (d > bestDelta) {
+      bestDelta = d;
+      bestLabel = label;
     }
-    if (group.length > 1) {
-      out.push({ type: "merged", steps: group, stepIndex: group[0].stepIndex });
-      i = j - 1;
-      continue;
+  }
+  if (bestDelta <= 0) return null;
+  return { label: bestLabel, delta: Math.round(bestDelta) };
+}
+
+type CardStrategyGroup = {
+  key: string;
+  cardId: string;
+  cardName: string;
+  cardShortName: string;
+  holderIndex: number;
+  firstStepIndex: number;
+  steps: WaterfallStep[];
+  totalAmount: number;
+  totalNet: number;
+  actionNotes: string[];
+};
+
+function collectCardActionNotes(steps: WaterfallStep[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  if (steps.some((s) => s.cardId === "cathay-cube")) {
+    out.push(CUBE_PRE_SPEND_REMINDER);
+    seen.add(CUBE_PRE_SPEND_REMINDER);
+  }
+  if (steps.some((s) => s.cardId === "taishin-flygo")) {
+    out.push(FLYGO_PRE_SPEND_REMINDER);
+    seen.add(FLYGO_PRE_SPEND_REMINDER);
+  }
+
+  for (const s of steps) {
+    if (s.cardId === "cathay-cube" || s.cardId === "taishin-flygo") continue;
+    for (const n of s.actionNotes ?? []) {
+      if (!seen.has(n)) {
+        seen.add(n);
+        out.push(n);
+      }
     }
-    out.push({ type: "single", step: curr, stepIndex: curr.stepIndex });
   }
   return out;
+}
+
+function buildCardStrategyGroups(steps: WaterfallStep[]): CardStrategyGroup[] {
+  const groups = new Map<string, WaterfallStep[]>();
+  for (const s of steps) {
+    const holder = s.holderIndex ?? 0;
+    const key = `${s.cardId}::${holder}`;
+    const list = groups.get(key) ?? [];
+    list.push(s);
+    groups.set(key, list);
+  }
+  return Array.from(groups.entries())
+    .map(([key, list]) => {
+      const first = list[0];
+      const totalAmount = list.reduce((sum, s) => sum + s.amount, 0);
+      const totalNet = list.reduce((sum, s) => sum + s.netCashback, 0);
+      return {
+        key,
+        cardId: first.cardId,
+        cardName: first.cardName,
+        cardShortName: first.cardShortName,
+        holderIndex: first.holderIndex ?? 0,
+        firstStepIndex: Math.min(...list.map((s) => s.stepIndex)),
+        steps: [...list].sort((a, b) => a.stepIndex - b.stepIndex),
+        totalAmount,
+        totalNet,
+        actionNotes: collectCardActionNotes(list),
+      };
+    })
+    .sort((a, b) => a.firstStepIndex - b.firstStepIndex);
 }
 
 function buildShoppingStrategySummary(steps: WaterfallStep[]): string[] {
@@ -335,7 +504,17 @@ export function ResultPanel({
     );
   }
 
-  const { waterfallSteps, totalSpending, totalGrossCashback, totalForeignFee, totalNetCashback, cardBreakdown, hasKumamonBonus, hasDbsEcoBonus } = result;
+  const {
+    waterfallSteps,
+    totalSpending,
+    totalGrossCashback,
+    totalForeignFee,
+    totalNetCashback,
+    cardBreakdown,
+    hasKumamonBonus,
+    hasDbsEcoBonus,
+    savingsBreakdown,
+  } = result;
   const capWarnings = cardBreakdown.filter((c) => c.capReached);
   const savingsRate = totalSpending > 0 ? ((totalNetCashback / totalSpending) * 100).toFixed(2) : "0.00";
 
@@ -433,7 +612,7 @@ export function ResultPanel({
     })
     .filter((x): x is RegistrationTask => x !== null);
   const registrationExtraSaving = registrationTasks.reduce((sum, t) => sum + (t.bonus ?? 0), 0);
-  const displayStepItems = buildDisplayStepItems(waterfallSteps);
+  const cardStrategyGroups = buildCardStrategyGroups(waterfallSteps);
   const shoppingStrategyLines = buildShoppingStrategySummary(waterfallSteps);
 
   const applyCardRecommendations = useMemo(() => {
@@ -489,7 +668,19 @@ export function ResultPanel({
         },
         recommendationContext.partySize
       );
-      const extraVsCurrent = Math.max(0, Math.round(withCardOpt?.totalNetCashback ?? 0) - currentNet);
+      /** 加入卡包後可再增加的淨回饋（排序主鍵） */
+      const potentialSavings = Math.max(0, Math.round(withCardOpt?.totalNetCashback ?? 0) - currentNet);
+
+      const primarySaving =
+        withCardOpt && potentialSavings > 0
+          ? findPrimaryMarginalSaving(
+              waterfallSteps,
+              withCardOpt.waterfallSteps,
+              recommendationContext.partySize,
+              savingsBreakdown,
+              withCardOpt.savingsBreakdown
+            )
+          : null;
 
       return {
         cardId: id,
@@ -497,18 +688,24 @@ export function ResultPanel({
         shortName: card.shortName,
         highlight: CARD_CORE_HIGHLIGHT[id] ?? card.notes ?? "",
         tripSaving,
-        extraVsCurrent,
+        potentialSavings,
         applyUrl,
+        primarySaving,
       };
     }).filter((x): x is NonNullable<typeof x> => x != null);
 
-    rows.sort((a, b) =>
-      b.extraVsCurrent !== a.extraVsCurrent
-        ? b.extraVsCurrent - a.extraVsCurrent
-        : b.tripSaving - a.tripSaving
-    );
-    return rows.slice(0, 4);
-  }, [recommendationContext, totalSpending, totalNetCashback]);
+    rows.sort((a, b) => {
+      const byPotential = b.potentialSavings - a.potentialSavings;
+      return byPotential !== 0 ? byPotential : b.tripSaving - a.tripSaving;
+    });
+    return rows.slice(0, 3);
+  }, [
+    recommendationContext,
+    totalSpending,
+    totalNetCashback,
+    waterfallSteps,
+    savingsBreakdown,
+  ]);
 
   const handleCopy = async () => {
     const tripPhrase = destination === "日本" ? "日本行" : "韓國行";
@@ -743,16 +940,16 @@ export function ResultPanel({
       </div>
 
       {shoppingStrategyLines.length > 0 && (
-        <div className="mb-3 rounded-xl border border-amber-300/30 bg-amber-50/50 dark:bg-amber-500/10 overflow-hidden">
-          <div className="flex items-center gap-2 border-b border-amber-300/30 px-4 py-3">
-            <Lightbulb className="h-4 w-4 text-amber-700 dark:text-amber-200" />
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber-800 dark:text-amber-200">
+        <div className="mb-3 overflow-hidden rounded-xl border border-amber-500/20 bg-slate-950/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md dark:bg-white/5">
+          <div className="flex items-center gap-2 border-b border-amber-500/20 bg-white/[0.06] px-4 py-3 dark:bg-white/[0.04]">
+            <Lightbulb className="h-4 w-4 shrink-0 text-amber-300" aria-hidden />
+            <p className="text-xs font-semibold uppercase tracking-widest text-white">
               購物省錢攻略
             </p>
           </div>
           <div className="space-y-2 px-4 py-3">
             {shoppingStrategyLines.map((line, idx) => (
-              <p key={idx} className="text-xs leading-relaxed text-amber-900 dark:text-amber-100">
+              <p key={idx} className="text-xs font-medium leading-relaxed text-amber-300">
                 {line}
               </p>
             ))}
@@ -760,155 +957,102 @@ export function ResultPanel({
         </div>
       )}
 
-      {/* Waterfall order list */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden mb-3">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">刷卡攻略</p>
-          <span className="text-[10px] text-muted-foreground">{displayStepItems.length} 個步驟</span>
+      {/* Card grouped strategy list */}
+      <div className="mb-4 space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">刷卡攻略（按卡片）</p>
+          <span className="text-[10px] text-muted-foreground">{cardStrategyGroups.length} 張卡片策略</span>
         </div>
-        <div className="divide-y divide-border">
-          {displayStepItems.map((item) => {
-            const step = item.type === "single" ? item.step : item.steps[0];
-            const disclaimer = strategyDisclaimerPrefix(step);
-            const mergedAmount = item.type === "merged" ? item.steps.reduce((sum, s) => sum + s.amount, 0) : step.amount;
-            const mergedNet = item.type === "merged" ? item.steps.reduce((sum, s) => sum + s.netCashback, 0) : step.netCashback;
-            const mergedAdvice =
-              item.type === "merged" && item.steps.length >= 2
-                ? `💡 建議：${formatTWD(item.steps[0].amount)} 用 ${item.steps[0].cardShortName}，剩餘改刷 ${item.steps[item.steps.length - 1].cardShortName}`
-                : null;
-            const icRankTag = transportTopupRankTag(step);
-            const needsApplePayReminder =
-              IC_TOPUP_IDS.has(step.brandId ?? "") && (step.cardId === "cathay-cube" || step.cardId === "fubon-j");
-            return (
-            <React.Fragment key={item.stepIndex}>
-            <div
-              className={cn(
-                "flex items-start gap-3 px-4 py-3",
-                step.needsHolderSwap && "bg-amber-500/10 border-l-2 border-amber-500"
-              )}
-            >
-              {/* Step number */}
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border bg-secondary mt-0.5">
-                <span className="text-[10px] font-bold font-mono text-foreground">{item.stepIndex}</span>
-              </div>
+        {cardStrategyGroups.map((group) => {
+          const shouldShowCardIndex = (holderCounts[group.cardId] ?? 1) > 1;
+          const cardIndex = group.holderIndex + 1;
+          const displayCardTitle = shouldShowCardIndex
+            ? `💳 ${group.cardName} (${cardIndex})`
+            : `💳 ${group.cardName}`;
 
-              <div className="flex-1 min-w-0">
-                {/* Category → Card */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {disclaimer && (
-                    <span className="inline-flex shrink-0 rounded border border-amber-600/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:text-amber-200">
-                      {disclaimer}
-                    </span>
-                  )}
-                  <span className="text-xs font-medium text-foreground leading-snug">
-                    {formatStrategySourceLine(step)}
-                  </span>
-                  <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm font-semibold text-foreground">
-                    {formatStrategyCardLine(step, partySize)}
-                  </span>
-                  {icRankTag && (
-                    <span className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-700 dark:text-cyan-200">
-                      {icRankTag}
-                    </span>
-                  )}
-                  {step.cardId === "cathay-cube" && (
-                    <a
-                      href={CUBE_COUPON_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-200"
-                      title="國泰 CUBE 日本賞領券頁"
-                    >
-                      🎟️ 需領券
-                    </a>
-                  )}
-                  {step.isKumamonBonus && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-foreground/10 border border-foreground/20 px-1.5 py-0.5 text-[9px] font-medium text-foreground">
-                      <Star className="h-2.5 w-2.5" />
-                      指定通路加碼
-                    </span>
-                  )}
-                  {step.isDbsEcoBonus && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-foreground/10 border border-foreground/20 px-1.5 py-0.5 text-[9px] font-medium text-foreground">
-                      <Star className="h-2.5 w-2.5" />
-                      實體5%
-                    </span>
-                  )}
-                  {step.isDbsEcoBaseOnly && (
-                    <span className="inline-flex items-center rounded-full bg-secondary border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
-                      僅1%
-                    </span>
-                  )}
-                  {step.isOverflow && (
-                    <span className="inline-flex items-center rounded-full bg-secondary border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
-                      超額
-                    </span>
-                  )}
-                  {step.isCapReached && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 border border-amber-500 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 animate-pulse">
-                      <AlertTriangle className="h-2.5 w-2.5" />
-                      達上限
-                    </span>
-                  )}
-                  {!step.enrolled && (
-                    <span className="inline-flex items-center rounded-full bg-secondary border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
-                      未登錄
-                    </span>
-                  )}
-                </div>
-                {/* Amount detail */}
-                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                  {formatTWD(mergedAmount)} × {step.cashbackRate}%
-                  {step.foreignFee > 0 && ` - 手續費 ${formatTWD(step.foreignFee)}`}
-                  {step.foreignFee === 0 && (step.cardId === "sinopac-doublebei") && (
-                    <span className="text-muted-foreground/60"> （雙幣卡免手續費）</span>
-                  )}
-                  {step.isCapReached && step.capAmount != null && (
-                    <span className="text-amber-700"> （加碼上限 600 點，約 NT$15,000）</span>
-                  )}
+          return (
+            <div
+              key={group.key}
+              className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-[0_8px_24px_rgba(15,23,42,0.28)]"
+            >
+              <div className="border-b border-zinc-800 bg-zinc-900/80 px-4 py-3">
+                <p className="text-sm font-bold text-zinc-100">
+                  {displayCardTitle}
                 </p>
-                {step.isCapReached && (
-                  <p className="text-[10px] text-amber-700 mt-0.5 font-medium">本筆已刷滿 NT$ 15,000 限額</p>
-                )}
-                {step.baseCashback != null && (
-                  <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                    1% 基礎回饋 {formatTWD(step.baseCashback)}
-                    {step.bonusCashback != null ? ` + 4% 加碼回饋 ${formatTWD(step.bonusCashback)}` : ""}
-                  </p>
-                )}
-                {mergedAdvice && (
-                  <p className="text-[10px] text-muted-foreground/80 mt-1">{mergedAdvice}</p>
-                )}
-                {needsApplePayReminder && (
-                  <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1">需開啟 Apple Pay 儲值</p>
-                )}
-                {step.brandId === "taoyuan_airport_metro" && step.cardId === "cathay-cube" && (
-                  <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1">
-                    ⚠️ 限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值
-                  </p>
-                )}
-                {/* Special note */}
-                {step.specialNote && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <Info className="h-2.5 w-2.5 text-muted-foreground/60" />
-                    <p className={cn("text-[10px]", step.needsHolderSwap ? "text-amber-700 font-medium" : "text-muted-foreground/70")}>{step.specialNote}</p>
+                <p className="mt-1 text-[9px] text-zinc-400">
+                  共 {group.steps.length} 筆消費項目
+                </p>
+                {group.actionNotes.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="刷卡前操作提醒">
+                    {group.actionNotes.map((note) => (
+                      <span
+                        key={note}
+                        className="inline-flex max-w-full items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold leading-snug text-amber-700 dark:text-amber-400"
+                      >
+                        {prefixActionNoteLabel(note)}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
-
-              {/* Net cashback */}
-              <div className="text-right flex-shrink-0">
-                <p className={cn("text-sm font-bold font-mono", mergedNet > 0 ? "text-foreground" : "text-muted-foreground")}>
-                  {mergedNet > 0 ? `+${formatTWD(mergedNet)}` : formatTWD(mergedNet)}
+              <div className="divide-y divide-border/70">
+                {group.steps.map((step) => {
+                  const disclaimer = strategyDisclaimerPrefix(step);
+                  const icRankTag = transportTopupRankTag(step);
+                  const needsApplePayReminder =
+                    IC_TOPUP_IDS.has(step.brandId ?? "") &&
+                    (step.cardId === "cathay-cube" || step.cardId === "fubon-j");
+                  return (
+                    <div key={step.stepIndex} className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {disclaimer && (
+                              <span className="inline-flex rounded border border-amber-600/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:text-amber-200">
+                                {disclaimer}
+                              </span>
+                            )}
+                            <span className="text-xs font-medium text-zinc-100 leading-snug">
+                              {formatStrategySourceLine(step)}
+                            </span>
+                            {icRankTag && (
+                              <span className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-700 dark:text-cyan-200">
+                                {icRankTag}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[11px] font-mono text-zinc-300">
+                            消費金額 {formatTWD(step.amount)} / 預計淨回饋{" "}
+                            {step.netCashback > 0 ? `+${formatTWD(step.netCashback)}` : formatTWD(step.netCashback)}
+                          </p>
+                          {needsApplePayReminder && (
+                            <p className="mt-1 text-[10px] text-amber-700 dark:text-amber-300">需開啟 Apple Pay 儲值</p>
+                          )}
+                          {step.specialNote && (
+                            <div className="mt-1 flex items-center gap-1">
+                              <Info className="h-2.5 w-2.5 text-muted-foreground/60" />
+                              <p className={cn("text-[10px]", step.needsHolderSwap ? "font-medium text-amber-400" : "text-zinc-400")}>
+                                {step.specialNote}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="border-t border-zinc-800 bg-zinc-900/80 px-4 py-3">
+                <p className="text-xs font-semibold text-zinc-100">
+                  本張卡合計刷卡金額：{formatTWD(group.totalAmount)} / 預計總回饋：
+                  <span className={cn("ml-1 font-mono", group.totalNet > 0 ? "text-emerald-300" : "text-zinc-400")}>
+                    {group.totalNet > 0 ? `+${formatTWD(group.totalNet)}` : formatTWD(group.totalNet)}
+                  </span>
                 </p>
-                <p className="text-[10px] text-muted-foreground">淨回饋</p>
               </div>
             </div>
-          </React.Fragment>
-            );
-          })}
-        </div>
+          );
+        })}
       </div>
 
       {/* Smart Split Suggestion - show when caps reached */}
@@ -1101,7 +1245,7 @@ export function ResultPanel({
           {/* Disclaimer */}
           <div className="px-4 py-2.5 border-t border-border bg-secondary/30">
             <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
-              *提醒：上述權益通常需刷��機票或 80% 團費後生效，詳情請點擊官網連結確認。
+              *提醒：上述權益通常需刷卡付機票或 80% 團費後生效，詳情請點擊官網連結確認。
             </p>
           </div>
         </div>
@@ -1184,36 +1328,39 @@ export function ResultPanel({
       </button>
 
       {registrationTasks.length > 0 && (
-        <div className="mt-4 rounded-xl border border-border bg-muted/40 dark:border-white/10 dark:bg-white/5 overflow-hidden">
-          <div className="border-b border-border dark:border-white/10 px-4 py-4 sm:px-6 sm:py-4">
+        <div className="mt-4 overflow-hidden rounded-xl border border-border bg-muted/40 dark:border-white/10 dark:bg-white/5">
+          <div className="border-b border-border px-4 py-4 dark:border-white/10 sm:px-6 sm:py-4">
             <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">
               💡 登錄任務：別忘了領額外回饋
             </p>
           </div>
-          <div className="divide-y divide-border dark:divide-white/10">
+          <div className="flex flex-col gap-3 p-4 sm:p-4">
             {registrationTasks.map((task) => (
-              <div key={task.cardId} className="px-4 py-4 sm:px-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-foreground dark:text-white">{task.cardName}</p>
-                  <p className="text-[11px] text-muted-foreground dark:text-white/60 mt-1 leading-relaxed">
-                    {task.note}
-                    {task.bonus != null ? `，可再省 ${formatTWD(task.bonus)}` : ""}
+              <div
+                key={task.cardId}
+                className="flex flex-col gap-2 rounded-xl border border-border/70 bg-background/60 p-4 dark:border-white/15 dark:bg-black/20"
+              >
+                <div className="flex min-w-0 flex-row items-center justify-between gap-3">
+                  <p className="min-w-0 flex-1 break-words text-left text-xs font-medium text-foreground dark:text-white">
+                    {task.cardName}
                   </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-stretch sm:items-end gap-1.5">
                   <a
                     href={task.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => console.log("Conversion Track:", task.cardName)}
-                    className="inline-flex items-center justify-center rounded-lg border border-border bg-background/80 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 hover:bg-muted dark:border-white/20 dark:bg-white/10 dark:text-amber-200 dark:hover:bg-white/15 dark:hover:border-white/30 transition-colors"
+                    onClick={() => trackConversion(task.cardName, "register_task")}
+                    className="inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background/90 px-3 py-1.5 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-muted dark:border-white/20 dark:bg-white/10 dark:text-amber-200 dark:hover:bg-white/15 dark:hover:border-white/30"
                   >
                     點我登錄
                   </a>
-                  <ApplyCardLegalBlock />
                 </div>
+                <p className="block w-full text-[11px] leading-relaxed text-muted-foreground dark:text-white/65">
+                  {task.note}
+                  {task.bonus != null ? `，可再省 ${formatTWD(task.bonus)}` : ""}
+                </p>
               </div>
             ))}
+            <RegistrationFooterLegalBlock />
           </div>
         </div>
       )}
@@ -1226,35 +1373,40 @@ export function ResultPanel({
               最佳辦卡建議（推薦與辦卡）
             </p>
             <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
-              依目前消費與通路試算：左欄為「僅使用該卡」之預估淨回饋；若將該卡加入卡包後整體試算可再提升，將顯示於按鈕文案。排序依可增加的淨回饋由高到低（最多 4 張）。
+              依目前消費與通路試算：左欄為「僅使用該卡」之預估淨回饋；若將該卡加入卡包後整體試算可再提升，將顯示於按鈕文案。排序依「加入卡包後可再增加之淨回饋」由高到低（最多 3 張）。
             </p>
           </div>
-          <ul className="list-none space-y-3 p-3 sm:p-4">
+          <ul className="list-none space-y-3 border-t border-violet-500/15 bg-black/25 p-3 sm:p-4 dark:bg-black/45">
             {applyCardRecommendations.map((row) => {
-              const ctaAmount = row.extraVsCurrent > 0 ? row.extraVsCurrent : row.tripSaving;
+              const ctaAmount = row.potentialSavings > 0 ? row.potentialSavings : row.tripSaving;
               const btnClass =
                 CARD_APPLY_BUTTON_CLASS[row.cardId] ??
                 "bg-gradient-to-r from-violet-600 to-indigo-700 hover:opacity-95 shadow-md shadow-violet-900/25";
               return (
                 <li
                   key={row.cardId}
-                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                  className="rounded-xl border border-violet-500/20 bg-zinc-950/80 p-4 shadow-inner shadow-black/30 dark:border-white/10 dark:bg-zinc-950/90"
                 >
                   <p className="text-sm font-semibold text-foreground">{row.cardName}</p>
+                  {row.primarySaving != null && (
+                    <p className="mt-2 text-[12px] font-semibold leading-snug text-emerald-400">
+                      💡 主要省在：{row.primarySaving.label}，可多拿 {formatTWD(row.primarySaving.delta)} 回饋
+                    </p>
+                  )}
                   <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">{row.highlight}</p>
                   <p className="mt-3 text-lg font-bold font-mono tracking-tight text-violet-700 dark:text-violet-300">
                     這趟旅程預計省下 {formatTWD(row.tripSaving)}
                   </p>
-                  {row.extraVsCurrent > 0 && (
-                    <p className="mt-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                      加入卡包後，與目前方案相較約可再增加 {formatTWD(row.extraVsCurrent)} 淨回饋
+                  {row.potentialSavings > 0 && (
+                    <p className="mt-1 text-[11px] font-medium text-emerald-400">
+                      加入卡包後，與目前方案相較約可再增加 {formatTWD(row.potentialSavings)} 淨回饋
                     </p>
                   )}
                   <a
                     href={row.applyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => console.log("Conversion Track:", row.cardName)}
+                    onClick={() => trackConversion(row.cardName, "apply_card")}
                     className={cn(
                       "mt-3 flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.99]",
                       btnClass
@@ -1272,3 +1424,12 @@ export function ResultPanel({
     </section>
   );
 }
+
+export {
+  DataRecencyBlock,
+  PRIVACY_STATEMENT,
+  RIGHTS_UPDATE_LABEL,
+  DATA_SOURCE_NOTE,
+  LEGAL_CREDIT_ALERT,
+  LEGAL_CYCLE_RATE_LINE,
+};
