@@ -260,10 +260,10 @@ export const CREDIT_CARDS: CreditCard[] = [
       { category: "flight", rate: 3.5, label: "訂購機票", ruleNote: "日本賞預設 3.5%；指定通路／期間活動依券後加碼試算" },
       { category: "hotel",  rate: 3.5, label: "住宿網站", ruleNote: "一般 3.5%；Hotels.com/Expedia 券後最高 10%" },
       { category: "rental", rate: 3.5, label: "租車費用", ruleNote: "日本賞一般回饋 3.5%" },
-      { category: "local",  rate: 3.5, label: "當地實體消費", ruleNote: "日本賞一般 3.5%；指定通路券後可達 5%/8%/10%。桃園機捷感應過閘可試算 5%" },
+      { category: "local",  rate: 3.5, label: "當地實體消費", ruleNote: "日本賞一般 3.5%；指定通路券後可達 5%/8%/10%。國內：桃園機捷感應過閘 5%（日本賞）；台灣高鐵全通路 3.3%（趣旅行＋App 領券）" },
     ],
     foreignFee: FOREIGN_FEE,
-    notes: "預設日本賞方案：日本一般實體 3.5% 無上限。指定通路需領券，例：MITSUI/WAmazing 10%、大丸 8%、交通卡 AP 儲值 5%、Hotels.com/Expedia 最高 10%。",
+    notes: "預設日本賞方案：日本一般實體 3.5% 無上限。國內交通另有專屬邏輯：桃園機捷感應過閘 5%（需日本賞）；台灣高鐵 3.3%（需趣旅行且 App 領券）。",
     perks: { shuttle: 2, lounge: 6, insurance: 5000, roadside: 2 },
   },
   // ═══════════════════════════════════════════════════════════════════════════

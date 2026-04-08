@@ -247,6 +247,18 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
           },
         ],
       },
+    ],
+  },
+
+  // ── 2. 國內交通 — total ───────────────────────────────────────────────────
+  {
+    id: "domestic_transport",
+    label: "🏠 國內交通",
+    examples: "桃園機捷 / 台灣高鐵",
+    category: "local",
+    icon: "Train",
+    perPerson: false,
+    subGroups: [
       {
         id: "taoyuan_metro",
         label: "桃園機場捷運",
@@ -256,14 +268,28 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
             id: "taoyuan_airport_metro",
             name: "🚄 桃園機場捷運",
             unitPrice: 320,
+            isDbsEcoExcluded: true,
             specialNote: "限感應過閘門刷卡；不含加值金消費。",
+          },
+        ],
+      },
+      {
+        id: "taiwan_hsr",
+        label: "台灣高鐵",
+        perPerson: false,
+        brands: [
+          {
+            id: "taiwan_hsr_all",
+            name: "🚄 台灣高鐵 (全通路購票)",
+            unitPrice: 1490,
+            specialNote: "含臨櫃、App、自動售票機購票",
           },
         ],
       },
     ],
   },
 
-  // ── 2. 日本主題樂園 — by region, all per-person ───────────────────────────
+  // ── 3. 日本主題樂園 — by region, all per-person ───────────────────────────
   {
     id: "theme_park",
     label: "日本主題樂園",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Copy,
   Check,
@@ -24,12 +24,99 @@ import {
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { CREDIT_CARDS } from "@/lib/card-data";
-import { CalculationResult, formatTWD, type WaterfallStep } from "@/lib/calculator";
+import {
+  CalculationResult,
+  calculateOptimalCombination,
+  formatTWD,
+  type PatternSelection,
+  type SpendingInput,
+  type TravelDateRange,
+  type WaterfallStep,
+} from "@/lib/calculator";
 import { cn } from "@/lib/utils";
 
 const CUBE_COUPON_URL =
   "https://www.cathaybk.com.tw/cathaybk/promo/event/credit-card/product/japanrewards/index.html";
 const IC_TOPUP_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
+
+/** 與試算引擎同步，供「單卡的全額試算」重跑 */
+export interface ResultPanelRecommendationContext {
+  mergedSpending: SpendingInput;
+  patternSelections: PatternSelection[];
+  selectedBrands: Record<string, string>;
+  holderCounts: Record<string, number>;
+  enrolledCards: string[];
+  selectedCardIds: string[];
+  isDbsEcoNewUser: boolean;
+  kumamonWalletPaypayExcluded: boolean;
+  isKumamonFlightJpy: boolean;
+  dateRange?: TravelDateRange;
+  sinopacLevel?: 1 | 2;
+  isSinopacNewUser: boolean;
+  isUnionJingheNewUser: boolean;
+  partySize: number;
+}
+
+const RIGHTS_UPDATE_LABEL = "權益更新日期：2026/04/08";
+const DATA_SOURCE_NOTE =
+  "本工具數據來自各發卡銀行官網，權益可能隨時變動，實際回饋依銀行最終帳單為準。";
+const LEGAL_CREDIT_ALERT = "謹慎理財，信用至上";
+const LEGAL_CYCLE_RATE_LINE =
+  "循環信用利率：5%~15%，基準日：2026/04/08。預借現金手續費：預借金額×3%+NT$100。";
+const PRIVACY_STATEMENT =
+  "隱私權聲明：本站為創業驗證工具，僅進行即時試算，不會儲存任何使用者的信用卡卡號、身分證字號或個人消費紀錄。我們僅使用匿名 Cookie 進行流量統計。";
+
+const CARD_APPLY_URLS: Record<string, string> = {
+  "esun-kumamon": "https://www.esunbank.com.tw/bank/personal/credit-card/intro/bank-card/kumamon-card",
+  "cathay-cube": "https://www.cathaybk.com.tw/cathaybk/promo/event/credit-card/product/cube/index.html",
+  "fubon-j": "https://www.fubon.com/banking/personal/credit-card/all_card/omiyage/omiyage.htm",
+  "sinopac-doublebei":
+    "https://bank.sinopac.com/sinopacbank/personal/credit-card/introduction/dual-currency/index.html",
+  "taishin-flygo": "https://www.taishinbank.com.tw/TSB/personal/credit/intro/flygo/",
+  "union-jinghe": "https://ubot.cc/JiheCard/",
+  "ctbc-uniopen": "https://www.ctbcbank.com.tw/twrbo/zh_tw/cc_index/cc_product/cc_card_introduction/UNI.html",
+  "dbs-eco": "https://www.dbs.com.tw/personal-zh/cards/eco-card/index.html",
+};
+
+const APPLY_RECOMMENDATION_CARD_IDS = [
+  "esun-kumamon",
+  "cathay-cube",
+  "fubon-j",
+  "sinopac-doublebei",
+  "taishin-flygo",
+  "union-jinghe",
+  "ctbc-uniopen",
+  "dbs-eco",
+] as const;
+
+const CARD_CORE_HIGHLIGHT: Record<string, string> = {
+  "esun-kumamon": "日本指定通路最高 8.5% 小樹點（每期加碼有上限，依公告）",
+  "cathay-cube": "日本賞 3.5% 無上限，指定通路券後加碼；國內交通／高鐵另有專屬試算",
+  "fubon-j": "日韓實體最高 6%；Apple Pay 儲值交通 IC 滿額可評估 10%（加碼有上限）",
+  "sinopac-doublebei": "精選海外最高 6% 試算；雙幣卡免海外手續費（依公告）",
+  "taishin-flygo": "玩旅刷精選通路 3.3%，涵蓋海外實體／線上旅遊（依公告）",
+  "union-jinghe": "日幣／海外一般消費 2.5% 試算（依帳單認列）",
+  "ctbc-uniopen": "國外實體最高 11%（月上限點數，試算採保守規則）",
+  "dbs-eco": "指定地區實體 5% 試算（4% 加碼每期 600 點上限）",
+};
+
+function ApplyCardLegalBlock() {
+  return (
+    <div className="mt-1.5 space-y-0.5">
+      <p className="text-[10px] font-semibold text-muted-foreground">{LEGAL_CREDIT_ALERT}</p>
+      <p className="text-[10px] text-muted-foreground/80 leading-relaxed">{LEGAL_CYCLE_RATE_LINE}</p>
+    </div>
+  );
+}
+
+function DataRecencyBlock({ className }: { className?: string }) {
+  return (
+    <div className={cn("text-[10px] text-muted-foreground/80 leading-relaxed", className)}>
+      <p className="font-medium text-muted-foreground">{RIGHTS_UPDATE_LABEL}</p>
+      <p className="mt-0.5">{DATA_SOURCE_NOTE}</p>
+    </div>
+  );
+}
 
 interface ResultPanelProps {
   result: CalculationResult | null;
@@ -37,6 +124,8 @@ interface ResultPanelProps {
   stepNumber?: number;
   partySize?: number;
   holderCounts?: Record<string, number>;
+  /** 與目前試算相同參數，用於單卡潛在回饋試算 */
+  recommendationContext?: ResultPanelRecommendationContext | null;
 }
 
 function strategyEmoji(subCategory: string | undefined, detailLabel: string | undefined): string {
@@ -189,7 +278,14 @@ function StatCard({
   );
 }
 
-export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1, holderCounts = {} }: ResultPanelProps) {
+export function ResultPanel({
+  result,
+  destination,
+  stepNumber = 4,
+  partySize = 1,
+  holderCounts = {},
+  recommendationContext = null,
+}: ResultPanelProps) {
   const [copied, setCopied] = useState(false);
   const [copiedStrategy, setCopiedStrategy] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -206,6 +302,15 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
           <p className="text-sm text-muted-foreground">請輸入消費金額並選擇至少一張信用卡</p>
           <p className="text-xs text-muted-foreground/60 mt-1">系統將自動計算 Waterfall 最優刷卡組合</p>
         </div>
+        <DataRecencyBlock className="mt-6 px-1" />
+        <footer className="mt-4 border-t border-border pt-4">
+          <details className="text-[10px] text-muted-foreground/75">
+            <summary className="cursor-pointer select-none text-muted-foreground hover:text-foreground">
+              隱私權聲明
+            </summary>
+            <p className="mt-2 leading-relaxed pl-1">{PRIVACY_STATEMENT}</p>
+          </details>
+        </footer>
       </section>
     );
   }
@@ -311,6 +416,49 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
   const displayStepItems = buildDisplayStepItems(waterfallSteps);
   const shoppingStrategyLines = buildShoppingStrategySummary(waterfallSteps);
 
+  const applyCardRecommendations = useMemo(() => {
+    if (!recommendationContext || totalSpending <= 0) return [];
+    const enrolledSet = new Set(recommendationContext.enrolledCards);
+    const currentNet = Math.round(totalNetCashback);
+    const rows = APPLY_RECOMMENDATION_CARD_IDS.map((id) => {
+      const card = CREDIT_CARDS.find((c) => c.id === id);
+      if (!card) return null;
+      const solo = calculateOptimalCombination(
+        recommendationContext.mergedSpending,
+        [card],
+        enrolledSet,
+        recommendationContext.patternSelections,
+        recommendationContext.selectedBrands,
+        recommendationContext.holderCounts,
+        recommendationContext.isDbsEcoNewUser,
+        recommendationContext.kumamonWalletPaypayExcluded,
+        recommendationContext.isKumamonFlightJpy,
+        recommendationContext.dateRange,
+        recommendationContext.sinopacLevel,
+        {
+          isSinopacNewUser: recommendationContext.isSinopacNewUser,
+          isUnionJingheNewUser: recommendationContext.isUnionJingheNewUser,
+        },
+        recommendationContext.partySize
+      );
+      const soloNet = Math.round(solo?.totalNetCashback ?? 0);
+      const extra = Math.max(0, soloNet - currentNet);
+      const applyUrl = CARD_APPLY_URLS[id];
+      if (!applyUrl) return null;
+      return {
+        cardId: id,
+        cardName: card.name,
+        shortName: card.shortName,
+        highlight: CARD_CORE_HIGHLIGHT[id] ?? card.notes ?? "",
+        soloNet,
+        extra,
+        applyUrl,
+      };
+    }).filter((x): x is NonNullable<typeof x> => x != null);
+    rows.sort((a, b) => (b.extra !== a.extra ? b.extra - a.extra : b.soloNet - a.soloNet));
+    return rows.slice(0, 4);
+  }, [recommendationContext, totalSpending, totalNetCashback]);
+
   const handleCopy = async () => {
     const tripPhrase = destination === "日本" ? "日本行" : "韓國行";
     const savingsAmountLabel = formatTWD(savingsValue);
@@ -373,7 +521,8 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+        <div className="grid grid-cols-3 gap-2 flex-1">
         <StatCard
           label="總消費"
           value={formatTWD(totalSpending)}
@@ -390,6 +539,8 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
           sub={`回饋率 ${savingsRate}%`}
           highlight
         />
+        </div>
+        <DataRecencyBlock className="sm:max-w-[200px] sm:text-right sm:pt-1 shrink-0" />
       </div>
       {registrationExtraSaving > 0 && (
         <p className="mb-3 text-xs font-medium text-emerald-600">

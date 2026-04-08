@@ -32,6 +32,7 @@ export function defaultPaymentForPattern(
   if (category === "flight" || category === "hotel") return "online";
   if (category === "rental") return "online";
   if (patternId === "transport") return "apple_pay";
+  if (patternId === "domestic_transport") return "physical";
   if (patternLabel && /購物|百貨|outlet|藥妝/i.test(patternLabel)) return "physical";
   if (patternLabel && /餐飲|美食/i.test(patternLabel)) return "physical";
   return "physical";
@@ -89,6 +90,10 @@ export interface PatternSelection {
 // Merges pattern amounts into a SpendingInput by summing each category
 // Also returns the list of pattern selections for card-specific logic
 const IC_BRAND_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
+const DOMESTIC_TRANSPORT_BRAND_IDS = new Set([
+  "taoyuan_airport_metro",
+  "taiwan_hsr_all",
+]);
 
 export interface MergePatternPaymentOptions {
   flightPaymentMethod?: PaymentChannel;
@@ -673,6 +678,32 @@ function getEffectiveRate(
           specialNote: "🎟️ 需領券：Klook 日本指定商品 6%",
         };
       }
+      const taoyuanCubeBoost = categorySelections.some(
+        (s) =>
+          s.brandId === "taoyuan_airport_metro" &&
+          (s.paymentMethod === "physical" ||
+            s.paymentMethod === "apple_pay" ||
+            s.paymentMethod === undefined)
+      );
+      if (taoyuanCubeBoost) {
+        return {
+          rate: 5.0,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote:
+            "⚠️ 需切換至「日本賞」方案；限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值",
+        };
+      }
+      if (hasAny(["taiwan_hsr_all"])) {
+        return {
+          rate: 3.3,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需切換至「趣旅行」方案，並登入 App 領取高鐵加碼券",
+        };
+      }
       return {
         rate: 3.5,
         isKumamonBonus: false,
@@ -1161,16 +1192,21 @@ function waterfallForCategorySegmentsV2(
       for (const card of cards) {
         const enrolled = enrolledIds.has(card.id);
         const roundingMode = getCardRoundingMode(card);
-        const isTaoyuanMetro =
-          category === "local" && seg.brandId === "taoyuan_airport_metro";
-        const feeRate = isTaoyuanMetro ? 0 : (card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE));
+        const isDomesticTransport =
+          category === "local" && DOMESTIC_TRANSPORT_BRAND_IDS.has(seg.brandId ?? "");
+        const feeRate = isDomesticTransport ? 0 : (card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE));
 
-        // ── 桃園機場捷運專屬：CUBE 5%（限感應過閘），其餘卡一律一般 1% ──
-        if (isTaoyuanMetro) {
-          const isCubeGateTap =
+        // ── 國內交通專屬：CUBE 優先，其餘卡以一般國內消費 1% 試算 ──
+        if (isDomesticTransport) {
+          const isTaoyuanMetro = seg.brandId === "taoyuan_airport_metro";
+          const isTaiwanHsr = seg.brandId === "taiwan_hsr_all";
+          /** 機捷限感應／實體；高鐵全通路含臨櫃、App、售票機（線上視為 App） */
+          const isCubeDomesticBoost =
             card.id === "cathay-cube" &&
-            (seg.paymentMethod === "physical" || seg.paymentMethod === "apple_pay");
-          if (isCubeGateTap) {
+            (isTaiwanHsr ||
+              (isTaoyuanMetro &&
+                (seg.paymentMethod === "physical" || seg.paymentMethod === "apple_pay")));
+          if (isCubeDomesticBoost && isTaoyuanMetro) {
             candidates.push({
               card,
               phase: "standard-uncapped",
@@ -1180,7 +1216,20 @@ function waterfallForCategorySegmentsV2(
               roundingMode,
               feeRate,
               capUsesPoints: false,
-              segmentSpecialNote: "⚠️ 限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值（請切換日本賞）",
+              segmentSpecialNote: "⚠️ 需切換至「日本賞」方案；限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值",
+            });
+          } else if (isCubeDomesticBoost && isTaiwanHsr) {
+            candidates.push({
+              card,
+              phase: "standard-uncapped",
+              effectiveRatePercent: 3.3,
+              maxSpend: remainingSeg,
+              priority: 100000,
+              roundingMode,
+              feeRate,
+              capUsesPoints: false,
+              segmentSpecialNote:
+                "🎟️ 需切換至「趣旅行」方案，並登入 App 領取高鐵加碼券",
             });
           } else {
             candidates.push({
@@ -1192,7 +1241,7 @@ function waterfallForCategorySegmentsV2(
               roundingMode,
               feeRate,
               capUsesPoints: false,
-              segmentSpecialNote: "桃園機捷以一般國內消費 1% 試算",
+              segmentSpecialNote: "國內交通以一般國內消費 1% 試算（不套用日本旅遊加碼）",
             });
           }
           continue;
