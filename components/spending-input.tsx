@@ -139,7 +139,7 @@ export function SpendingInputPanel({
   return (
     <section aria-label="線上訂機票與住宿消費金額">
       <p className="text-[10px] text-muted-foreground/80 leading-relaxed mb-3">
-        若您在 Step 3「消費樣態」填寫交通 IC 儲值，請於該處開啟或關閉「Apple Pay 儲值」，以正確試算星展／台新／富邦等權益。
+        若您在 Step 3「消費樣態」填寫「日本交通卡儲值 (Suica / PASMO / ICOCA)」，請於該處開啟或關閉「Apple Pay 儲值」，以正確試算星展／台新／富邦等權益。
       </p>
       <div className="space-y-4">
         <div className="rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-foreground/30">

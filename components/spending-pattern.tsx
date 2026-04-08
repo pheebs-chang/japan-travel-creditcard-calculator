@@ -407,8 +407,11 @@ export function SpendingPatternPanel({
 
   const getPaymentForBrand = (pattern: SpendingPattern, brandId: string): PaymentChannel => {
     const key = `${pattern.id}:${brandId}`;
+    if (patternPaymentByKey[key]) return patternPaymentByKey[key];
+    // 交通卡儲值預設為 Apple Pay／感應，符合實務情境。
+    if (IC_CARD_IDS.has(brandId)) return "apple_pay";
     const fallback = defaultPaymentForPattern(pattern.category, pattern.id, pattern.label);
-    return patternPaymentByKey[key] ?? fallback;
+    return fallback;
   };
 
   const getSubGroupTotal = (pattern: SpendingPattern, sg: BrandGroup) => {
@@ -505,7 +508,7 @@ export function SpendingPatternPanel({
 
     // Normal: per-brand input boxes
     return (
-      <div className="px-3 py-2 space-y-2">
+      <div className={cn("px-3 py-2 space-y-2", sg.id === "ic_card" && "px-4 py-3 space-y-2.5")}>
         {sg.brands.map((brand) => (
           <BrandInputRow
             key={brand.id}
