@@ -1,5 +1,25 @@
 import { CreditCard, SpendingCategory, FOREIGN_FEE, CashbackRule, DBS_ECO_EXCLUDED_BRANDS } from "./card-data";
-import { SPENDING_PATTERNS, HOTEL_BOOKING_BRANDS, FLIGHT_BOOKING_BRANDS } from "./spend-patterns";
+import {
+  SPENDING_PATTERNS,
+  HOTEL_BOOKING_BRANDS,
+  FLIGHT_BOOKING_BRANDS,
+  type SpendingPattern,
+  type BrandItem,
+} from "./spend-patterns";
+
+function findBrandInPattern(pattern: SpendingPattern, brandId: string): BrandItem | undefined {
+  if (pattern.brands) {
+    const b = pattern.brands.find((x) => x.id === brandId);
+    if (b) return b;
+  }
+  if (pattern.subGroups) {
+    for (const sg of pattern.subGroups) {
+      const b = sg.brands.find((x) => x.id === brandId);
+      if (b) return b;
+    }
+  }
+  return undefined;
+}
 
 /** 支付方式：影響中信 UniOpen 線上／實體試算與攻略標籤 */
 export type PaymentChannel = "physical" | "apple_pay" | "online";
@@ -14,6 +34,9 @@ export interface AccommodationExpense {
   paymentMethod?: PaymentChannel;
 }
 
+/** 國內機捷／高鐵購票試算：分開刷卡或一人代購（影響每人回饋上限與拆段試算） */
+export type DomesticRailPurchaseMode = "split" | "together";
+
 export interface SpendingInput {
   flight: number;
   accommodationExpenses: AccommodationExpense[];
@@ -21,6 +44,17 @@ export interface SpendingInput {
   local: number;
   /** Step2 機票區塊：預設線上 */
   flightPaymentMethod?: PaymentChannel;
+  /** 機票購買方式：split 依人數拆分逐人試算；together 以總額單筆試算。 */
+  flightPurchaseMode?: DomesticRailPurchaseMode;
+  /**
+   * @deprecated 舊版單一開關，僅作為 `taiwanHsrPurchaseMode` 之後備（新 UI 請用下列兩欄）。
+   * `split`：高鐵預設為分開買；機捷預設仍為一起買。
+   */
+  domesticRailPurchaseMode?: DomesticRailPurchaseMode;
+  /** 桃園機場捷運：已固定採 split（依人數拆分逐人試算）。 */
+  taoyuanMetroPurchaseMode?: DomesticRailPurchaseMode;
+  /** 台灣高鐵：`split` 時以 (金額÷人數) 逐人試算後加總。未指定時後備為 `domesticRailPurchaseMode`。 */
+  taiwanHsrPurchaseMode?: DomesticRailPurchaseMode;
 }
 
 /** 依類別／樣態的預設支付方式（UI 新增列時使用） */
@@ -93,6 +127,7 @@ const IC_BRAND_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
 const DOMESTIC_TRANSPORT_BRAND_IDS = new Set([
   "taoyuan_airport_metro",
   "taiwan_hsr_all",
+  "taiwan_rail_all",
 ]);
 
 export interface MergePatternPaymentOptions {
@@ -108,7 +143,9 @@ export function mergePatternAmounts(
   selectedBrands?: Record<string, string>,
   baseFlightBrandId?: string | null,
   applePayByBrand?: Record<string, boolean>,
-  paymentOpts?: MergePatternPaymentOptions
+  paymentOpts?: MergePatternPaymentOptions,
+  /** key: `domestic_transport:brandId`，用於機捷／高鐵分開試算 */
+  patternBrandAmounts?: Record<string, number>
 ): { merged: SpendingInput; selections: PatternSelection[] } {
   const merged: SpendingInput = {
     ...base,
@@ -120,6 +157,95 @@ export function mergePatternAmounts(
     if (!amount || amount <= 0) continue;
     const pattern = SPENDING_PATTERNS.find((p) => p.id === patternId);
     if (!pattern) continue;
+
+    // 國內交通：依品牌拆成多筆片段（機捷、高鐵各自金額與支付方式）
+    if (pattern.id === "domestic_transport" && pattern.category === "local" && patternBrandAmounts) {
+      const prefix = "domestic_transport:";
+      const splits: { brandId: string; amt: number }[] = [];
+      for (const [key, val] of Object.entries(patternBrandAmounts)) {
+        if (!key.startsWith(prefix) || val == null || val <= 0.01) continue;
+        splits.push({ brandId: key.slice(prefix.length), amt: val });
+      }
+      if (splits.length > 0) {
+        const splitSum = splits.reduce((s, x) => s + x.amt, 0);
+        merged.local = (merged.local ?? 0) + splitSum;
+        for (const { brandId, amt } of splits) {
+          const brand = findBrandInPattern(pattern, brandId);
+          const bid = brandId;
+          const isIc = IC_BRAND_IDS.has(bid);
+          const isApplePay =
+            isIc && bid
+              ? bid === "jp_ic_wallet_topup"
+                ? applePayByBrand?.jp_ic_wallet_topup ?? applePayByBrand?.suica ?? true
+                : applePayByBrand?.[bid] ?? true
+              : undefined;
+          const segPm =
+            paymentOpts?.patternPaymentByKey?.[`${pattern.id}:${bid}`] ??
+            defaultPaymentForPattern("local", pattern.id, pattern.label);
+          selections.push({
+            patternId: pattern.id,
+            brandId: bid,
+            brandName: brand?.name,
+            amount: amt,
+            isKumamonEligible: brand?.isKumamonEligible ?? false,
+            isRakutenJapanese: brand?.isRakutenJapanese ?? false,
+            isDbsEcoExcluded: brand?.isDbsEcoExcluded ?? false,
+            isKkday: brand?.isKkday ?? false,
+            specialNote: brand?.specialNote,
+            category: "local",
+            patternLabel: pattern.label,
+            isApplePay,
+            paymentMethod: segPm,
+          });
+        }
+        continue;
+      }
+    }
+
+    // 一般品牌拆分：像 shopping 這類可複選品牌的 pattern，需逐品牌獨立入段，禁止合併成單一品牌。
+    if (patternBrandAmounts) {
+      const prefix = `${pattern.id}:`;
+      const splitEntries = Object.entries(patternBrandAmounts)
+        .filter(([key, val]) => key.startsWith(prefix) && (val ?? 0) > 0.01)
+        .map(([key, val]) => ({ brandId: key.slice(prefix.length), amt: Number(val) || 0 }))
+        .filter((x) => x.amt > 0.01);
+      if (splitEntries.length > 0 && pattern.category !== "hotel") {
+        const splitSum = splitEntries.reduce((s, x) => s + x.amt, 0);
+        if (pattern.category === "flight") merged.flight = (merged.flight ?? 0) + splitSum;
+        else if (pattern.category === "rental") merged.rental = (merged.rental ?? 0) + splitSum;
+        else if (pattern.category === "local") merged.local = (merged.local ?? 0) + splitSum;
+
+        for (const { brandId, amt } of splitEntries) {
+          const brand = findBrandInPattern(pattern, brandId);
+          const isIc = IC_BRAND_IDS.has(brandId);
+          const isApplePay =
+            isIc
+              ? brandId === "jp_ic_wallet_topup"
+                ? applePayByBrand?.jp_ic_wallet_topup ?? applePayByBrand?.suica ?? true
+                : applePayByBrand?.[brandId] ?? true
+              : undefined;
+          const segPm =
+            paymentOpts?.patternPaymentByKey?.[`${pattern.id}:${brandId}`] ??
+            defaultPaymentForPattern(pattern.category, pattern.id, pattern.label);
+          selections.push({
+            patternId: pattern.id,
+            brandId,
+            brandName: brand?.name,
+            amount: amt,
+            isKumamonEligible: brand?.isKumamonEligible ?? false,
+            isRakutenJapanese: brand?.isRakutenJapanese ?? false,
+            isDbsEcoExcluded: brand?.isDbsEcoExcluded ?? false,
+            isKkday: brand?.isKkday ?? false,
+            specialNote: brand?.specialNote,
+            category: pattern.category,
+            patternLabel: pattern.label,
+            isApplePay,
+            paymentMethod: segPm,
+          });
+        }
+        continue;
+      }
+    }
 
     if (pattern.category === "hotel") {
       const brandId = selectedBrands?.[patternId];
@@ -325,6 +451,12 @@ export interface WaterfallStep {
   splitGroupKey?: string;
   /** 分組類型（目前僅購物切分） */
   splitGroupType?: "shopping";
+  /** 刷卡前須完成的手動操作（切換方案、領券、扣繳設定等） */
+  actionNotes?: string[];
+  /** 機票自動尋優 debug：一起刷路徑總淨回饋 */
+  flightStrategyTogetherNet?: number;
+  /** 機票自動尋優 debug：分開刷路徑總淨回饋 */
+  flightStrategySplitNet?: number;
 }
 
 export interface CardBreakdown {
@@ -343,6 +475,15 @@ export interface CardBreakdown {
   validityWarning?: string;
 }
 
+/** 分項淨回饋（與 waterfall 各步 netCashback 加總一致） */
+export interface SavingsBreakdown {
+  flightNet: number;
+  hotelNet: number;
+  domesticTransportNet: number;
+  /** 日本當地、交通 IC、購物、租車等非國內交通之 local + rental */
+  japanShoppingNet: number;
+}
+
 export interface CalculationResult {
   waterfallSteps: WaterfallStep[];
   totalSpending: number;
@@ -352,6 +493,40 @@ export interface CalculationResult {
   cardBreakdown: CardBreakdown[];
   hasKumamonBonus: boolean;
   hasDbsEcoBonus: boolean;
+  savingsBreakdown: SavingsBreakdown;
+}
+
+function isDomesticTransportStep(step: WaterfallStep): boolean {
+  const bid = step.brandId;
+  if (
+    bid === "taoyuan_airport_metro" ||
+    bid === "taiwan_hsr_all" ||
+    bid === "taiwan_rail_all"
+  ) {
+    return true;
+  }
+  const sub = step.subCategory ?? "";
+  return /🚄\s*桃園|🚅\s*台灣高鐵|🚃\s*台灣鐵路/i.test(sub);
+}
+
+export function aggregateSavingsBreakdown(steps: WaterfallStep[]): SavingsBreakdown {
+  const out: SavingsBreakdown = {
+    flightNet: 0,
+    hotelNet: 0,
+    domesticTransportNet: 0,
+    japanShoppingNet: 0,
+  };
+  for (const s of steps) {
+    const n = s.netCashback;
+    if (s.category === "flight") out.flightNet += n;
+    else if (s.category === "hotel") out.hotelNet += n;
+    else if (s.category === "rental") out.japanShoppingNet += n;
+    else if (s.category === "local") {
+      if (isDomesticTransportStep(s)) out.domesticTransportNet += n;
+      else out.japanShoppingNet += n;
+    }
+  }
+  return out;
 }
 
 const CATEGORY_LABELS: Record<SpendingCategory, string> = {
@@ -365,6 +540,38 @@ function resolveSegmentStepLabels(
   category: SpendingCategory,
   seg: PatternSelection
 ): { subCategory: string; detailLabel?: string } {
+  if (category === "local") {
+    if (seg.brandId === "taoyuan_airport_metro") {
+      const raw = seg.brandName ? String(seg.brandName).replace(/^🚄\s*/u, "").trim() : "";
+      return {
+        subCategory: "🚄 桃園機場捷運",
+        detailLabel: raw || undefined,
+      };
+    }
+    if (seg.brandId === "taiwan_hsr_all") {
+      const raw = seg.brandName ? String(seg.brandName).replace(/^🚅\s*/u, "").trim() : "";
+      return {
+        subCategory: "🚅 台灣高鐵",
+        detailLabel: raw || undefined,
+      };
+    }
+    if (seg.brandId === "taiwan_rail_all") {
+      const raw = seg.brandName ? String(seg.brandName).replace(/^🚃\s*/u, "").trim() : "";
+      return {
+        subCategory: "🚃 台灣鐵路",
+        detailLabel: raw || undefined,
+      };
+    }
+    if (seg.patternId === "shopping" && seg.brandName) {
+      const brand = String(seg.brandName).trim();
+      if (brand) {
+        return {
+          subCategory: `🛍️ 購物消費 (${brand})`,
+          detailLabel: undefined,
+        };
+      }
+    }
+  }
   let sub =
     seg.patternLabel ??
     (category === "flight"
@@ -380,6 +587,45 @@ function resolveSegmentStepLabels(
   const rawDetail = seg.brandName ?? seg.expenseName;
   const detailLabel = rawDetail && String(rawDetail).trim() ? String(rawDetail).trim() : undefined;
   return { subCategory: sub, detailLabel };
+}
+
+/** 攻略用：依卡片與消費段產生「操作提醒」標籤文案 */
+export function buildStepActionNotes(
+  cardId: string,
+  category: SpendingCategory,
+  seg: Pick<PatternSelection, "brandId" | "patternId">
+): string[] | undefined {
+  const brandId = seg.brandId;
+  if (cardId === "cathay-cube") {
+    if (category === "local") {
+      if (brandId === "taiwan_hsr_all") {
+        return ["切換：趣旅行", "APP 領券"];
+      }
+      return ["切換：日本賞", "APP 領券"];
+    }
+    return undefined;
+  }
+  if (cardId === "taishin-flygo") {
+    if (category === "flight" || brandId === "taiwan_hsr_all") {
+      return ["切換：天天刷", "Richart 扣繳"];
+    }
+    return undefined;
+  }
+  if (cardId === "fubon-j" && category === "local" && brandId && IC_BRAND_IDS.has(brandId)) {
+    return ["APP 領券"];
+  }
+  if (cardId === "union-jinghe" && category === "local") {
+    if (
+      brandId === "taoyuan_airport_metro" ||
+      brandId === "taiwan_hsr_all" ||
+      brandId === "taiwan_rail_all" ||
+      (brandId && IC_BRAND_IDS.has(brandId))
+    ) {
+      return undefined;
+    }
+    return ["需感應支付 (QuicPay)"];
+  }
+  return undefined;
 }
 
 /** 機票總額依人數拆成整數元，餘數由前幾位旅客各 +1 */
@@ -678,12 +924,19 @@ function getEffectiveRate(
           specialNote: "🎟️ 需領券：Klook 日本指定商品 6%",
         };
       }
+      if (hasAny(["taiwan_hsr_all"])) {
+        return {
+          rate: 3.3,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "⚠️ 需切換至「趣旅行」方案並領券",
+        };
+      }
       const taoyuanCubeBoost = categorySelections.some(
         (s) =>
           s.brandId === "taoyuan_airport_metro" &&
-          (s.paymentMethod === "physical" ||
-            s.paymentMethod === "apple_pay" ||
-            s.paymentMethod === undefined)
+          (s.paymentMethod === "physical" || s.paymentMethod === "apple_pay")
       );
       if (taoyuanCubeBoost) {
         return {
@@ -691,17 +944,7 @@ function getEffectiveRate(
           isKumamonBonus: false,
           isDbsEcoBonus: false,
           isDbsEcoBaseOnly: false,
-          specialNote:
-            "⚠️ 需切換至「日本賞」方案；限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值",
-        };
-      }
-      if (hasAny(["taiwan_hsr_all"])) {
-        return {
-          rate: 3.3,
-          isKumamonBonus: false,
-          isDbsEcoBonus: false,
-          isDbsEcoBaseOnly: false,
-          specialNote: "🎟️ 需切換至「趣旅行」方案，並登入 App 領取高鐵加碼券",
+          specialNote: "⚠️ 需切換至「日本賞」方案，限感應過閘門使用",
         };
       }
       return {
@@ -768,8 +1011,7 @@ function getEffectiveRate(
         isKumamonBonus: false,
         isDbsEcoBonus: false,
         isDbsEcoBaseOnly: false,
-        specialNote:
-          "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）。試算未逐筆扣除帳單回饋上限，實際仍以銀行公告為準",
+        specialNote: "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案",
       };
     }
   }
@@ -1078,10 +1320,12 @@ function waterfallForCategorySegmentsV2(
   kumamonFlightJpyEnabled: boolean,
   kumamonBonusCapState: { remainingPoints: number; initialPoints: number } | null,
   dbsEcoBonusCapState: { remainingPoints: number; initialPoints: number } | null,
-  opts?: { indivisible?: boolean; flightTravelerIndex?: number },
+  opts?: { indivisible?: boolean; flightTravelerIndex?: number; splitTravelerSlot?: number; partySize?: number },
   rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean }
 ): WaterfallStep[] {
+  const effectivePartySize = Math.max(1, opts?.partySize ?? 1);
   if (totalAmount <= 0) return [];
+  if (!cards.length) return [];
 
   const steps: WaterfallStep[] = [];
 
@@ -1138,7 +1382,9 @@ function waterfallForCategorySegmentsV2(
     if (card.id === "dbs-eco" || card.id === "esun-kumamon") continue;
     const rule = card.cashback.find((r) => r.category === category);
     if (!rule || rule.cap === undefined) continue;
-    const holders = holderCounts[card.id] ?? 1;
+    const rawHolders = holderCounts[card.id];
+    if (rawHolders !== undefined && rawHolders <= 0) continue; // 未持有：禁止進入上限分配
+    const holders = rawHolders ?? 1;
     const capInitialPoints = rule.cap * holders;
     const roundingMode = getCardRoundingMode(card);
     const feeRate = card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE);
@@ -1176,11 +1422,60 @@ function waterfallForCategorySegmentsV2(
     const shoppingBlob = `${seg.patternLabel ?? ""}${seg.brandName ?? ""}${seg.expenseName ?? ""}`;
     const isShoppingSplitCandidate =
       category === "local" && /(購物|百貨|藥妝|電器|outlet|mall|store|bic|三越|伊勢丹)/i.test(shoppingBlob);
+    const isAtomicShopping = isShoppingSplitCandidate;
     const splitGroupKey = isShoppingSplitCandidate
       ? `shopping:${segIdx}:${seg.brandId ?? seg.brandName ?? seg.patternId}`
       : undefined;
     /** 同一消費片段內，每張卡最後一次刷卡對應的持卡人索引（溢出／降階步驟繼承用） */
     const lastHolderByCardId = new Map<string, number>();
+    const splitSlot = opts?.splitTravelerSlot;
+    const pushSegmentFallback = (amount: number): boolean => {
+      const fallbackCard = cards.find((c) => {
+        const rawHeld = holderCounts[c.id];
+        const held = rawHeld ?? 1;
+        if (rawHeld !== undefined && rawHeld <= 0) return false;
+        if (splitSlot === undefined) return true;
+        return splitSlot < held;
+      });
+      if (!fallbackCard || amount <= 0.01) return false;
+      const rule = fallbackCard.cashback.find((r) => r.category === category);
+      if (!rule) return false;
+      const roundingMode = getCardRoundingMode(fallbackCard);
+      const feeRate = fallbackCard.noForeignFee ? 0 : (fallbackCard.foreignFee ?? FOREIGN_FEE);
+      const gross = applyRounding((amount * rule.rate) / 100, roundingMode);
+      const fee = applyRounding((amount * feeRate) / 100, roundingMode);
+      const net = gross - fee;
+      const labels = resolveSegmentStepLabels(category, seg);
+      const fallbackHolder =
+        splitSlot !== undefined ? splitSlot : (lastHolderByCardId.get(fallbackCard.id) ?? 0);
+      steps.push({
+        stepIndex: stepIndexRef.v++,
+        category,
+        categoryLabel: CATEGORY_LABELS[category],
+        cardId: fallbackCard.id,
+        cardName: fallbackCard.name,
+        cardShortName: fallbackCard.shortName,
+        amount,
+        cashbackRate: rule.rate,
+        grossCashback: gross,
+        foreignFee: fee,
+        netCashback: net,
+        isCapReached: false,
+        enrolled: enrolledIds.has(fallbackCard.id),
+        brandName: seg.brandName,
+        brandId: seg.brandId,
+        paymentMethod: seg.paymentMethod,
+        specialNote: seg.specialNote,
+        expenseLabel: seg.expenseName,
+        subCategory: labels.subCategory,
+        detailLabel: labels.detailLabel,
+        holderIndex: fallbackHolder,
+        travelerIndex: fallbackHolder,
+        actionNotes: buildStepActionNotes(fallbackCard.id, category, seg),
+      });
+      lastHolderByCardId.set(fallbackCard.id, fallbackHolder);
+      return true;
+    };
     while (remainingSeg > 0.01) {
       type Candidate = {
         card: CreditCard;
@@ -1206,6 +1501,10 @@ function waterfallForCategorySegmentsV2(
         category === "local" && IC_BRAND_IDS.has(seg.brandId ?? "") && seg.isApplePay !== false;
 
       for (const card of cards) {
+        const rawHeld = holderCounts[card.id];
+        const holderTotal = rawHeld ?? 1;
+        if (rawHeld !== undefined && rawHeld <= 0) continue; // 未持有：禁止產生任何該卡步驟
+        if (splitSlot !== undefined && splitSlot >= holderTotal) continue; // 分開買：落在該旅客槽位的持卡人數需足夠
         const enrolled = enrolledIds.has(card.id);
         const roundingMode = getCardRoundingMode(card);
         const isDomesticTransport =
@@ -1217,13 +1516,13 @@ function waterfallForCategorySegmentsV2(
           const isTaoyuanMetro = seg.brandId === "taoyuan_airport_metro";
           const isTaiwanHsr = seg.brandId === "taiwan_hsr_all";
           const enrolledBoost = enrolled ? 50 : 0;
-          /** 機捷限感應／實體；高鐵含官網、App、臨櫃等（與卡面活動一致） */
-          const isCubeDomesticBoost =
+          /** 機捷：僅 CUBE + 感應（實體／Apple Pay）5%；高鐵：CUBE／FlyGo 3.3% */
+          const isCubeTaoyuan =
             card.id === "cathay-cube" &&
-            (isTaiwanHsr ||
-              (isTaoyuanMetro &&
-                (seg.paymentMethod === "physical" || seg.paymentMethod === "apple_pay")));
-          if (isCubeDomesticBoost && isTaoyuanMetro) {
+            isTaoyuanMetro &&
+            (seg.paymentMethod === "physical" || seg.paymentMethod === "apple_pay");
+          const isCubeHsr = card.id === "cathay-cube" && isTaiwanHsr;
+          if (isCubeTaoyuan) {
             candidates.push({
               card,
               phase: "standard-uncapped",
@@ -1233,9 +1532,9 @@ function waterfallForCategorySegmentsV2(
               roundingMode,
               feeRate,
               capUsesPoints: false,
-              segmentSpecialNote: "⚠️ 需切換至「日本賞」方案；限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值",
+              segmentSpecialNote: "⚠️ 需切換至「日本賞」方案，限感應過閘門使用",
             });
-          } else if (isCubeDomesticBoost && isTaiwanHsr) {
+          } else if (isCubeHsr) {
             candidates.push({
               card,
               phase: "standard-uncapped",
@@ -1245,8 +1544,7 @@ function waterfallForCategorySegmentsV2(
               roundingMode,
               feeRate,
               capUsesPoints: false,
-              segmentSpecialNote:
-                "🎟️ 需切換至「趣旅行」方案，並登入 App 領取高鐵加碼券",
+              segmentSpecialNote: "⚠️ 需切換至「趣旅行」方案並領券",
             });
           } else if (card.id === "taishin-flygo" && isTaiwanHsr) {
             candidates.push({
@@ -1258,8 +1556,7 @@ function waterfallForCategorySegmentsV2(
               roundingMode,
               feeRate,
               capUsesPoints: false,
-              segmentSpecialNote:
-                "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案；適用高鐵官網、T-EX App、車站售票窗口等（依公告）。試算未逐筆扣除帳單回饋上限，實際仍以銀行公告為準",
+              segmentSpecialNote: "⚠️ 需搭配 Richart 自動扣繳，並切換至「天天刷」方案",
             });
           } else {
             candidates.push({
@@ -1298,9 +1595,17 @@ function waterfallForCategorySegmentsV2(
           // 1) 富邦 J：10%，加碼上限 NT$200（約刷 NT$2,857）
           const fubon = byId("fubon-j");
           const fubonKey = "__fubon_ap_ic_spend_cap__";
+          const fubonHolderKey = "__fubon_ap_ic_spend_cap_by_holder__";
+          const wfState = waterfallForCategorySegmentsV2 as unknown as Record<string, unknown>;
+          const fubonHolders = Math.max(1, holderCounts["fubon-j"] ?? 1);
+          const slot = opts?.splitTravelerSlot ?? 0;
+          const fubonByHolder = (wfState[fubonHolderKey] as number[] | undefined) ??
+            Array.from({ length: fubonHolders }, () => 2857);
+          wfState[fubonHolderKey] = fubonByHolder;
           const fubonCapRemain =
-            (waterfallForCategorySegmentsV2 as unknown as Record<string, number>)[fubonKey] ??
-            ((holderCounts["fubon-j"] ?? 1) * 2857);
+            opts?.splitTravelerSlot !== undefined
+              ? (fubonByHolder[slot] ?? 0)
+              : ((wfState[fubonKey] as number | undefined) ?? (fubonHolders * 2857));
           pushCandidate(
             fubon,
             10.0,
@@ -1312,9 +1617,19 @@ function waterfallForCategorySegmentsV2(
           // 2) 熊本熊：8.5%，受 6% 加碼上限約 NT$8,333/人
           const kumamon = byId("esun-kumamon");
           if (kumamon && card.id === "esun-kumamon") {
-            const kmMax = kumamonBonusCapState && kumamonBonusCapState.remainingPoints > 0.01
-              ? maxSpendForPointsCap(kumamonBonusCapState.remainingPoints, 6.0, roundingMode)
-              : 0;
+            const kmHolderKey = "__kumamon_ic_bonus_spend_cap_by_holder__";
+            const kmHolders = Math.max(1, holderCounts["esun-kumamon"] ?? 1);
+            const slot = opts?.splitTravelerSlot ?? 0;
+            const kmByHolder = (wfState[kmHolderKey] as number[] | undefined) ??
+              Array.from({ length: kmHolders }, () => 500 / 0.06);
+            wfState[kmHolderKey] = kmByHolder;
+            const kmHolderRemain =
+              opts?.splitTravelerSlot !== undefined
+                ? (kmByHolder[slot] ?? 0)
+                : (kumamonBonusCapState && kumamonBonusCapState.remainingPoints > 0.01
+                    ? maxSpendForPointsCap(kumamonBonusCapState.remainingPoints, 6.0, roundingMode)
+                    : 0);
+            const kmMax = Math.max(0, kmHolderRemain);
             if (kmMax > 0.01) {
               pushCandidate(
                 kumamon,
@@ -1638,13 +1953,15 @@ function waterfallForCategorySegmentsV2(
 
         const capState = standardCapStateByCardId.get(card.id);
         if (capState && capState.remainingPoints > 0.01) {
-          let holderIndex = 0;
-          let holderRemaining = capState.holderRemainingPoints[0] ?? 0;
-          for (let i = 0; i < capState.holderRemainingPoints.length; i++) {
-            if ((capState.holderRemainingPoints[i] ?? 0) > 0.01) {
-              holderIndex = i;
-              holderRemaining = capState.holderRemainingPoints[i];
-              break;
+          let holderIndex = splitSlot ?? 0;
+          let holderRemaining = capState.holderRemainingPoints[holderIndex] ?? 0;
+          if (splitSlot === undefined) {
+            for (let i = 0; i < capState.holderRemainingPoints.length; i++) {
+              if ((capState.holderRemainingPoints[i] ?? 0) > 0.01) {
+                holderIndex = i;
+                holderRemaining = capState.holderRemainingPoints[i];
+                break;
+              }
             }
           }
           if (holderRemaining <= 0.01) continue;
@@ -1673,7 +1990,7 @@ function waterfallForCategorySegmentsV2(
         } else if (capState && capState.remainingPoints <= 0.01 && effectiveOverflowRate) {
           const overflowRate = effectiveOverflowRate;
           const netRate = overflowRate - feeRate;
-          const overflowHolder = lastHolderByCardId.get(card.id) ?? 0;
+          const overflowHolder = splitSlot ?? (lastHolderByCardId.get(card.id) ?? 0);
           candidates.push({
             card,
             phase: "standard-overflow",
@@ -1691,7 +2008,7 @@ function waterfallForCategorySegmentsV2(
           if (!rule.cap) {
             if (effectiveStandardRate > 0) {
               const netRate = effectiveStandardRate - feeRate;
-              const uncappedHolder = lastHolderByCardId.get(card.id) ?? 0;
+              const uncappedHolder = splitSlot ?? (lastHolderByCardId.get(card.id) ?? 0);
               candidates.push({
                 card,
                 phase: "standard-uncapped",
@@ -1714,70 +2031,151 @@ function waterfallForCategorySegmentsV2(
         }
       }
 
+      if (isShoppingSplitCandidate) {
+        const MIN_SWITCHABLE_SPEND = 200;
+        // 實體店結帳不適合極小額切卡：剩餘加碼可刷額度低於門檻時，直接略過該候選卡。
+        const filtered = candidates.filter((c) => c.maxSpend >= MIN_SWITCHABLE_SPEND);
+        candidates.length = 0;
+        candidates.push(...filtered);
+      }
+
       if (candidates.length === 0) {
-        // Should rarely happen; consume the remainder with the first card to keep UI stable.
-        const fallbackCard = cards[0];
-        const rule = fallbackCard.cashback.find((r) => r.category === category);
-        if (!rule) break;
-        const roundingMode = getCardRoundingMode(fallbackCard);
-        const feeRate = fallbackCard.noForeignFee ? 0 : (fallbackCard.foreignFee ?? FOREIGN_FEE);
-        const gross = applyRounding((remainingSeg * rule.rate) / 100, roundingMode);
-        const fee = applyRounding((remainingSeg * feeRate) / 100, roundingMode);
-        const net = gross - fee;
-        const labels = resolveSegmentStepLabels(category, seg);
-        const fallbackHolder = lastHolderByCardId.get(fallbackCard.id) ?? 0;
-        steps.push({
-          stepIndex: stepIndexRef.v++,
-          category,
-          categoryLabel: CATEGORY_LABELS[category],
-          cardId: fallbackCard.id,
-          cardName: fallbackCard.name,
-          cardShortName: fallbackCard.shortName,
-          amount: remainingSeg,
-          cashbackRate: rule.rate,
-          grossCashback: gross,
-          foreignFee: fee,
-          netCashback: net,
-          isCapReached: false,
-          enrolled: enrolledIds.has(fallbackCard.id),
-          brandName: seg.brandName,
-          brandId: seg.brandId,
-          paymentMethod: seg.paymentMethod,
-          specialNote: seg.specialNote,
-          expenseLabel: seg.expenseName,
-          subCategory: labels.subCategory,
-          detailLabel: labels.detailLabel,
-          holderIndex: fallbackHolder,
-          travelerIndex: fallbackHolder,
-        });
-        lastHolderByCardId.set(fallbackCard.id, fallbackHolder);
+        if (!pushSegmentFallback(remainingSeg)) break;
         remainingSeg = 0;
         break;
       }
 
+      const indivisibleThisStep = !!opts?.indivisible || isAtomicShopping;
+
+      const estimateAtomicNetWithCap = (c: Candidate, need: number, capSpend: number): number => {
+        const rounding = c.roundingMode;
+        const fee = applyRounding((need * c.feeRate) / 100, rounding);
+        const fullGross = applyRounding((need * c.effectiveRatePercent) / 100, rounding);
+        if (need <= capSpend + 0.01) return fullGross - fee;
+        if (c.phase === "standard-cap") {
+          const rule = c.card.cashback.find((r) => r.category === category);
+          const ov = rule?.overflowRate;
+          const capPart = applyRounding((capSpend * c.effectiveRatePercent) / 100, rounding);
+          if (ov != null) {
+            const over = Math.max(0, need - capSpend);
+            const overPart = applyRounding((over * ov) / 100, rounding);
+            return capPart + overPart - fee;
+          }
+          return capPart - fee;
+        }
+        if (c.phase === "dbs-bonus" || c.phase === "dbs-online-bonus") {
+          const base = c.baseRatePercent ?? 1;
+          const capBonusPart = applyRounding((capSpend * c.effectiveRatePercent) / 100, rounding);
+          const over = Math.max(0, need - capSpend);
+          const overBase = Math.floor((over * base) / 100);
+          return capBonusPart + overBase - fee;
+        }
+        if (c.phase === "kumamon-bonus") {
+          const base = c.baseRatePercent ?? 2.5;
+          const capBonusPart = applyRounding((capSpend * c.effectiveRatePercent) / 100, rounding);
+          const over = Math.max(0, need - capSpend);
+          const overBase = applyRounding((over * base) / 100, rounding);
+          return capBonusPart + overBase - fee;
+        }
+        return Number.NEGATIVE_INFINITY;
+      };
+      const estimateAtomicNet = (c: Candidate, need: number): number =>
+        estimateAtomicNetWithCap(c, need, c.maxSpend);
+
+      const perHolderCapSpendForCandidate = (c: Candidate): number | undefined => {
+        if (c.phase === "dbs-bonus" || c.phase === "dbs-online-bonus") return 600 / 0.04;
+        if (c.phase === "kumamon-bonus") return 500 / 0.06;
+        if (c.phase === "standard-cap") {
+          const rule = c.card.cashback.find((r) => r.category === category);
+          if (!rule?.cap || c.effectiveRatePercent <= 0.01) return undefined;
+          return rule.cap / (c.effectiveRatePercent / 100);
+        }
+        return undefined;
+      };
+
+      const estimateAtomicSplitNet = (c: Candidate, need: number): number => {
+        if (effectivePartySize <= 1) return estimateAtomicNet(c, need);
+        const chunks = splitFlightTicketAmounts(need, effectivePartySize);
+        const perHolderCapSpend = perHolderCapSpendForCandidate(c);
+        let sum = 0;
+        for (const chunk of chunks) {
+          if (chunk <= 0.01) continue;
+          const capSpend = perHolderCapSpend ? Math.max(c.maxSpend, perHolderCapSpend) : c.maxSpend;
+          sum += estimateAtomicNetWithCap(c, chunk, capSpend);
+        }
+        return sum;
+      };
+
+      if (isAtomicShopping) {
+        const need = remainingSeg;
+        const splitBetterByCard = new Map<string, boolean>();
+        const byCard = new Map<string, Candidate>();
+        for (const c of candidates) {
+          const key = c.card.id;
+          const cur = byCard.get(key);
+          if (!cur) {
+            byCard.set(key, c);
+            splitBetterByCard.set(
+              key,
+              estimateAtomicSplitNet(c, need) > estimateAtomicNet(c, need) + 0.001
+            );
+            continue;
+          }
+          const curNet = Math.max(estimateAtomicNet(cur, need), estimateAtomicSplitNet(cur, need));
+          const nextNet = Math.max(estimateAtomicNet(c, need), estimateAtomicSplitNet(c, need));
+          if (nextNet > curNet + 0.001 || (Math.abs(nextNet - curNet) <= 0.001 && c.priority > cur.priority)) {
+            byCard.set(key, c);
+            splitBetterByCard.set(
+              key,
+              estimateAtomicSplitNet(c, need) > estimateAtomicNet(c, need) + 0.001
+            );
+          }
+        }
+        candidates.length = 0;
+        candidates.push(...Array.from(byCard.values()));
+        (waterfallForCategorySegmentsV2 as unknown as Record<string, unknown>).__shopping_split_pref__ = splitBetterByCard;
+      }
+
       candidates.sort((a, b) => {
+        if (isAtomicShopping) {
+          const an = estimateAtomicNet(a, remainingSeg);
+          const bn = estimateAtomicNet(b, remainingSeg);
+          const dn = bn - an;
+          if (Math.abs(dn) > 0.001) return dn;
+        }
         const d = b.priority - a.priority;
         if (Math.abs(d) > 0.001) return d;
-        return a.card.id.localeCompare(b.card.id);
+        const ac = a.card?.id ?? "";
+        const bc = b.card?.id ?? "";
+        return ac.localeCompare(bc);
       });
 
-      if (opts?.indivisible) {
+      if (indivisibleThisStep) {
         const need = remainingSeg;
+        /** 須複製陣列：若 filter 為空而改指派 `candidates`，與原陣列同參考時後續 `candidates.length = 0` 會把資料全清空，導致 chosen 為 undefined */
         let pool = candidates.filter((c) => c.maxSpend >= need - 0.01);
-        if (!pool.length) pool = candidates;
+        if (!pool.length) pool = [...candidates];
         pool.sort((a, b) => {
           const d = b.priority - a.priority;
           if (Math.abs(d) > 0.001) return d;
-          return a.card.id.localeCompare(b.card.id);
+          const ac = a.card?.id ?? "";
+          const bc = b.card?.id ?? "";
+          return ac.localeCompare(bc);
         });
         candidates.length = 0;
         candidates.push(...pool);
       }
 
-      const chosen = candidates[0];
+      const chosen = candidates.find((c) => c?.card != null) ?? candidates[0];
+      if (!chosen?.card) {
+        if (!pushSegmentFallback(remainingSeg)) break;
+        remainingSeg = 0;
+        break;
+      }
+
       const needAmt = remainingSeg;
       /** 不可分割片段（機票單張）：整筆一次分配，禁止拆成多筆或碎金額 */
-      const allocated = opts?.indivisible ? needAmt : Math.min(remainingSeg, chosen.maxSpend);
+      const allocated = indivisibleThisStep ? needAmt : Math.min(remainingSeg, chosen.maxSpend);
       if (allocated <= 0.009) break;
 
       // Compute points & update cap states.
@@ -1972,11 +2370,34 @@ function waterfallForCategorySegmentsV2(
         feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
         netCashback = grossCashback - feePoints;
         specialNote = chosen.segmentSpecialNote ?? seg.specialNote;
+        const wfState = waterfallForCategorySegmentsV2 as unknown as Record<string, unknown>;
+        const slot = opts?.splitTravelerSlot ?? 0;
         if (chosen.card.id === "fubon-j") {
           const fubonKey = "__fubon_ap_ic_spend_cap__";
-          const cur = (waterfallForCategorySegmentsV2 as unknown as Record<string, number>)[fubonKey] ?? ((holderCounts["fubon-j"] ?? 1) * 2857);
+          const fubonHolderKey = "__fubon_ap_ic_spend_cap_by_holder__";
+          if (opts?.splitTravelerSlot !== undefined) {
+            const byHolder = (wfState[fubonHolderKey] as number[] | undefined) ??
+              Array.from({ length: Math.max(1, holderCounts["fubon-j"] ?? 1) }, () => 2857);
+            const cur = byHolder[slot] ?? 0;
+            const next = Math.max(0, cur - allocated);
+            byHolder[slot] = next;
+            wfState[fubonHolderKey] = byHolder;
+            isCapReached = next <= 0.01;
+          } else {
+            const cur = (wfState[fubonKey] as number | undefined) ?? ((holderCounts["fubon-j"] ?? 1) * 2857);
+            const next = Math.max(0, cur - allocated);
+            wfState[fubonKey] = next;
+            isCapReached = next <= 0.01;
+          }
+        }
+        if (chosen.card.id === "esun-kumamon" && opts?.splitTravelerSlot !== undefined) {
+          const kmHolderKey = "__kumamon_ic_bonus_spend_cap_by_holder__";
+          const byHolder = (wfState[kmHolderKey] as number[] | undefined) ??
+            Array.from({ length: Math.max(1, holderCounts["esun-kumamon"] ?? 1) }, () => 500 / 0.06);
+          const cur = byHolder[slot] ?? 0;
           const next = Math.max(0, cur - allocated);
-          (waterfallForCategorySegmentsV2 as unknown as Record<string, number>)[fubonKey] = next;
+          byHolder[slot] = next;
+          wfState[kmHolderKey] = byHolder;
           isCapReached = next <= 0.01;
         }
       } else {
@@ -1998,9 +2419,10 @@ function waterfallForCategorySegmentsV2(
       const flightTravelerIdx =
         category === "flight" && opts?.flightTravelerIndex !== undefined
           ? opts.flightTravelerIndex
-          : seg.travelerIndex;
+          : (opts?.splitTravelerSlot ?? seg.travelerIndex);
 
       const labels = resolveSegmentStepLabels(category, seg);
+      const actionNotes = buildStepActionNotes(chosen.card.id, category, seg);
 
       if (
         category === "local" &&
@@ -2011,13 +2433,21 @@ function waterfallForCategorySegmentsV2(
       ) {
         const extra =
           chosen.card.id === "cathay-cube"
-            ? "同回饋亦可用台新 FlyGo（3.3% 台新 Point，須 Richart 自動扣繳＋「天天刷」）。"
+            ? "同回饋亦可用台新 FlyGo（3.3%，須 Richart 扣繳＋天天刷）。"
             : chosen.card.id === "taishin-flygo"
-              ? "同回饋亦可用國泰 CUBE（3.3% 小樹點，須「趣旅行」＋App 領高鐵加碼券）。"
+              ? "同回饋亦可用國泰 CUBE（3.3%，須趣旅行並領券）。"
               : "";
         if (extra) {
           specialNote = specialNote ? `${specialNote} ${extra}` : extra;
         }
+      }
+      if (isAtomicShopping && effectivePartySize > 1) {
+        const splitPref = (waterfallForCategorySegmentsV2 as unknown as Record<string, unknown>).__shopping_split_pref__ as Map<string, boolean> | undefined;
+        const splitBetter = !!splitPref?.get(chosen.card.id);
+        const note = splitBetter
+          ? "💡 策略建議：建議這家店分開排隊結帳，避免單人加碼爆上限。"
+          : "💡 策略建議：一起結帳即可。";
+        specialNote = specialNote ? `${specialNote} ${note}` : note;
       }
 
       steps.push({
@@ -2057,6 +2487,7 @@ function waterfallForCategorySegmentsV2(
         bonusCashback: (chosen.phase === "dbs-bonus" || chosen.phase === "dbs-online-bonus")
           ? Math.max(0, grossCashback - Math.max(0, Math.floor((allocated * (chosen.baseRatePercent ?? 0)) / 100)))
           : undefined,
+        actionNotes,
       });
 
       lastHolderByCardId.set(chosen.card.id, effectiveHolder);
@@ -2105,7 +2536,21 @@ export function calculateOptimalCombination(
 ): CalculationResult | null {
   if (selectedCards.length === 0) return null;
 
-  const cardsForCalc = applySinopacLevel(selectedCards, sinopacLevel);
+  const cardsForCalc = applySinopacLevel(selectedCards, sinopacLevel).filter((card) => {
+    const rawHeld = holderCounts[card.id];
+    if (rawHeld == null) return true;
+    const normalized = Math.floor(Number(rawHeld));
+    return Number.isFinite(normalized) && normalized > 0;
+  });
+  if (cardsForCalc.length === 0) return null;
+
+  const effectiveHolderCounts: Record<string, number> = {};
+  for (const card of cardsForCalc) {
+    const rawHeld = holderCounts[card.id];
+    const normalized = rawHeld == null ? 1 : Math.floor(Number(rawHeld));
+    effectiveHolderCounts[card.id] =
+      Number.isFinite(normalized) && normalized > 0 ? normalized : 1;
+  }
 
   const categories: SpendingCategory[] = ["flight", "hotel", "rental", "local"];
   const stepIndexRef = { v: 1 };
@@ -2113,12 +2558,12 @@ export function calculateOptimalCombination(
   const cardById = new Map(cardsForCalc.map((c) => [c.id, c]));
 
   // Kumamon bonus cap (6% extra) is shared across hotel + local categories.
-  const esunKumamonHolders = holderCounts["esun-kumamon"] ?? 1;
+  const esunKumamonHolders = effectiveHolderCounts["esun-kumamon"] ?? 1;
   const kumamonBonusCapState =
     cardsForCalc.some((card) => card.id === "esun-kumamon")
       ? { remainingPoints: 500 * esunKumamonHolders, initialPoints: 500 * esunKumamonHolders }
       : null;
-  const dbsEcoHolders = holderCounts["dbs-eco"] ?? 1;
+  const dbsEcoHolders = effectiveHolderCounts["dbs-eco"] ?? 1;
   const dbsEcoBonusCapState =
     cardsForCalc.some((card) => card.id === "dbs-eco")
       ? { remainingPoints: 600 * dbsEcoHolders, initialPoints: 600 * dbsEcoHolders }
@@ -2128,7 +2573,6 @@ export function calculateOptimalCombination(
     if (category === "hotel") {
       const expenses = spending.accommodationExpenses.filter((e) => e.amount > 0.01);
       for (const exp of expenses) {
-        console.log("Calculating for:", category, "Amount:", exp.amount);
         const categorySegments = patternSelections.filter(
           (s) => s.category === "hotel" && s.expenseId === exp.id
         );
@@ -2163,13 +2607,13 @@ export function calculateOptimalCombination(
           cardsForCalc,
           enrolledIds,
           stepIndexRef,
-          holderCounts,
+          effectiveHolderCounts,
           isDbsEcoNewUser,
           kumamonWalletPaypayExcluded,
           kumamonFlightJpyEnabled,
           kumamonBonusCapState,
           dbsEcoBonusCapState,
-          { indivisible: true },
+          { indivisible: true, partySize },
           rateOpts
         );
         allSteps.push(...steps);
@@ -2180,68 +2624,270 @@ export function calculateOptimalCombination(
     if (category === "flight") {
       const flightTotal = spending.flight ?? 0;
       if (flightTotal <= 0) continue;
-      console.log("Calculating for:", category, "Amount:", flightTotal);
       const flightSegs = patternSelections.filter((s) => s.category === "flight");
-      const tickets = splitFlightTicketAmounts(flightTotal, partySize);
-      const multiTraveler = partySize > 1;
-      for (let ti = 0; ti < tickets.length; ti++) {
-        const ticketAmt = tickets[ti];
-        if (ticketAmt <= 0) continue;
-        const scaled = buildFlightSegmentsForTicket(flightSegs, ticketAmt, ti, multiTraveler);
-        const steps = waterfallForCategorySegmentsV2(
-          "flight",
-          ticketAmt,
-          scaled,
-          cardsForCalc,
-          enrolledIds,
-          stepIndexRef,
-          holderCounts,
-          isDbsEcoNewUser,
-          kumamonWalletPaypayExcluded,
-          kumamonFlightJpyEnabled,
-          kumamonBonusCapState,
-          dbsEcoBonusCapState,
-          { indivisible: true, flightTravelerIndex: multiTraveler ? ti : undefined },
-          rateOpts
-        );
-        allSteps.push(...steps);
-      }
+      const kmBefore = kumamonBonusCapState?.remainingPoints;
+      const dbsBefore = dbsEcoBonusCapState?.remainingPoints;
+      const restoreFlightCapState = (km?: number, dbs?: number) => {
+        if (kumamonBonusCapState && km != null) kumamonBonusCapState.remainingPoints = km;
+        if (dbsEcoBonusCapState && dbs != null) dbsEcoBonusCapState.remainingPoints = dbs;
+      };
+      const runFlightStrategy = (mode: "together" | "split"): {
+        steps: WaterfallStep[];
+        kmAfter?: number;
+        dbsAfter?: number;
+      } => {
+        const out: WaterfallStep[] = [];
+        restoreFlightCapState(kmBefore, dbsBefore);
+        const useSplit = mode === "split" && partySize > 1;
+        const tickets = useSplit ? splitFlightTicketAmounts(flightTotal, partySize) : [flightTotal];
+        const multiTraveler = useSplit;
+        for (let ti = 0; ti < tickets.length; ti++) {
+          const ticketAmt = tickets[ti];
+          if (ticketAmt <= 0) continue;
+          const scaled = buildFlightSegmentsForTicket(flightSegs, ticketAmt, ti, multiTraveler);
+          const steps = waterfallForCategorySegmentsV2(
+            "flight",
+            ticketAmt,
+            scaled,
+            cardsForCalc,
+            enrolledIds,
+            stepIndexRef,
+            effectiveHolderCounts,
+            isDbsEcoNewUser,
+            kumamonWalletPaypayExcluded,
+            kumamonFlightJpyEnabled,
+            kumamonBonusCapState,
+            dbsEcoBonusCapState,
+            {
+              indivisible: true,
+              flightTravelerIndex: multiTraveler ? ti : undefined,
+              splitTravelerSlot: useSplit ? ti : undefined,
+              partySize,
+            },
+            rateOpts
+          );
+          out.push(...steps);
+        }
+        return {
+          steps: out,
+          kmAfter: kumamonBonusCapState?.remainingPoints,
+          dbsAfter: dbsEcoBonusCapState?.remainingPoints,
+        };
+      };
+
+      const togetherRun = runFlightStrategy("together");
+      const splitRun = partySize > 1 ? runFlightStrategy("split") : undefined;
+      const togetherSteps = togetherRun.steps;
+      const splitSteps = splitRun?.steps ?? [];
+      const togetherNet = togetherSteps.reduce((sum, s) => sum + s.netCashback, 0);
+      const splitNet = splitSteps.reduce((sum, s) => sum + s.netCashback, 0);
+      const splitBetter = partySize > 1 && splitNet > togetherNet + 0.01;
+      const chosenFlightSteps = splitBetter ? splitSteps : togetherSteps;
+      const chosenKmAfter = splitBetter ? splitRun?.kmAfter : togetherRun.kmAfter;
+      const chosenDbsAfter = splitBetter ? splitRun?.dbsAfter : togetherRun.dbsAfter;
+      restoreFlightCapState(chosenKmAfter, chosenDbsAfter);
+      const delta = Math.max(0, Math.round(Math.abs(splitNet - togetherNet)));
+      const strategyNote = splitBetter
+        ? `💡 建議：分開刷卡（每人各自支付），可多領 ${formatTWD(delta)} 加碼回饋。`
+        : "💡 建議：一起刷卡，方便管理且已拿滿回饋。";
+
+      allSteps.push(
+        ...chosenFlightSteps.map((s) => ({
+          ...s,
+          specialNote: s.specialNote ? `${s.specialNote} ${strategyNote}` : strategyNote,
+          flightStrategyTogetherNet: togetherNet,
+          flightStrategySplitNet: splitNet,
+        }))
+      );
       continue;
     }
 
     const amount = category === "rental" ? spending.rental : spending.local;
     if (!amount || amount <= 0) continue;
 
-    console.log("Calculating for:", category, "Amount:", amount);
-
     let categorySegments = patternSelections.filter((s) => s.category === category);
     const segSumInit = categorySegments.reduce((a, s) => a + s.amount, 0);
     if (segSumInit > amount + 0.01) {
       const scale = amount / segSumInit;
       categorySegments = categorySegments.map((s) => ({ ...s, amount: s.amount * scale }));
-      console.warn(
-        "[calculator] Segment sum exceeded category total; scaled segments",
-        { category, total: amount, segSumBefore: segSumInit, scale }
-      );
     }
 
-    const steps = waterfallForCategorySegmentsV2(
-      category,
-      amount,
-      categorySegments,
+    const wfParams = [
       cardsForCalc,
       enrolledIds,
       stepIndexRef,
-      holderCounts,
+      effectiveHolderCounts,
       isDbsEcoNewUser,
       kumamonWalletPaypayExcluded,
       kumamonFlightJpyEnabled,
       kumamonBonusCapState,
       dbsEcoBonusCapState,
-      undefined,
-      rateOpts
+      { partySize },
+      rateOpts,
+    ] as const;
+
+    function localBrandSplitMode(brandId: string | undefined): DomesticRailPurchaseMode {
+      if (brandId === "taoyuan_airport_metro") return "split";
+      if (brandId && IC_BRAND_IDS.has(brandId)) return "split";
+      return "together";
+    }
+
+    const SPLIT_BRAND_KEYS = [
+      "taoyuan_airport_metro",
+      "taiwan_hsr_all",
+      "jp_ic_wallet_topup",
+      "suica",
+      "pasmo",
+      "icoca",
+    ] as const;
+    const togetherSegs: PatternSelection[] = [];
+    const hsrSegs: PatternSelection[] = [];
+    const splitBuckets = new Map<string, PatternSelection[]>();
+
+    if (category === "local" && partySize > 1) {
+      for (const s of categorySegments) {
+        const bid = s.brandId ?? "";
+        if (bid === "taiwan_hsr_all") {
+          hsrSegs.push(s);
+          continue;
+        }
+        if (localBrandSplitMode(bid) === "split") {
+          const list = splitBuckets.get(bid) ?? [];
+          list.push(s);
+          splitBuckets.set(bid, list);
+        } else {
+          togetherSegs.push(s);
+        }
+      }
+    }
+
+    const usePerBrandSplit =
+      category === "local" && partySize > 1 && splitBuckets.size > 0;
+
+    if (usePerBrandSplit) {
+      const togetherSum = togetherSegs.reduce((a, s) => a + s.amount, 0);
+      if (togetherSum > 0.01) {
+        allSteps.push(
+          ...waterfallForCategorySegmentsV2(category, togetherSum, togetherSegs, ...wfParams)
+        );
+      }
+
+      const hsrSum = hsrSegs.reduce((a, s) => a + s.amount, 0);
+      if (hsrSum > 0.01) {
+        const kmBefore = kumamonBonusCapState?.remainingPoints;
+        const dbsBefore = dbsEcoBonusCapState?.remainingPoints;
+        const restoreLocalCapState = (km?: number, dbs?: number) => {
+          if (kumamonBonusCapState && km != null) kumamonBonusCapState.remainingPoints = km;
+          if (dbsEcoBonusCapState && dbs != null) dbsEcoBonusCapState.remainingPoints = dbs;
+        };
+        const runHsrStrategy = (mode: "together" | "split"): {
+          steps: WaterfallStep[];
+          kmAfter?: number;
+          dbsAfter?: number;
+        } => {
+          restoreLocalCapState(kmBefore, dbsBefore);
+          if (mode === "together" || partySize <= 1) {
+            return {
+              steps: waterfallForCategorySegmentsV2(category, hsrSum, hsrSegs, ...wfParams),
+              kmAfter: kumamonBonusCapState?.remainingPoints,
+              dbsAfter: dbsEcoBonusCapState?.remainingPoints,
+            };
+          }
+          const splitSteps: WaterfallStep[] = [];
+          const chunks = splitFlightTicketAmounts(hsrSum, partySize);
+          for (let pi = 0; pi < chunks.length; pi++) {
+            const chunkAmt = chunks[pi];
+            if (chunkAmt <= 0) continue;
+            const sliceScale = chunkAmt / hsrSum;
+            const scaled = hsrSegs.map((s) => ({ ...s, amount: s.amount * sliceScale }));
+            splitSteps.push(
+              ...waterfallForCategorySegmentsV2(
+                category,
+                chunkAmt,
+                scaled,
+                cardsForCalc,
+                enrolledIds,
+                stepIndexRef,
+                effectiveHolderCounts,
+                isDbsEcoNewUser,
+                kumamonWalletPaypayExcluded,
+                kumamonFlightJpyEnabled,
+                kumamonBonusCapState,
+                dbsEcoBonusCapState,
+                { splitTravelerSlot: pi, partySize },
+                rateOpts
+              )
+            );
+          }
+          return {
+            steps: splitSteps,
+            kmAfter: kumamonBonusCapState?.remainingPoints,
+            dbsAfter: dbsEcoBonusCapState?.remainingPoints,
+          };
+        };
+
+        const togetherRun = runHsrStrategy("together");
+        const splitRun = runHsrStrategy("split");
+        const togetherNet = togetherRun.steps.reduce((s, x) => s + x.netCashback, 0);
+        const splitNet = splitRun.steps.reduce((s, x) => s + x.netCashback, 0);
+        const splitBetter = splitNet > togetherNet + 0.01;
+        const note = splitBetter
+          ? "💡 建議：分開刷卡，可避開單筆回饋上限。"
+          : "💡 建議：一起刷卡即可。";
+        const chosen = splitBetter ? splitRun : togetherRun;
+        restoreLocalCapState(chosen.kmAfter, chosen.dbsAfter);
+        allSteps.push(
+          ...chosen.steps.map((s) => ({
+            ...s,
+            specialNote: s.specialNote ? `${s.specialNote} ${note}` : note,
+          }))
+        );
+      }
+
+      const processSplitBrand = (rail: PatternSelection[]) => {
+        const railSum = rail.reduce((a, s) => a + s.amount, 0);
+        if (railSum <= 0.01) return;
+        const chunks = splitFlightTicketAmounts(railSum, partySize);
+        for (let pi = 0; pi < chunks.length; pi++) {
+          const chunkAmt = chunks[pi];
+          if (chunkAmt <= 0) continue;
+          const sliceScale = chunkAmt / railSum;
+          const railScaled = rail.map((s) => ({ ...s, amount: s.amount * sliceScale }));
+          allSteps.push(
+            ...waterfallForCategorySegmentsV2(
+              category,
+              chunkAmt,
+              railScaled,
+              cardsForCalc,
+              enrolledIds,
+              stepIndexRef,
+              effectiveHolderCounts,
+              isDbsEcoNewUser,
+              kumamonWalletPaypayExcluded,
+              kumamonFlightJpyEnabled,
+              kumamonBonusCapState,
+              dbsEcoBonusCapState,
+              { splitTravelerSlot: pi, partySize },
+              rateOpts
+            )
+          );
+        }
+      };
+
+      for (const bid of SPLIT_BRAND_KEYS) {
+        const rail = splitBuckets.get(bid);
+        if (rail?.length) processSplitBrand(rail);
+      }
+      for (const [bid, rail] of splitBuckets) {
+        if ((SPLIT_BRAND_KEYS as readonly string[]).includes(bid)) continue;
+        if (rail.length) processSplitBrand(rail);
+      }
+      continue;
+    }
+
+    allSteps.push(
+      ...waterfallForCategorySegmentsV2(category, amount, categorySegments, ...wfParams)
     );
-    allSteps.push(...steps);
   }
 
   if (allSteps.length === 0) return null;
@@ -2299,7 +2945,7 @@ export function calculateOptimalCombination(
       if (step.capAmount != null) {
         entry.capAmount = Math.max(entry.capAmount ?? 0, step.capAmount);
       }
-      const holders = holderCounts[step.cardId] ?? 1;
+      const holders = effectiveHolderCounts[step.cardId] ?? 1;
       // For split suggestion we only need a reasonable per-holder spending cap.
       if (step.cardId === "dbs-eco") {
         entry.capSpendingPerHolder = 600 / 0.04; // 600點 (4%) 對應約NT$15,000
@@ -2314,6 +2960,8 @@ export function calculateOptimalCombination(
     if (step.isDbsEcoBonus) entry.usedDbsEcoBonus = true;
   }
 
+  const savingsBreakdown = aggregateSavingsBreakdown(allSteps);
+
   return {
     waterfallSteps: allSteps,
     totalSpending,
@@ -2323,6 +2971,7 @@ export function calculateOptimalCombination(
     cardBreakdown: Array.from(cardMap.values()),
     hasKumamonBonus,
     hasDbsEcoBonus,
+    savingsBreakdown,
   };
 }
 
@@ -2350,14 +2999,6 @@ export function logCalculation(payload: {
   is_dbs_eco_new_user: boolean;     // For Supabase: track new-user bonus claims
   result: CalculationResult;
 }) {
-  // Log for debugging - this payload structure is ready for Supabase insertion
-  console.log("[logCalculation]", JSON.stringify({
-    ...payload,
-    timestamp: new Date().toISOString(),
-    // Fields ready for Supabase
-    travel_party_size: payload.travelPartySize,
-    total_holders_per_card: payload.holderCountsPerCard,
-    is_kkday_used: payload.is_kkday_used,
-    is_dbs_eco_new_user: payload.is_dbs_eco_new_user,
-  }, null, 2));
+  void payload;
+  // 預留：寫入 Supabase / 內部分析；避免在 production 主控台輸出除錯 log
 }

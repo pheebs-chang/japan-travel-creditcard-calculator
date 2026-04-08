@@ -200,7 +200,7 @@ export const CREDIT_CARDS: CreditCard[] = [
     annualFee: 0,
     color: "bg-zinc-700",
     registrationUrl: "https://www.fubon.com/banking/",
-    tags: ["免年費", "日韓實體6%"],
+    tags: ["免年費", "日本實體6%"],
     cashback: [
       { category: "flight", rate: 3.0, label: "訂購機票", cap: 400, maxSpending: 13333, maxSpendingIsApprox: true },
       { category: "hotel", rate: 3.0, label: "住宿網站", cap: 400, maxSpending: 13333, maxSpendingIsApprox: true },
@@ -208,14 +208,14 @@ export const CREDIT_CARDS: CreditCard[] = [
       {
         category: "local",
         rate: 6.0,
-        label: "日韓實體消費",
+        label: "日本實體消費",
         cap: 400,
         maxSpending: 6666,
-        ruleNote: "日韓實體最高6%；Apple Pay 儲值 Suica/PASMO/ICOCA 單筆滿 NT$2,000 另有加碼（見試算引擎）",
+        ruleNote: "日本實體最高6%；Apple Pay 儲值 Suica/PASMO/ICOCA 單筆滿 NT$2,000 另有加碼（見試算引擎）",
       },
     ],
     foreignFee: FOREIGN_FEE,
-    notes: "日韓實體最高 6%。Apple Pay 儲值日本 Suica／PASMO／ICOCA 單筆滿 NT$2,000：3%+7% 加碼（季上限 NT$200，約 NT$2,857 刷卡額）。",
+    notes: "日本實體最高 6%。Apple Pay 儲值日本 Suica／PASMO／ICOCA 單筆滿 NT$2,000：3%+7% 加碼（季上限 NT$200，約 NT$2,857 刷卡額）。",
     perks: { lounge: 2, insurance: 2000 },
   },
   // ═══════════════════════════════════════════════════════════════════════════
@@ -312,7 +312,7 @@ export const CREDIT_CARDS: CreditCard[] = [
         maxSpendingIsApprox: true,
         label: "當地實體消費",
         ruleNote:
-          "指定通路享8.5%（2.5%+6%）：BicCamera/Uniqlo/迪士尼/USJ/哈利波特/預付交通IC（SUICA等）/ORIX租車等。非指定僅2.5%。（6%加碼上限 NT$500/期，與 hotel 共享）",
+          "指定通路享8.5%（2.5%+6%）：BicCamera/Uniqlo/GU/松本清/迪士尼/USJ/哈利波特/預付交通IC（SUICA等）/ORIX租車等。非指定僅2.5%。（6%加碼上限 NT$500/期，與 hotel 共享）",
       },
     ],
     foreignFee: FOREIGN_FEE, // 固定扣除 1.5% 手續費

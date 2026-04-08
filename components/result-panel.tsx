@@ -127,13 +127,24 @@ const CARD_APPLY_BUTTON_CLASS: Record<string, string> = {
 const CARD_CORE_HIGHLIGHT: Record<string, string> = {
   "esun-kumamon": "日本指定通路最高 8.5% 小樹點（每期加碼有上限，依公告）",
   "cathay-cube": "日本賞 3.5% 無上限，指定通路券後加碼；國內交通／高鐵另有專屬試算",
-  "fubon-j": "日韓實體最高 6%；Apple Pay 儲值交通 IC 滿額可評估 10%（加碼有上限）",
+  "fubon-j": "日本實體最高 6%；Apple Pay 儲值交通 IC 滿額可評估 10%（加碼有上限）",
   "sinopac-doublebei": "精選海外最高 6% 試算；雙幣卡免海外手續費（依公告）",
   "taishin-flygo": "玩旅刷精選通路 3.3%，涵蓋海外實體／線上旅遊（依公告）",
   "union-jinghe": "日幣／海外一般消費 2.5% 試算（依帳單認列）",
   "ctbc-uniopen": "國外實體最高 11%（月上限點數，試算採保守規則）",
   "dbs-eco": "指定地區實體 5% 試算（4% 加碼每期 600 點上限）",
 };
+
+function logCtaClick(counterKey: string, meta?: Record<string, unknown>) {
+  if (typeof window === "undefined") return;
+  const w = window as Window & { __cta_click_counter__?: Record<string, number> };
+  const bag = w.__cta_click_counter__ ?? {};
+  const next = (bag[counterKey] ?? 0) + 1;
+  bag[counterKey] = next;
+  w.__cta_click_counter__ = bag;
+  // 商業轉單測試：用 console 觀察按鈕點擊次數
+  console.log(`[CTA_CLICK] ${counterKey} #${next}`, meta ?? {});
+}
 
 function ApplyCardLegalBlock() {
   return (
@@ -173,7 +184,6 @@ function DataRecencyBlock({ className }: { className?: string }) {
 
 interface ResultPanelProps {
   result: CalculationResult | null;
-  destination: "日本" | "韓國";
   stepNumber?: number;
   partySize?: number;
   holderCounts?: Record<string, number>;
@@ -392,6 +402,17 @@ function buildCardStrategyGroups(steps: WaterfallStep[]): CardStrategyGroup[] {
       const first = list[0];
       const totalAmount = list.reduce((sum, s) => sum + s.amount, 0);
       const totalNet = list.reduce((sum, s) => sum + s.netCashback, 0);
+      const sortedSteps = [...list].sort((a, b) => {
+        const aShopping = a.subCategory?.startsWith("🛍️ 購物消費 (") ?? false;
+        const bShopping = b.subCategory?.startsWith("🛍️ 購物消費 (") ?? false;
+        if (aShopping && bShopping) {
+          const an = a.brandName ?? a.detailLabel ?? a.subCategory ?? "";
+          const bn = b.brandName ?? b.detailLabel ?? b.subCategory ?? "";
+          const byBrand = an.localeCompare(bn, "zh-Hant");
+          if (byBrand !== 0) return byBrand;
+        }
+        return a.stepIndex - b.stepIndex;
+      });
       return {
         key,
         cardId: first.cardId,
@@ -399,7 +420,7 @@ function buildCardStrategyGroups(steps: WaterfallStep[]): CardStrategyGroup[] {
         cardShortName: first.cardShortName,
         holderIndex: first.holderIndex ?? 0,
         firstStepIndex: Math.min(...list.map((s) => s.stepIndex)),
-        steps: [...list].sort((a, b) => a.stepIndex - b.stepIndex),
+        steps: sortedSteps,
         totalAmount,
         totalNet,
         actionNotes: collectCardActionNotes(list),
@@ -418,16 +439,42 @@ function buildShoppingStrategySummary(steps: WaterfallStep[]): string[] {
     groups.set(s.splitGroupKey, list);
   }
   for (const [, list] of groups) {
-    if (list.length < 2) continue;
+    if (list.length === 0) continue;
     const store = list[0].detailLabel ?? list[0].brandName ?? "該商店";
-    const cards = Array.from(new Set(list.map((x) => x.cardShortName)));
-    if (cards.length < 2) continue;
-    const firstCardAmount = list
-      .filter((x) => x.cardId === list[0].cardId)
-      .reduce((sum, x) => sum + x.amount, 0);
+    const totalAmount = list.reduce((sum, x) => sum + x.amount, 0);
+    const totalNet = list.reduce((sum, x) => sum + x.netCashback, 0);
+    const byCard = new Map<string, { cardName: string; amount: number; net: number; capLikelyExhausted: boolean }>();
+    for (const step of list) {
+      const cur = byCard.get(step.cardId) ?? {
+        cardName: step.cardName,
+        amount: 0,
+        net: 0,
+        capLikelyExhausted: false,
+      };
+      cur.amount += step.amount;
+      cur.net += step.netCashback;
+      cur.capLikelyExhausted =
+        cur.capLikelyExhausted ||
+        !!step.isCapReached ||
+        /已達上限|本筆已達上限|用盡|達標/u.test(step.specialNote ?? "");
+      byCard.set(step.cardId, cur);
+    }
+    const ranked = Array.from(byCard.values()).sort((a, b) => {
+      if (Math.abs(b.amount - a.amount) > 0.01) return b.amount - a.amount;
+      return b.net - a.net;
+    });
+    if (ranked.length === 0) continue;
+    const preferred = ranked[0];
+    const projectedNet =
+      preferred.amount > 0.01
+        ? Math.round((preferred.net / preferred.amount) * totalAmount)
+        : Math.round(totalNet);
     lines.push(
-      `🛍️ 在 ${store}，前 ${formatTWD(firstCardAmount)} 請刷 [${cards[0]}]，超過的部分請改刷 [${cards[1]}]`
+      `📍 在 ${store}，建議全額刷 ${preferred.cardName}，預計回饋 ${formatTWD(projectedNet)}。`
     );
+    if (preferred.capLikelyExhausted) {
+      lines.push(`💡 備註：此筆消費將用盡 ${preferred.cardName} 的回饋上限。`);
+    }
   }
   return lines;
 }
@@ -469,7 +516,6 @@ function StatCard({
 
 export function ResultPanel({
   result,
-  destination,
   stepNumber = 4,
   partySize = 1,
   holderCounts = {},
@@ -525,7 +571,7 @@ export function ResultPanel({
   const topCardData = topCard ? CREDIT_CARDS.find((c) => c.id === topCard.cardId) : null;
   const topCardPerks = topCardData?.perks;
 
-  const destinationTag = destination === "日本" ? "日本 🇯🇵" : "韓國 🇰🇷";
+  const destinationTag = "日本 🇯🇵";
 
   const categoryBuckets = [
     {
@@ -694,10 +740,8 @@ export function ResultPanel({
       };
     }).filter((x): x is NonNullable<typeof x> => x != null);
 
-    rows.sort((a, b) => {
-      const byPotential = b.potentialSavings - a.potentialSavings;
-      return byPotential !== 0 ? byPotential : b.tripSaving - a.tripSaving;
-    });
+    // 依「加入後這趟旅程總淨省下金額」由高到低排序
+    rows.sort((a, b) => b.tripSaving - a.tripSaving);
     return rows.slice(0, 3);
   }, [
     recommendationContext,
@@ -708,7 +752,7 @@ export function ResultPanel({
   ]);
 
   const handleCopy = async () => {
-    const tripPhrase = destination === "日本" ? "日本行" : "韓國行";
+    const tripPhrase = "日本行";
     const savingsAmountLabel = formatTWD(savingsValue);
     const comboBest =
       shareTopCards.map((c) => c.cardShortName).join(" + ") ||
@@ -729,7 +773,7 @@ export function ResultPanel({
     const flightCard = waterfallSteps.find((s) => s.category === "flight")?.cardShortName ?? (shareTopCards[0]?.cardShortName ?? "推薦卡A");
     const localCard = waterfallSteps.find((s) => s.category === "local")?.cardShortName ?? (shareTopCards[1]?.cardShortName ?? shareTopCards[0]?.cardShortName ?? "推薦卡B");
     const savings = formatTWD(totalNetCashback > 0 ? totalNetCashback : 0).replace("NT$", "").trim();
-    const lines = `這趟${destination}行我用 #日本刷卡計算機 算完，預計能省下 NT$ ${savings}！💰 機票用 ${flightCard}、藥妝用 ${localCard} 拿 8.5% 最划算！推薦大家出國前先算一下：${url}`;
+    const lines = `這趟日本行我用 #日本刷卡計算機 算完，預計能省下 NT$ ${savings}！💰 機票用 ${flightCard}、藥妝用 ${localCard} 拿 8.5% 最划算！推薦大家出國前先算一下：${url}`;
 
     try {
       await navigator.clipboard.writeText(lines);
@@ -769,26 +813,26 @@ export function ResultPanel({
       </div>
 
       {/* Summary stats */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
-        <div className="grid grid-cols-3 gap-2 flex-1">
-        <StatCard
-          label="總消費"
-          value={formatTWD(totalSpending)}
-          sub="NTD 計算基礎"
-        />
-        <StatCard
-          label="海外手續費"
-          value={`-${formatTWD(totalForeignFee)}`}
-          sub="1.5% 已扣除"
-        />
-        <StatCard
-          label="淨省下"
-          value={formatTWD(totalNetCashback > 0 ? totalNetCashback : 0)}
-          sub={`回饋率 ${savingsRate}%`}
-          highlight
-        />
+      <div className="mb-2">
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
+          <StatCard
+            label="總消費"
+            value={formatTWD(totalSpending)}
+            sub="NTD 計算基礎"
+          />
+          <StatCard
+            label="海外手續費"
+            value={`-${formatTWD(totalForeignFee)}`}
+            sub="1.5% 已扣除"
+          />
+          <StatCard
+            label="淨省下"
+            value={formatTWD(totalNetCashback > 0 ? totalNetCashback : 0)}
+            sub={`回饋率 ${savingsRate}%`}
+            highlight
+          />
         </div>
-        <DataRecencyBlock className="sm:max-w-[200px] sm:text-right sm:pt-1 shrink-0" />
+        <DataRecencyBlock className="mt-8 text-center text-xs text-muted-foreground/60" />
       </div>
       {registrationExtraSaving > 0 && (
         <p className="mb-3 text-xs font-medium text-emerald-600">
@@ -808,14 +852,12 @@ export function ResultPanel({
             <span className="text-[11px] text-white/70">{partySize} 人同行</span>
           </div>
 
-          {destination === "日本" && (
-            <p className="mt-3 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-cyan-300/90 drop-shadow-[0_0_8px_rgba(34,211,238,0.45)]">
-              日幣匯率 0.20x 時代的精省奇蹟 🇯🇵
-            </p>
-          )}
+          <p className="mt-3 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-cyan-300/90 drop-shadow-[0_0_8px_rgba(34,211,238,0.45)]">
+            日幣匯率 0.20x 時代的精省奇蹟 🇯🇵
+          </p>
 
           <div className="mt-5 rounded-2xl border border-amber-300/40 bg-amber-300/10 p-4 text-center">
-            <p className="text-[11px] text-amber-100/80">這趟{destination}行，你預計省下</p>
+            <p className="text-[11px] text-amber-100/80">這趟日本行，你預計省下</p>
             <p className="mt-2 text-[11px] leading-relaxed text-amber-50/95">
               在旅遊已經這麼便宜的情況下，你竟然還憑實力額外摳出這些錢！
             </p>
@@ -944,7 +986,7 @@ export function ResultPanel({
           <div className="flex items-center gap-2 border-b border-amber-500/20 bg-white/[0.06] px-4 py-3 dark:bg-white/[0.04]">
             <Lightbulb className="h-4 w-4 shrink-0 text-amber-300" aria-hidden />
             <p className="text-xs font-semibold uppercase tracking-widest text-white">
-              購物省錢攻略
+              🛍️ 購物刷卡建議 (按店家推薦)
             </p>
           </div>
           <div className="space-y-2 px-4 py-3">
@@ -969,6 +1011,8 @@ export function ResultPanel({
           const displayCardTitle = shouldShowCardIndex
             ? `💳 ${group.cardName} (${cardIndex})`
             : `💳 ${group.cardName}`;
+          const groupCardMeta = CREDIT_CARDS.find((c) => c.id === group.cardId);
+          const showRegisterCta = group.cardId.startsWith("esun-") || group.cardId.startsWith("taishin-");
 
           return (
             <div
@@ -992,6 +1036,19 @@ export function ResultPanel({
                         {prefixActionNoteLabel(note)}
                       </span>
                     ))}
+                  </div>
+                )}
+                {showRegisterCta && groupCardMeta?.registrationUrl && (
+                  <div className="mt-2">
+                    <a
+                      href={groupCardMeta.registrationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => logCtaClick("group_register", { cardId: group.cardId, cardName: group.cardName })}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-400/25"
+                    >
+                      🔗 前往官網登錄活動
+                    </a>
                   </div>
                 )}
               </div>
@@ -1025,6 +1082,13 @@ export function ResultPanel({
                             消費金額 {formatTWD(step.amount)} / 預計淨回饋{" "}
                             {step.netCashback > 0 ? `+${formatTWD(step.netCashback)}` : formatTWD(step.netCashback)}
                           </p>
+                          {step.category === "flight" &&
+                            step.flightStrategyTogetherNet != null &&
+                            step.flightStrategySplitNet != null && (
+                              <p className="mt-1 text-[10px] text-cyan-300/90">
+                                路徑試算（debug）：一起刷 {formatTWD(step.flightStrategyTogetherNet)} / 分開刷 {formatTWD(step.flightStrategySplitNet)}
+                              </p>
+                            )}
                           {needsApplePayReminder && (
                             <p className="mt-1 text-[10px] text-amber-700 dark:text-amber-300">需開啟 Apple Pay 儲值</p>
                           )}
@@ -1036,6 +1100,13 @@ export function ResultPanel({
                               </p>
                             </div>
                           )}
+                          {step.category === "local" &&
+                            (step.subCategory?.startsWith("🛍️ 購物消費 (") ?? false) &&
+                            (step.isCapReached || /已達上限|本筆已達上限|達標/u.test(step.specialNote ?? "")) && (
+                              <p className="mt-1 text-[10px] font-medium text-amber-300">
+                                ⚠️ 此筆已達卡片回饋上限，建議下一筆購物改用他卡
+                              </p>
+                            )}
                         </div>
                       </div>
                     </div>
@@ -1054,6 +1125,23 @@ export function ResultPanel({
           );
         })}
       </div>
+
+      {waterfallSteps.some((s) => s.category === "flight") && (
+        <div className="mb-4 rounded-xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-medium text-cyan-100 leading-relaxed">
+              🛡️ 旅程安全：此行程試算不含不便險，建議點此查看最優保險組合。
+            </p>
+            <button
+              type="button"
+              onClick={() => logCtaClick("insurance_recommendation", { from: "flight_strategy" })}
+              className="shrink-0 rounded-md border border-cyan-300/50 bg-cyan-300/20 px-2.5 py-1 text-[11px] font-semibold text-cyan-100 hover:bg-cyan-300/30"
+            >
+              立即查看
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Smart Split Suggestion - show when caps reached */}
       {capWarnings.length > 0 && (() => {
@@ -1338,7 +1426,7 @@ export function ResultPanel({
             {registrationTasks.map((task) => (
               <div
                 key={task.cardId}
-                className="flex flex-col gap-2 rounded-xl border border-border/70 bg-background/60 p-4 dark:border-white/15 dark:bg-black/20"
+                className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/60 px-4 py-4 dark:border-white/15 dark:bg-black/20"
               >
                 <div className="flex min-w-0 flex-row items-center justify-between gap-3">
                   <p className="min-w-0 flex-1 break-words text-left text-xs font-medium text-foreground dark:text-white">
@@ -1349,15 +1437,21 @@ export function ResultPanel({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackConversion(task.cardName, "register_task")}
-                    className="inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background/90 px-3 py-1.5 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-muted dark:border-white/20 dark:bg-white/10 dark:text-amber-200 dark:hover:bg-white/15 dark:hover:border-white/30"
+                    className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[11px] font-semibold text-amber-600 transition-colors hover:bg-amber-400/20 dark:border-amber-300/40 dark:bg-amber-300/10 dark:text-amber-200 dark:hover:bg-amber-300/20"
                   >
                     點我登錄
                   </a>
                 </div>
-                <p className="block w-full text-[11px] leading-relaxed text-muted-foreground dark:text-white/65">
-                  {task.note}
-                  {task.bonus != null ? `，可再省 ${formatTWD(task.bonus)}` : ""}
-                </p>
+                <p className="block w-full text-[11px] leading-relaxed text-muted-foreground dark:text-white/65">{task.note}</p>
+                {task.bonus != null && task.bonus > 0 ? (
+                  <p className="text-sm font-semibold text-emerald-400">
+                    可再省 <span className="text-base font-extrabold">{formatTWD(task.bonus)}</span>
+                  </p>
+                ) : task.cardId === "cathay-cube" ? (
+                  <p className="text-sm font-semibold text-amber-400">
+                    ⚠️ 需領取日本賞加碼券，否則將失去回饋資格
+                  </p>
+                ) : null}
               </div>
             ))}
             <RegistrationFooterLegalBlock />
@@ -1378,10 +1472,13 @@ export function ResultPanel({
           </div>
           <ul className="list-none space-y-3 border-t border-violet-500/15 bg-black/25 p-3 sm:p-4 dark:bg-black/45">
             {applyCardRecommendations.map((row) => {
-              const ctaAmount = row.potentialSavings > 0 ? row.potentialSavings : row.tripSaving;
+              const projectedTotalSaving = row.tripSaving;
               const btnClass =
                 CARD_APPLY_BUTTON_CLASS[row.cardId] ??
                 "bg-gradient-to-r from-violet-600 to-indigo-700 hover:opacity-95 shadow-md shadow-violet-900/25";
+              const cardMeta = CREDIT_CARDS.find((c) => c.id === row.cardId);
+              const shuttle = cardMeta?.perks?.shuttle;
+              const lounge = cardMeta?.perks?.lounge;
               return (
                 <li
                   key={row.cardId}
@@ -1395,8 +1492,16 @@ export function ResultPanel({
                   )}
                   <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">{row.highlight}</p>
                   <p className="mt-3 text-lg font-bold font-mono tracking-tight text-violet-700 dark:text-violet-300">
-                    這趟旅程預計省下 {formatTWD(row.tripSaving)}
+                    辦卡後，這趟旅程總共省下 {formatTWD(row.tripSaving)}
                   </p>
+                  {(shuttle || lounge) && (
+                    <p className="mt-1 text-[12px] font-semibold text-foreground/90">
+                      權益亮點：
+                      {shuttle ? <span className="font-bold"> 機場接送 {shuttle} 次/年</span> : null}
+                      {shuttle && lounge ? "、" : ""}
+                      {lounge ? <span className="font-bold">貴賓室 {lounge} 次/年</span> : null}
+                    </p>
+                  )}
                   {row.potentialSavings > 0 && (
                     <p className="mt-1 text-[11px] font-medium text-emerald-400">
                       加入卡包後，與目前方案相較約可再增加 {formatTWD(row.potentialSavings)} 淨回饋
@@ -1406,13 +1511,16 @@ export function ResultPanel({
                     href={row.applyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => trackConversion(row.cardName, "apply_card")}
+                    onClick={() => {
+                      trackConversion(row.cardName, "apply_card");
+                      logCtaClick("apply_card_recommendation", { cardId: row.cardId, cardName: row.cardName });
+                    }}
                     className={cn(
                       "mt-3 flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.99]",
                       btnClass
                     )}
                   >
-                    立即辦卡，再省 {formatTWD(ctaAmount)}
+                    立即辦卡，帶走這 <span className="ml-1 font-extrabold">{formatTWD(projectedTotalSaving)}</span> 🚀
                   </a>
                   <ApplyCardLegalBlock />
                 </li>

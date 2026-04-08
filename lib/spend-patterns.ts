@@ -271,6 +271,7 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
             name: "🚄 桃園機場捷運",
             unitPrice: 320,
             isDbsEcoExcluded: true,
+            preferredRewardsLabel: "CUBE 5%",
             specialNote: "限感應過閘門刷卡；不含加值金消費。",
           },
         ],
@@ -278,15 +279,15 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
       {
         id: "taiwan_hsr",
         label: "台灣高鐵",
-        perPerson: false,
+        perPerson: true,
         brands: [
           {
             id: "taiwan_hsr_all",
-            name: "🚄 台灣高鐵 (全通路購票)",
+            name: "🚅 台灣高鐵 (全通路購票)",
             unitPrice: 1490,
             specialNote:
               "含臨櫃、T-EX App、高鐵官網、自動售票機等購票（通路認定依各卡活動公告）。",
-            preferredRewardsLabel: "CUBE／FlyGo 3.3%",
+            preferredRewardsLabel: "CUBE / FlyGo 3.3%",
           },
         ],
       },
@@ -521,24 +522,7 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
     ],
   },
 
-  // ── 6. 超市 / 超商 — total ───────────────────────────────────────────────
-  {
-    id: "convenience",
-    label: "超市 / 超商",
-    examples: "7-Eleven / 全家 / AEON",
-    category: "local",
-    icon: "Store",
-    perPerson: false,
-    brands: [
-      { id: "seven_eleven", name: "7-Eleven", unitPrice: 500 },
-      { id: "family_mart", name: "全家 FamilyMart", unitPrice: 500 },
-      { id: "lawson", name: "Lawson", unitPrice: 500 },
-      { id: "aeon", name: "AEON", unitPrice: 3000 },
-      { id: "ok_store", name: "OK Store", unitPrice: 2000 },
-    ],
-  },
-
-  // ── 7. 線上訂票（機票） — per-person ────────────────────────────────────────
+  // ── 6. 線上訂票（機票） — per-person ────────────────────────────────────────
   {
     id: "flight_booking",
     label: "線上訂機票",
@@ -566,7 +550,6 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
       },
       { id: "peach", name: "樂桃航空 Peach", unitPrice: 8000 },
       { id: "jetstar", name: "捷星 Jetstar", unitPrice: 7000 },
-      { id: "korean_air", name: "大韓航空", unitPrice: 12000 },
     ],
   },
 

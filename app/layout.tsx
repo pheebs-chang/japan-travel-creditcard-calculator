@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: '日韓旅遊刷卡試算 | 最強刷卡組合計算機',
+  title: '日本旅遊刷卡試算 | 最強刷卡組合計算機',
   description: '輸入旅遊消費金額，自動計算最優信用卡組合，扣除海外手續費後顯示最高淨回饋。支援富邦J卡、國泰CUBE、玉山熊本熊、台新FlyGo。',
   generator: 'v0.app',
   icons: {

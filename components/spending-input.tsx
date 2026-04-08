@@ -33,10 +33,10 @@ function PaymentMethodField({
           <label
             key={opt.value}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-medium transition-all duration-200",
+              "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] transition-all duration-200",
               value === opt.value
-                ? "border-foreground bg-foreground text-background"
-                : "border-border bg-secondary/40 text-muted-foreground hover:border-foreground/25"
+                ? "border-violet-500/80 bg-gradient-to-r from-violet-600 to-indigo-700 font-bold text-white shadow-sm dark:from-violet-600 dark:to-indigo-700"
+                : "border-gray-700 bg-transparent font-medium text-gray-400 hover:border-gray-600"
             )}
           >
             <input
@@ -111,6 +111,7 @@ export function SpendingInputPanel({
   };
 
   const addAccommodation = () => {
+    const newId = newExpenseId();
     onChange((prev) => {
       const list = prev.accommodationExpenses ?? [];
       const nextIndex = list.length + 1;
@@ -118,10 +119,18 @@ export function SpendingInputPanel({
         ...prev,
         accommodationExpenses: [
           ...list,
-          { id: newExpenseId(), name: `住宿 ${nextIndex}`, amount: 0, paymentMethod: "online" },
+          { id: newId, name: `住宿 ${nextIndex}`, amount: 0, paymentMethod: "online" },
         ],
       };
     });
+    // 新增後自動捲動到新卡片，避免使用者誤以為沒成功。
+    setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-acc-id="${newId}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const firstInput = el.querySelector<HTMLInputElement>("input");
+      firstInput?.focus({ preventScroll: true });
+    }, 80);
   };
 
   const updateAccommodation = (id: string, patch: Partial<AccommodationExpense>) => {
@@ -149,8 +158,11 @@ export function SpendingInputPanel({
       <p className="text-[10px] text-muted-foreground/80 leading-relaxed mb-3">
         若您在 Step 3「消費樣態」填寫「日本交通卡儲值 (Suica / PASMO / ICOCA)」，請於該處開啟或關閉「Apple Pay 儲值」，以正確試算星展／台新／富邦等權益。
       </p>
-      <p className="text-[10px] text-muted-foreground/70 leading-relaxed mb-3">
-        「桃園機場捷運」與「台灣高鐵」已獨立至 Step 3 的「🏠 國內交通」區塊，可與日本當地消費分開試算。
+      <p className="text-[10px] text-muted-foreground/70 leading-relaxed mb-2">
+        「桃園機場捷運」「台灣高鐵」已獨立至 Step 3「🏠 國內交通」；機票回饋將由系統自動比較「一起刷／分開刷」後擇優套用。
+      </p>
+      <p className="text-[10px] text-cyan-300/90 leading-relaxed mb-2">
+        💡 日本交通卡儲值（Suica / PASMO / ICOCA）採個人手機操作，系統會自動按人數拆分計算每人回饋上限。
       </p>
       <div className="space-y-4">
         <div className="rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-foreground/30">
@@ -208,7 +220,7 @@ export function SpendingInputPanel({
                 value={flightUnitValue || ""}
                 onChange={(e) => handleFlightChange(e.target.value)}
                 className="flex-1 bg-transparent text-foreground font-mono text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                aria-label="機票單人金額"
+                aria-label={partySize > 1 ? "機票單人金額" : "機票總金額"}
               />
               {partySize > 1 && (
                 <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5">
@@ -284,17 +296,6 @@ export function SpendingInputPanel({
             </div>
           </div>
 
-          <div className="px-4 pb-3">
-            <button
-              type="button"
-              onClick={addAccommodation}
-              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-secondary/30 px-3 py-2.5 text-xs font-medium text-foreground hover:border-foreground/40 hover:bg-secondary/50 transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              新增一筆住宿
-            </button>
-          </div>
-
           {accommodationList.length === 0 ? (
             <div className="px-4 pb-4">
               <p className="text-xs text-muted-foreground/70 text-center py-6 rounded-lg border border-border/60 bg-secondary/20">
@@ -310,6 +311,7 @@ export function SpendingInputPanel({
                 return (
                   <div
                     key={exp.id}
+                    data-acc-id={exp.id}
                     className="rounded-lg border border-border bg-secondary/20 p-3 space-y-3"
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -411,6 +413,19 @@ export function SpendingInputPanel({
               })}
             </div>
           )}
+
+          <div className="px-4 pb-4">
+            <div className="mt-4 border-t border-border/50 pt-4">
+              <button
+                type="button"
+                onClick={addAccommodation}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-foreground/30 bg-secondary/40 px-4 py-3 text-sm font-semibold text-foreground hover:border-foreground/50 hover:bg-secondary/60 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                新增一筆住宿
+              </button>
+            </div>
+          </div>
         </div>
 
       </div>

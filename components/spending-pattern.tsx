@@ -32,7 +32,14 @@ import { Switch } from "@/components/ui/switch";
 
 const IC_CARD_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
 /** 國內交通等：不顯示「DBS 5%」行銷標籤（與星展權益試算邏輯無關） */
-const HIDE_DBS_GENERIC_BADGE = new Set(["taiwan_hsr_all", "taoyuan_airport_metro"]);
+const HIDE_DBS_GENERIC_BADGE = new Set([
+  "taiwan_hsr_all",
+  "taoyuan_airport_metro",
+  "suica",
+  "pasmo",
+  "icoca",
+  "jp_ic_wallet_topup",
+]);
 
 const PATTERN_PAY_OPTIONS: { value: PaymentChannel; label: string }[] = [
   { value: "physical", label: "實體刷卡" },
@@ -51,6 +58,8 @@ interface SpendingPatternPanelProps {
   onApplePayByBrandChange?: (brandId: string, value: boolean) => void;
   patternPaymentByKey?: Record<string, PaymentChannel>;
   onPatternPaymentChange?: (key: string, channel: PaymentChannel) => void;
+  /** 各品牌明細金額（鍵：`${patternId}:${brandId}`），供國內交通拆段試算 */
+  onPatternBrandAmountsChange?: (snapshot: Record<string, number>) => void;
   onChange: Dispatch<SetStateAction<Record<string, number>>>;
   onBrandChange: Dispatch<SetStateAction<Record<string, string>>>;
 }
@@ -84,6 +93,7 @@ function BrandInputRow({
   paymentKey,
   paymentValue,
   onPaymentChange,
+  showPartyMultiplier = false,
 }: {
   brand: BrandItem;
   amount: number;    // current stored amount
@@ -98,6 +108,7 @@ function BrandInputRow({
   paymentKey: string;
   paymentValue: PaymentChannel;
   onPaymentChange?: (key: string, channel: PaymentChannel) => void;
+  showPartyMultiplier?: boolean;
 }) {
   // For per-person: we show the per-unit input; stored = unitAmount * partySize
   // For total: we show the total input directly
@@ -113,6 +124,7 @@ function BrandInputRow({
   };
 
   const isKkday = brand.isKkday;
+  const isIcTopup = IC_CARD_IDS.has(brand.id);
 
   return (
     <div className={cn(
@@ -136,7 +148,7 @@ function BrandInputRow({
                 <Star className="h-2 w-2" />{"8.5%"}
               </span>
             )}
-            {brand.isDbsEcoExcluded && (
+            {brand.isDbsEcoExcluded && !HIDE_DBS_GENERIC_BADGE.has(brand.id) && (
               <span className="inline-flex items-center rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-medium text-amber-600">
                 {"DBS 1%"}
               </span>
@@ -164,7 +176,8 @@ function BrandInputRow({
 
           {/* Input row */}
           {perPerson && partySize > 1 ? (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">NT$</span>
               <input
                 type="number"
@@ -177,11 +190,12 @@ function BrandInputRow({
               />
               <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5">
                 <Users className="h-2.5 w-2.5" />
-                {`× ${partySize} 人`}
+                {isIcTopup ? "單人金額" : `× ${partySize} 人`}
               </span>
+              </div>
               {amount > 0 && (
-                <span className="text-[11px] font-mono font-semibold text-foreground ml-1">
-                  {`= NT$${formatNum(amount)}`}
+                <span className="text-[11px] font-mono font-semibold text-foreground">
+                  {isIcTopup ? `總計：NT$${formatNum(amount)}` : `= NT$${formatNum(amount)}`}
                 </span>
               )}
             </div>
@@ -197,8 +211,15 @@ function BrandInputRow({
                 onChange={(e) => handleChange(e.target.value)}
                 className="w-36 bg-secondary/50 border border-border rounded px-2 py-1 text-right text-foreground font-mono text-xs font-semibold placeholder:text-muted-foreground/30 focus:outline-none focus:border-foreground/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-              <span className="text-[10px] text-muted-foreground/60">{"總金額"}</span>
+              <span className="text-[10px] text-muted-foreground/60">
+                {showPartyMultiplier && partySize > 1 ? `x ${partySize}人` : "總金額"}
+              </span>
             </div>
+          )}
+          {isIcTopup && partySize > 1 && (
+            <p className="mt-1 text-[10px] font-medium text-cyan-300">
+              💡 儲值限個人手機操作，系統自動按人數拆分試算
+            </p>
           )}
 
           {showApplePayToggle && onApplePayChange && (
@@ -280,6 +301,7 @@ export function SpendingPatternPanel({
   onApplePayByBrandChange,
   patternPaymentByKey = {},
   onPatternPaymentChange,
+  onPatternBrandAmountsChange,
   onChange,
   onBrandChange,
 }: SpendingPatternPanelProps) {
@@ -294,7 +316,17 @@ export function SpendingPatternPanel({
   // Selected brands per sub-group (manualInput, multi-select): key = `${patternId}:${sgId}`
   const [subGroupBrands, setSubGroupBrands] = useState<Record<string, string[]>>({});
 
-  const selectablePatterns = SPENDING_PATTERNS.filter((p) => p.id !== "flight_booking");
+  const PATTERN_PRIORITY: Record<string, number> = {
+    domestic_transport: 0,
+    transport: 1,
+    shopping: 2,
+    department: 3,
+    dining: 4,
+    theme_park: 5,
+  };
+  const selectablePatterns = SPENDING_PATTERNS
+    .filter((p) => p.id !== "flight_booking")
+    .sort((a, b) => (PATTERN_PRIORITY[a.id] ?? 999) - (PATTERN_PRIORITY[b.id] ?? 999));
   const addedPatterns = selectablePatterns.filter((p) => addedIds.has(p.id));
   const availablePatterns = selectablePatterns.filter((p) => !addedIds.has(p.id));
 
@@ -342,6 +374,7 @@ export function SpendingPatternPanel({
     setBrandAmounts((prev) => {
       const n = { ...prev };
       for (const k of Object.keys(n)) { if (k.startsWith(`${id}:`)) delete n[k]; }
+      onPatternBrandAmountsChange?.(n);
       return n;
     });
     setSubGroupBrands((prev) => {
@@ -371,6 +404,7 @@ export function SpendingPatternPanel({
     const key = `${pattern.id}:${brand.id}`;
     const nextBrandAmounts = { ...brandAmounts, [key]: newAmount };
     setBrandAmounts(nextBrandAmounts);
+    onPatternBrandAmountsChange?.(nextBrandAmounts);
 
     const total = recalcTotal(pattern, nextBrandAmounts);
     onChange((prev) => ({ ...prev, [pattern.id]: total }));
@@ -401,6 +435,7 @@ export function SpendingPatternPanel({
       nextBrandAmounts[`${pattern.id}:${brandId}`] = nextBrandAmounts[`${pattern.id}:${brandId}`] ?? 0;
     }
     setBrandAmounts(nextBrandAmounts);
+    onPatternBrandAmountsChange?.(nextBrandAmounts);
     const total = recalcTotal(pattern, nextBrandAmounts);
     onChange((prev) => ({ ...prev, [pattern.id]: total }));
 
@@ -426,7 +461,9 @@ export function SpendingPatternPanel({
   const getPaymentForBrand = (pattern: SpendingPattern, brandId: string): PaymentChannel => {
     const key = `${pattern.id}:${brandId}`;
     if (patternPaymentByKey[key]) return patternPaymentByKey[key];
-    if (brandId === "taoyuan_airport_metro" || brandId === "taiwan_hsr_all") return "physical";
+    if (brandId === "taoyuan_airport_metro" || brandId === "taiwan_hsr_all") {
+      return "physical";
+    }
     // 交通卡儲值預設為 Apple Pay／感應，符合實務情境。
     if (IC_CARD_IDS.has(brandId)) return "apple_pay";
     const fallback = defaultPaymentForPattern(pattern.category, pattern.id, pattern.label);
@@ -526,8 +563,22 @@ export function SpendingPatternPanel({
     }
 
     // Normal: per-brand input boxes
+    const domesticModeToggle =
+      pattern.id === "domestic_transport" ? (
+        sg.id === "taoyuan_metro" ? (
+          <p className="mb-2 rounded-md border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-[10px] text-cyan-200">
+            💡 採分開感應過閘門模式，依人數拆分試算回饋
+          </p>
+        ) : sg.id === "taiwan_hsr" ? (
+          <p className="mb-2 rounded-md border border-violet-500/20 bg-violet-500/10 px-2.5 py-1.5 text-[10px] text-violet-200">
+            💡 系統將自動比較「一起刷 / 分開刷」高鐵回饋並擇優套用
+          </p>
+        ) : null
+      ) : null;
+
     return (
       <div className={cn("px-3 py-2 space-y-2", sg.id === "ic_card" && "px-4 py-3 space-y-2.5")}>
+        {domesticModeToggle}
         {sg.brands.map((brand) => (
           <BrandInputRow
             key={brand.id}
@@ -552,6 +603,7 @@ export function SpendingPatternPanel({
             paymentKey={`${pattern.id}:${brand.id}`}
             paymentValue={getPaymentForBrand(pattern, brand.id)}
             onPaymentChange={onPatternPaymentChange}
+            showPartyMultiplier={pattern.id === "shopping"}
           />
         ))}
       </div>
@@ -631,6 +683,7 @@ export function SpendingPatternPanel({
             paymentKey={`${pattern.id}:${brand.id}`}
             paymentValue={getPaymentForBrand(pattern, brand.id)}
             onPaymentChange={onPatternPaymentChange}
+            showPartyMultiplier={pattern.id === "shopping"}
           />
         ))}
       </div>
@@ -668,7 +721,7 @@ export function SpendingPatternPanel({
                   aria-expanded={isExpanded}
                 >
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-                    <Icon className="h-3.5 w-3.5" />
+                    {pattern.id !== "domestic_transport" && <Icon className="h-3.5 w-3.5" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium text-foreground">{pattern.label}</span>
@@ -726,7 +779,7 @@ export function SpendingPatternPanel({
                   onClick={() => addPattern(pattern)}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-secondary hover:text-foreground"
                 >
-                  <Icon className="h-3 w-3" />
+                  {pattern.id !== "domestic_transport" && <Icon className="h-3 w-3" />}
                   {pattern.label}
                 </button>
               );

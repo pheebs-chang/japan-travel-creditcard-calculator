@@ -462,14 +462,6 @@ export default function HomePage(props: {
               onPatternBrandAmountsChange={setPatternBrandAmounts}
               onChange={setPatternAmounts} 
               onBrandChange={setSelectedBrands}
-              taoyuanMetroPurchaseMode={spending.taoyuanMetroPurchaseMode ?? "together"}
-              taiwanHsrPurchaseMode={spending.taiwanHsrPurchaseMode ?? "together"}
-              onTaoyuanMetroPurchaseModeChange={(mode) =>
-                setSpending((prev) => ({ ...prev, taoyuanMetroPurchaseMode: mode }))
-              }
-              onTaiwanHsrPurchaseModeChange={(mode) =>
-                setSpending((prev) => ({ ...prev, taiwanHsrPurchaseMode: mode }))
-              }
             />
           </section>
 
