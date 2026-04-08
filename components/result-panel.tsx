@@ -419,7 +419,7 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
             </p>
           </div>
 
-          {/* 最神組合卡片：置於總省下金額下方、消費熱力圖上方 */}
+          {/* 最神組合卡片：頭銜標籤在上、標題與卡名；置於總省下金額下方、消費熱力圖上方 */}
           <div
             className={cn(
               "mt-5 rounded-2xl border-2 p-4 sm:p-5",
@@ -428,7 +428,20 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
               "shadow-[0_0_0_1px_rgba(99,102,241,0.25),inset_0_1px_0_rgba(255,255,255,0.1),0_12px_40px_rgba(49,46,129,0.35)]"
             )}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-violet-200/90">
+            <p
+              className={cn(
+                "mb-2 inline-flex items-center rounded-full border border-amber-300/45 px-3 py-1 text-xs font-bold text-white",
+                "bg-gradient-to-r bg-[length:200%_200%]",
+                medalGradient,
+                "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_3px_16px_rgba(0,0,0,0.22)]"
+              )}
+              style={{
+                animation: "medal-shimmer 3.5s ease-in-out infinite",
+              }}
+            >
+              {savingsTitle}
+            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/70">
               最神組合卡片
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -452,19 +465,6 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                 <span className="text-xl font-extrabold text-white/50 sm:text-2xl">尚無推薦卡片</span>
               )}
             </div>
-            <p
-              className={cn(
-                "mt-4 inline-flex items-center rounded-full border-2 border-amber-300/40 px-4 py-2 text-sm font-black text-white",
-                "bg-gradient-to-r bg-[length:200%_200%]",
-                medalGradient,
-                "shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(0,0,0,0.25)]"
-              )}
-              style={{
-                animation: "medal-shimmer 3.5s ease-in-out infinite",
-              }}
-            >
-              {savingsTitle}
-            </p>
           </div>
 
           <p className="mt-4 text-[10px] font-medium tracking-wide text-white/50">消費熱力圖</p>

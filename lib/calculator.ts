@@ -82,6 +82,8 @@ export interface PatternSelection {
   isApplePay?: boolean;
   /** 實體刷卡／Apple Pay／線上（Step2／Step3） */
   paymentMethod?: PaymentChannel;
+  /** 機票按人頭拆票時：旅客索引 0,1,2…（僅 flight） */
+  travelerIndex?: number;
 }
 
 // Merges pattern amounts into a SpendingInput by summing each category
@@ -354,7 +356,7 @@ function resolveSegmentStepLabels(
   category: SpendingCategory,
   seg: PatternSelection
 ): { subCategory: string; detailLabel?: string } {
-  const sub =
+  let sub =
     seg.patternLabel ??
     (category === "flight"
       ? "訂購機票"
@@ -363,9 +365,73 @@ function resolveSegmentStepLabels(
         : category === "rental"
           ? "租車費用"
           : "實體消費");
+  if (category === "flight" && seg.travelerIndex != null) {
+    sub = `訂購機票（旅客 ${seg.travelerIndex + 1}）`;
+  }
   const rawDetail = seg.brandName ?? seg.expenseName;
   const detailLabel = rawDetail && String(rawDetail).trim() ? String(rawDetail).trim() : undefined;
   return { subCategory: sub, detailLabel };
+}
+
+/** 機票總額依人數拆成整數元，餘數由前幾位旅客各 +1 */
+function splitFlightTicketAmounts(total: number, partySize: number): number[] {
+  const n = Math.max(1, Math.floor(partySize));
+  if (total <= 0) return [];
+  const base = Math.floor(total / n);
+  const rem = Math.round(total - base * n);
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    out.push(base + (i < rem ? 1 : 0));
+  }
+  return out;
+}
+
+/** 單張機票對應唯一 flight 片段（整張票一筆，禁止再拆成多個 segment） */
+function buildFlightSegmentsForTicket(
+  flightSelections: PatternSelection[],
+  ticketAmount: number,
+  travelerIndex: number,
+  multiTraveler: boolean
+): PatternSelection[] {
+  if (ticketAmount <= 0) return [];
+  if (flightSelections.length === 0) {
+    return [
+      {
+        patternId: "flight-generic",
+        amount: ticketAmount,
+        isKumamonEligible: false,
+        isRakutenJapanese: false,
+        isDbsEcoExcluded: false,
+        isKkday: false,
+        category: "flight",
+        patternLabel: "訂購機票",
+        travelerIndex: multiTraveler ? travelerIndex : undefined,
+      },
+    ];
+  }
+  const head = flightSelections[0];
+  const brandNames = flightSelections
+    .map((s) => s.brandName)
+    .filter((n): n is string => !!n && String(n).trim().length > 0);
+  const brandName =
+    brandNames.length > 0 ? Array.from(new Set(brandNames)).join("／") : head.brandName;
+  return [
+    {
+      patternId: head.patternId,
+      brandId: head.brandId,
+      brandName,
+      amount: ticketAmount,
+      isKumamonEligible: flightSelections.some((s) => s.isKumamonEligible),
+      isRakutenJapanese: false,
+      isDbsEcoExcluded: false,
+      isKkday: flightSelections.some((s) => s.isKkday),
+      specialNote: head.specialNote,
+      category: "flight",
+      patternLabel: "訂購機票",
+      paymentMethod: head.paymentMethod,
+      travelerIndex: multiTraveler ? travelerIndex : undefined,
+    },
+  ];
 }
 
 // ─── Rounding helpers ──────────────────────────────────────────────────────
@@ -870,7 +936,7 @@ function waterfallForCategorySegmentsV2(
   kumamonFlightJpyEnabled: boolean,
   kumamonBonusCapState: { remainingPoints: number; initialPoints: number } | null,
   dbsEcoBonusCapState: { remainingPoints: number; initialPoints: number } | null,
-  opts?: { indivisible?: boolean },
+  opts?: { indivisible?: boolean; flightTravelerIndex?: number },
   rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean }
 ): WaterfallStep[] {
   if (totalAmount <= 0) return [];
@@ -1419,11 +1485,8 @@ function waterfallForCategorySegmentsV2(
 
       const chosen = candidates[0];
       const needAmt = remainingSeg;
-      const allocated = opts?.indivisible
-        ? chosen.maxSpend >= needAmt - 0.01
-          ? needAmt
-          : Math.min(remainingSeg, chosen.maxSpend)
-        : Math.min(remainingSeg, chosen.maxSpend);
+      /** 不可分割片段（機票單張）：整筆一次分配，禁止拆成多筆或碎金額 */
+      const allocated = opts?.indivisible ? needAmt : Math.min(remainingSeg, chosen.maxSpend);
       if (allocated <= 0.009) break;
 
       // Compute points & update cap states.
@@ -1465,17 +1528,41 @@ function waterfallForCategorySegmentsV2(
       } else if (chosen.phase === "dbs-online-bonus") {
         const baseRate = chosen.baseRatePercent ?? 1;
         const bonusRate = chosen.bonusRatePercent ?? 4;
-        const basePoints = Math.floor((allocated * baseRate) / 100);
-        const bonusPoints = Math.round((allocated * bonusRate) / 100);
-        grossCashback = basePoints + bonusPoints;
-        feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
-        netCashback = grossCashback - feePoints;
-        dbsEcoBonusCapRemainingPoints = Math.max(0, dbsEcoBonusCapRemainingPoints - bonusPoints);
-        if (dbsEcoBonusCapState) dbsEcoBonusCapState.remainingPoints = dbsEcoBonusCapRemainingPoints;
-        isCapReached = dbsEcoBonusCapRemainingPoints <= 0.01;
-        capAmount = dbsEcoBonusCapInitialPoints;
-        isDbsEcoBonus = true;
-        specialNote = isCapReached ? chosen.capReachedNote : chosen.segmentSpecialNote;
+        if (opts?.indivisible && allocated > chosen.maxSpend + 0.01) {
+          const capB = chosen.maxSpend;
+          const overB = allocated - capB;
+          const basePoints = Math.floor((allocated * baseRate) / 100);
+          const bonusPoints = Math.min(
+            Math.round((capB * bonusRate) / 100),
+            dbsEcoBonusCapRemainingPoints
+          );
+          grossCashback = basePoints + bonusPoints;
+          feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+          netCashback = grossCashback - feePoints;
+          dbsEcoBonusCapRemainingPoints = Math.max(0, dbsEcoBonusCapRemainingPoints - bonusPoints);
+          if (dbsEcoBonusCapState) dbsEcoBonusCapState.remainingPoints = dbsEcoBonusCapRemainingPoints;
+          isCapReached = dbsEcoBonusCapRemainingPoints <= 0.01;
+          capAmount = dbsEcoBonusCapInitialPoints;
+          isDbsEcoBonus = true;
+          specialNote =
+            overB > 0.01
+              ? `${chosen.segmentSpecialNote ?? ""} 本筆已達上限（加碼額度內以外僅享基礎回饋）`.trim()
+              : isCapReached
+                ? chosen.capReachedNote
+                : chosen.segmentSpecialNote;
+        } else {
+          const basePoints = Math.floor((allocated * baseRate) / 100);
+          const bonusPoints = Math.round((allocated * bonusRate) / 100);
+          grossCashback = basePoints + bonusPoints;
+          feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+          netCashback = grossCashback - feePoints;
+          dbsEcoBonusCapRemainingPoints = Math.max(0, dbsEcoBonusCapRemainingPoints - bonusPoints);
+          if (dbsEcoBonusCapState) dbsEcoBonusCapState.remainingPoints = dbsEcoBonusCapRemainingPoints;
+          isCapReached = dbsEcoBonusCapRemainingPoints <= 0.01;
+          capAmount = dbsEcoBonusCapInitialPoints;
+          isDbsEcoBonus = true;
+          specialNote = isCapReached ? chosen.capReachedNote : chosen.segmentSpecialNote;
+        }
       } else if (chosen.phase === "dbs-online-base") {
         const baseRate = chosen.baseRatePercent ?? 1;
         grossCashback = Math.floor((allocated * baseRate) / 100);
@@ -1485,16 +1572,39 @@ function waterfallForCategorySegmentsV2(
       } else if (chosen.phase === "kumamon-bonus") {
         const baseRate = chosen.baseRatePercent ?? 2.5;
         const bonusRate = chosen.bonusRatePercent ?? 6;
-        const basePoints = applyRounding((allocated * baseRate) / 100, roundingMode);
-        const bonusPoints = applyRounding((allocated * bonusRate) / 100, roundingMode);
-        grossCashback = basePoints + bonusPoints;
-        feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
-        netCashback = grossCashback - feePoints;
-        if (kumamonBonusCapState) kumamonBonusCapState.remainingPoints = Math.max(0, kumamonBonusCapState.remainingPoints - bonusPoints);
-        isCapReached = !!kumamonBonusCapState && kumamonBonusCapState.remainingPoints <= 0.01;
-        capAmount = chosen.capInitialPoints;
-        isKumamonBonus = true;
-        specialNote = isCapReached ? chosen.capReachedNote : seg.specialNote;
+        if (opts?.indivisible && allocated > chosen.maxSpend + 0.01) {
+          const capB = chosen.maxSpend;
+          const overB = allocated - capB;
+          const basePoints = applyRounding((allocated * baseRate) / 100, roundingMode);
+          const bonusPoints = applyRounding((capB * bonusRate) / 100, roundingMode);
+          grossCashback = basePoints + bonusPoints;
+          feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+          netCashback = grossCashback - feePoints;
+          if (kumamonBonusCapState) {
+            kumamonBonusCapState.remainingPoints = Math.max(0, kumamonBonusCapState.remainingPoints - bonusPoints);
+          }
+          isCapReached = !!kumamonBonusCapState && kumamonBonusCapState.remainingPoints <= 0.01;
+          capAmount = chosen.capInitialPoints;
+          isKumamonBonus = true;
+          isOverflow = overB > 0.01;
+          specialNote =
+            overB > 0.01
+              ? `${seg.specialNote ?? ""} 本筆已達上限（加碼僅計入額度內金額）`.trim()
+              : isCapReached
+                ? chosen.capReachedNote
+                : seg.specialNote;
+        } else {
+          const basePoints = applyRounding((allocated * baseRate) / 100, roundingMode);
+          const bonusPoints = applyRounding((allocated * bonusRate) / 100, roundingMode);
+          grossCashback = basePoints + bonusPoints;
+          feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+          netCashback = grossCashback - feePoints;
+          if (kumamonBonusCapState) kumamonBonusCapState.remainingPoints = Math.max(0, kumamonBonusCapState.remainingPoints - bonusPoints);
+          isCapReached = !!kumamonBonusCapState && kumamonBonusCapState.remainingPoints <= 0.01;
+          capAmount = chosen.capInitialPoints;
+          isKumamonBonus = true;
+          specialNote = isCapReached ? chosen.capReachedNote : seg.specialNote;
+        }
       } else if (chosen.phase === "kumamon-base") {
         const baseRate = chosen.baseRatePercent ?? 2.5;
         grossCashback = applyRounding((allocated * baseRate) / 100, roundingMode);
@@ -1502,29 +1612,62 @@ function waterfallForCategorySegmentsV2(
         netCashback = grossCashback - feePoints;
       } else if (chosen.phase === "standard-cap") {
         const rate = chosen.effectiveRatePercent;
-        grossCashback = applyRounding((allocated * rate) / 100, roundingMode);
-        feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
-        netCashback = grossCashback - feePoints;
+        const flightRule = chosen.card.cashback.find((r) => r.category === category);
+        const ovRate = flightRule?.overflowRate;
+        if (opts?.indivisible && allocated > chosen.maxSpend + 0.01 && ovRate != null) {
+          const capSpend = chosen.maxSpend;
+          const overSpend = allocated - capSpend;
+          const capGross = applyRounding((capSpend * rate) / 100, roundingMode);
+          const overGross = applyRounding((overSpend * ovRate) / 100, roundingMode);
+          grossCashback = capGross + overGross;
+          feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+          netCashback = grossCashback - feePoints;
 
-        const capState = standardCapStateByCardId.get(chosen.card.id);
-        if (capState) {
-          capState.remainingPoints = Math.max(0, capState.remainingPoints - grossCashback);
-          const idx = chosen.holderIndex ?? 0;
-          capState.holderRemainingPoints[idx] = Math.max(0, (capState.holderRemainingPoints[idx] ?? 0) - grossCashback);
-          if ((holderCounts[chosen.card.id] ?? 1) > 1 && capState.holderRemainingPoints[idx] <= 0.01) {
-            const nextHolder = idx + 2;
-            if (nextHolder <= (holderCounts[chosen.card.id] ?? 1)) {
-              specialNote = `⚠️ 第${idx + 1}人已達上限，請改刷第${nextHolder}人的${chosen.card.shortName}`;
-              needsHolderSwap = true;
+          const capState = standardCapStateByCardId.get(chosen.card.id);
+          if (capState) {
+            capState.remainingPoints = Math.max(0, capState.remainingPoints - capGross);
+            const idx = chosen.holderIndex ?? 0;
+            capState.holderRemainingPoints[idx] = Math.max(0, (capState.holderRemainingPoints[idx] ?? 0) - capGross);
+            if ((holderCounts[chosen.card.id] ?? 1) > 1 && capState.holderRemainingPoints[idx] <= 0.01) {
+              const nextHolder = idx + 2;
+              if (nextHolder <= (holderCounts[chosen.card.id] ?? 1)) {
+                specialNote = `⚠️ 第${idx + 1}人已達上限，請改刷第${nextHolder}人的${chosen.card.shortName}`;
+                needsHolderSwap = true;
+              }
             }
           }
+          isCapReached = true;
+          isOverflow = overSpend > 0.01;
+          capAmount = chosen.capInitialPoints;
+          specialNote =
+            overSpend > 0.01
+              ? `${chosen.segmentSpecialNote ?? ""} 本筆已達上限（超出部分依 ${ovRate}% 計）`.trim()
+              : (chosen.segmentSpecialNote ?? seg.specialNote);
+        } else {
+          grossCashback = applyRounding((allocated * rate) / 100, roundingMode);
+          feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+          netCashback = grossCashback - feePoints;
+
+          const capState = standardCapStateByCardId.get(chosen.card.id);
+          if (capState) {
+            capState.remainingPoints = Math.max(0, capState.remainingPoints - grossCashback);
+            const idx = chosen.holderIndex ?? 0;
+            capState.holderRemainingPoints[idx] = Math.max(0, (capState.holderRemainingPoints[idx] ?? 0) - grossCashback);
+            if ((holderCounts[chosen.card.id] ?? 1) > 1 && capState.holderRemainingPoints[idx] <= 0.01) {
+              const nextHolder = idx + 2;
+              if (nextHolder <= (holderCounts[chosen.card.id] ?? 1)) {
+                specialNote = `⚠️ 第${idx + 1}人已達上限，請改刷第${nextHolder}人的${chosen.card.shortName}`;
+                needsHolderSwap = true;
+              }
+            }
+          }
+          isCapReached = !!capState && capState.remainingPoints <= 0.01;
+          capAmount = chosen.capInitialPoints;
+          specialNote =
+            holderCounts[chosen.card.id] && holderCounts[chosen.card.id] > 1 && isCapReached
+              ? `${holderCounts[chosen.card.id]}人持有，需分開刷卡各享上限`
+              : (chosen.segmentSpecialNote ?? seg.specialNote);
         }
-        isCapReached = !!capState && capState.remainingPoints <= 0.01;
-        capAmount = chosen.capInitialPoints;
-        specialNote =
-          holderCounts[chosen.card.id] && holderCounts[chosen.card.id] > 1 && isCapReached
-            ? `${holderCounts[chosen.card.id]}人持有，需分開刷卡各享上限`
-            : (chosen.segmentSpecialNote ?? seg.specialNote);
       } else if (chosen.phase === "standard-overflow") {
         isOverflow = true;
         const rate = chosen.effectiveRatePercent;
@@ -1547,6 +1690,11 @@ function waterfallForCategorySegmentsV2(
       if (effectiveHolder === undefined) {
         effectiveHolder = 0;
       }
+
+      const flightTravelerIdx =
+        category === "flight" && opts?.flightTravelerIndex !== undefined
+          ? opts.flightTravelerIndex
+          : seg.travelerIndex;
 
       const labels = resolveSegmentStepLabels(category, seg);
       steps.push({
@@ -1573,7 +1721,7 @@ function waterfallForCategorySegmentsV2(
         paymentMethod: seg.paymentMethod,
         specialNote,
         holderIndex: effectiveHolder,
-        travelerIndex: effectiveHolder,
+        travelerIndex: flightTravelerIdx ?? effectiveHolder,
         needsHolderSwap,
         expenseLabel: seg.expenseName,
         subCategory: labels.subCategory,
@@ -1626,7 +1774,9 @@ export function calculateOptimalCombination(
   kumamonFlightJpyEnabled: boolean = false,
   dateRange?: TravelDateRange,
   sinopacLevel?: 1 | 2,
-  rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean }
+  rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean },
+  /** 機票依人頭拆票；每人一張不可分割 */
+  partySize: number = 1
 ): CalculationResult | null {
   if (selectedCards.length === 0) return null;
 
@@ -1701,12 +1851,38 @@ export function calculateOptimalCombination(
       continue;
     }
 
-    const amount =
-      category === "flight"
-        ? spending.flight
-        : category === "rental"
-          ? spending.rental
-          : spending.local;
+    if (category === "flight") {
+      const flightTotal = spending.flight ?? 0;
+      if (flightTotal <= 0) continue;
+      const flightSegs = patternSelections.filter((s) => s.category === "flight");
+      const tickets = splitFlightTicketAmounts(flightTotal, partySize);
+      const multiTraveler = partySize > 1;
+      for (let ti = 0; ti < tickets.length; ti++) {
+        const ticketAmt = tickets[ti];
+        if (ticketAmt <= 0) continue;
+        const scaled = buildFlightSegmentsForTicket(flightSegs, ticketAmt, ti, multiTraveler);
+        const steps = waterfallForCategorySegmentsV2(
+          "flight",
+          ticketAmt,
+          scaled,
+          cardsForCalc,
+          enrolledIds,
+          stepIndexRef,
+          holderCounts,
+          isDbsEcoNewUser,
+          kumamonWalletPaypayExcluded,
+          kumamonFlightJpyEnabled,
+          kumamonBonusCapState,
+          dbsEcoBonusCapState,
+          { indivisible: true, flightTravelerIndex: multiTraveler ? ti : undefined },
+          rateOpts
+        );
+        allSteps.push(...steps);
+      }
+      continue;
+    }
+
+    const amount = category === "rental" ? spending.rental : spending.local;
     if (!amount || amount <= 0) continue;
 
     const categorySegments = patternSelections.filter((s) => s.category === category);

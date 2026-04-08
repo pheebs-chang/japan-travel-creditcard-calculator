@@ -125,8 +125,8 @@ export default function HomePage(props: {
     const cards = CREDIT_CARDS.filter((c) => selectedCards.includes(c.id));
     const enrolledSet = new Set(enrolledCards);
     const calc = calculateOptimalCombination(
-      mergedSpending, 
-      cards, 
+      mergedSpending,
+      cards,
       enrolledSet,
       patternSelections,
       selectedBrands,
@@ -136,7 +136,8 @@ export default function HomePage(props: {
       isKumamonFlightJpy,
       dateRange,
       sinopacLevel,
-      { isSinopacNewUser, isUnionJingheNewUser }
+      { isSinopacNewUser, isUnionJingheNewUser },
+      partySize
     );
     setResult(calc);
     setHasCalculated(true);

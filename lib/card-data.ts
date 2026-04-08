@@ -279,7 +279,8 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "玉山銀行",
     annualFee: 0,
     color: "bg-zinc-500",
-    registrationUrl: "https://www.esunbank.com.tw/",
+    registrationUrl:
+      "https://card.esunbank.com.tw/EsunCreditweb/txnservice/Activity/RegisterEvent?EventId=KU2512&mac=665f4f4fc547cbcac6f3799523e320b7ce10cae170343350f9095a425e2ed115&PRJCD=ACTIVITY#b",
     registrationBonus: { type: "percent", value: 0.5, note: "活動登錄加碼" },
     tags: ["指定通路8.5%"],
     validUntil: "2026-06-30",
@@ -330,7 +331,7 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "永豐銀行",
     annualFee: 0,
     color: "bg-zinc-500",
-    registrationUrl: "https://bank.sinopac.com/",
+    registrationUrl: "https://mma.sinopac.com/SinoCard/Activity/Register?Code=XE90",
     registrationBonus: { type: "percent", value: 1.0, note: "任務登錄加碼" },
     tags: ["雙幣卡", "免手續費", "Level加碼"],
     sinopacBonusCapMonthly: 300,
