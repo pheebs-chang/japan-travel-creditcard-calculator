@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 
 const CUBE_COUPON_URL =
   "https://www.cathaybk.com.tw/cathaybk/promo/event/credit-card/product/japanrewards/index.html";
+const IC_TOPUP_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
 
 interface ResultPanelProps {
   result: CalculationResult | null;
@@ -92,6 +93,13 @@ function formatStrategyCardLine(step: WaterfallStep, partySize: number): string 
     return `👤 旅客 ${step.travelerIndex + 1} 的 ${step.cardShortName}卡`;
   }
   return step.cardName;
+}
+
+function transportTopupRankTag(step: WaterfallStep): string | null {
+  if (!IC_TOPUP_IDS.has(step.brandId ?? "")) return null;
+  if (step.cardId === "fubon-j") return "[交通儲值首選]";
+  if (step.cardId === "esun-kumamon") return "[交通儲值次選]";
+  return null;
 }
 
 type DisplayStepItem =
@@ -566,6 +574,9 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
               item.type === "merged" && item.steps.length >= 2
                 ? `💡 建議：${formatTWD(item.steps[0].amount)} 用 ${item.steps[0].cardShortName}，剩餘改刷 ${item.steps[item.steps.length - 1].cardShortName}`
                 : null;
+            const icRankTag = transportTopupRankTag(step);
+            const needsApplePayReminder =
+              IC_TOPUP_IDS.has(step.brandId ?? "") && (step.cardId === "cathay-cube" || step.cardId === "fubon-j");
             return (
             <React.Fragment key={item.stepIndex}>
             <div
@@ -594,6 +605,11 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                   <span className="text-sm font-semibold text-foreground">
                     {formatStrategyCardLine(step, partySize)}
                   </span>
+                  {icRankTag && (
+                    <span className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-700 dark:text-cyan-200">
+                      {icRankTag}
+                    </span>
+                  )}
                   {step.cardId === "cathay-cube" && (
                     <a
                       href={CUBE_COUPON_URL}
@@ -661,6 +677,9 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                 )}
                 {mergedAdvice && (
                   <p className="text-[10px] text-muted-foreground/80 mt-1">{mergedAdvice}</p>
+                )}
+                {needsApplePayReminder && (
+                  <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1">需開啟 Apple Pay 儲值</p>
                 )}
                 {/* Special note */}
                 {step.specialNote && (

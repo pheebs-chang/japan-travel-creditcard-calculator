@@ -1137,7 +1137,7 @@ function waterfallForCategorySegmentsV2(
     while (remainingSeg > 0.01) {
       type Candidate = {
         card: CreditCard;
-        phase: "dbs-bonus" | "dbs-base" | "dbs-online-bonus" | "dbs-online-base" | "kumamon-bonus" | "kumamon-base" | "fubon-ap-ic" | "union-ap" | "standard-cap" | "standard-uncapped" | "standard-overflow";
+        phase: "dbs-bonus" | "dbs-base" | "dbs-online-bonus" | "dbs-online-base" | "kumamon-bonus" | "kumamon-base" | "fubon-ap-ic" | "union-ap" | "standard-cap" | "standard-uncapped" | "standard-overflow" | "ic-priority";
         effectiveRatePercent: number; // for display
         maxSpend: number;
         priority: number;
@@ -1155,11 +1155,79 @@ function waterfallForCategorySegmentsV2(
       };
 
       const candidates: Candidate[] = [];
+      const isApIcTopup =
+        category === "local" && IC_BRAND_IDS.has(seg.brandId ?? "") && seg.isApplePay !== false;
 
       for (const card of cards) {
         const enrolled = enrolledIds.has(card.id);
         const roundingMode = getCardRoundingMode(card);
         const feeRate = card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE);
+
+        // ── 日本交通卡儲值（Apple Pay）專屬優先序 ──
+        if (isApIcTopup) {
+          const byId = (id: string) => cards.find((c) => c.id === id);
+          const pushCandidate = (target: CreditCard | undefined, rate: number, priority: number, maxSpend = remainingSeg, note?: string) => {
+            if (!target || target.id !== card.id || maxSpend <= 0.01) return;
+            candidates.push({
+              card: target,
+              phase: "ic-priority",
+              effectiveRatePercent: rate,
+              maxSpend: Math.min(remainingSeg, maxSpend),
+              priority,
+              roundingMode,
+              feeRate,
+              capUsesPoints: false,
+              segmentSpecialNote: note,
+            });
+          };
+
+          // 1) 富邦 J：10%，加碼上限 NT$200（約刷 NT$2,857）
+          const fubon = byId("fubon-j");
+          const fubonKey = "__fubon_ap_ic_spend_cap__";
+          const fubonCapRemain =
+            (waterfallForCategorySegmentsV2 as unknown as Record<string, number>)[fubonKey] ??
+            ((holderCounts["fubon-j"] ?? 1) * 2857);
+          pushCandidate(
+            fubon,
+            10.0,
+            100000,
+            fubonCapRemain,
+            "交通卡 Apple Pay 儲值首選 10%（加碼上限約 NT$2,857）"
+          );
+
+          // 2) 熊本熊：8.5%，受 6% 加碼上限約 NT$8,333/人
+          const kumamon = byId("esun-kumamon");
+          if (kumamon && card.id === "esun-kumamon") {
+            const kmMax = kumamonBonusCapState && kumamonBonusCapState.remainingPoints > 0.01
+              ? maxSpendForPointsCap(kumamonBonusCapState.remainingPoints, 6.0, roundingMode)
+              : 0;
+            if (kmMax > 0.01) {
+              pushCandidate(
+                kumamon,
+                8.5,
+                90000,
+                kmMax,
+                "交通卡 Apple Pay 儲值次選 8.5%（受加碼上限）"
+              );
+            }
+          }
+
+          // 3) 國泰 CUBE（日本賞）：5%（需領券）
+          pushCandidate(
+            byId("cathay-cube"),
+            5.0,
+            80000,
+            remainingSeg,
+            "🎟️ 需領券：日本賞 Apple Pay 儲值交通卡 5%"
+          );
+          // 4) 台新 FlyGo：3.3%
+          pushCandidate(byId("taishin-flygo"), 3.3, 70000, remainingSeg, "交通卡 Apple Pay 儲值 3.3%");
+          // 5) 聯邦吉鶴：2.5%
+          pushCandidate(byId("union-jinghe"), 2.5, 60000, remainingSeg, "交通卡儲值以一般海外 2.5% 試算（不套用交通感應活動）");
+          // 6) 星展 eco：1%
+          pushCandidate(byId("dbs-eco"), 1.0, 50000, remainingSeg, "Apple Pay 儲值交通卡排除 4% 加碼，僅 1%");
+          continue;
+        }
 
         // ── DBS eco local special ──
         if (card.id === "dbs-eco" && category === "local") {
@@ -1776,6 +1844,19 @@ function waterfallForCategorySegmentsV2(
         feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
         netCashback = grossCashback - feePoints;
         specialNote = `超出上限部分${rate}%`;
+      } else if (chosen.phase === "ic-priority") {
+        const rate = chosen.effectiveRatePercent;
+        grossCashback = applyRounding((allocated * rate) / 100, roundingMode);
+        feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+        netCashback = grossCashback - feePoints;
+        specialNote = chosen.segmentSpecialNote ?? seg.specialNote;
+        if (chosen.card.id === "fubon-j") {
+          const fubonKey = "__fubon_ap_ic_spend_cap__";
+          const cur = (waterfallForCategorySegmentsV2 as unknown as Record<string, number>)[fubonKey] ?? ((holderCounts["fubon-j"] ?? 1) * 2857);
+          const next = Math.max(0, cur - allocated);
+          (waterfallForCategorySegmentsV2 as unknown as Record<string, number>)[fubonKey] = next;
+          isCapReached = next <= 0.01;
+        }
       } else {
         // standard-uncapped
         const rate = chosen.effectiveRatePercent;
