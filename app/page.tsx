@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { MapPin, ChevronDown, Calculator, Users, Minus, Plus } from "lucide-react";
 import { SpendingInputPanel } from "@/components/spending-input";
 import { SpendingPatternPanel } from "@/components/spending-pattern";
@@ -72,6 +72,15 @@ export default function HomePage(props: {
   const [isUnionJingheNewUser, setIsUnionJingheNewUser] = useState(false);
   const [isSinopacNewUser, setIsSinopacNewUser] = useState(false);
   const [patternPaymentByKey, setPatternPaymentByKey] = useState<Record<string, PaymentChannel>>({});
+  const [isMounted, setIsMounted] = useState(false);
+  const [showExpirationWarning, setShowExpirationWarning] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const now = new Date();
+    const expiryThreshold = new Date("2026-06-30T23:59:59");
+    setShowExpirationWarning(now > expiryThreshold);
+  }, []);
 
   // Merge Step 2 base amounts + Step 3 pattern amounts
   const paymentMergeOpts = useMemo((): MergePatternPaymentOptions => {
@@ -152,6 +161,14 @@ export default function HomePage(props: {
 
   return (
     <div className="min-h-screen bg-background font-sans">
+      {isMounted && showExpirationWarning && (
+        <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2.5">
+          <p className="mx-auto max-w-2xl text-center text-sm font-medium text-destructive leading-relaxed">
+            ⚠️ 注意：部分信用卡權益可能已於 2026/06/30 到期，新版權益正在核實中，目前計算結果可能產生誤差。
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
@@ -413,12 +430,13 @@ export default function HomePage(props: {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-6 px-4">
+      <footer className="border-t border-border py-8 px-4">
         <div className="mx-auto max-w-2xl">
-          <p className="text-[11px] text-muted-foreground/60 text-center leading-relaxed">
-            回饋率以各銀行公告為準，海外交易手續費 1.5% 已納入試算。
-            <br />
-            本工具僅供試算參考，不構成任何財務建議。
+          <p className="text-xs text-muted-foreground/75 text-center leading-relaxed">
+            最新權益基準日：2026/04/08
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground/65 text-center leading-relaxed">
+            免責聲明：本工具之計算結果僅供參考，各信用卡回饋詳情、登錄限額及活動期限悉依各發卡銀行官網公告為準。本站不保證資訊之即時性與精確性，亦不負擔任何因使用本工具而產生之消費爭議或損失。刷卡前請務必再次確認銀行最新條款。
           </p>
         </div>
       </footer>
