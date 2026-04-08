@@ -66,7 +66,6 @@ export default function HomePage(props: {
   const [isDbsEcoNewUser, setIsDbsEcoNewUser] = useState(false);
   const [kumamonWalletPaypayExcluded, setKumamonWalletPaypayExcluded] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
-  const [hasCalculated, setHasCalculated] = useState(false);
   const [applePayByBrand, setApplePayByBrand] = useState<Record<string, boolean>>({});
   const [sinopacLevel, setSinopacLevel] = useState<1 | 2>(1);
   const [isUnionJingheNewUser, setIsUnionJingheNewUser] = useState(false);
@@ -120,6 +119,47 @@ export default function HomePage(props: {
 
   const canCalculate = hasInput && selectedCards.length > 0;
 
+  useEffect(() => {
+    if (!canCalculate) {
+      setResult(null);
+      return;
+    }
+    const cards = CREDIT_CARDS.filter((c) => selectedCards.includes(c.id));
+    const enrolledSet = new Set(enrolledCards);
+    const calc = calculateOptimalCombination(
+      mergedSpending,
+      cards,
+      enrolledSet,
+      patternSelections,
+      selectedBrands,
+      holderCounts,
+      isDbsEcoNewUser,
+      kumamonWalletPaypayExcluded,
+      isKumamonFlightJpy,
+      dateRange,
+      sinopacLevel,
+      { isSinopacNewUser, isUnionJingheNewUser },
+      partySize
+    );
+    setResult(calc);
+  }, [
+    canCalculate,
+    mergedSpending,
+    selectedCards,
+    enrolledCards,
+    patternSelections,
+    selectedBrands,
+    holderCounts,
+    isDbsEcoNewUser,
+    kumamonWalletPaypayExcluded,
+    isKumamonFlightJpy,
+    dateRange,
+    sinopacLevel,
+    isSinopacNewUser,
+    isUnionJingheNewUser,
+    partySize,
+  ]);
+
   const handleCalculate = useCallback(() => {
     if (!canCalculate) return;
     const cards = CREDIT_CARDS.filter((c) => selectedCards.includes(c.id));
@@ -140,7 +180,6 @@ export default function HomePage(props: {
       partySize
     );
     setResult(calc);
-    setHasCalculated(true);
 
     if (calc) {
       const isKkdayUsed = patternSelections.some((s) => s.isKkday && s.amount > 0);
@@ -158,7 +197,25 @@ export default function HomePage(props: {
         result: calc,
       });
     }
-  }, [canCalculate, mergedSpending, selectedCards, enrolledCards, destination, patternAmounts, patternSelections, selectedBrands, partySize, holderCounts, isDbsEcoNewUser, kumamonWalletPaypayExcluded, isKumamonFlightJpy, dateRange, sinopacLevel, isSinopacNewUser, isUnionJingheNewUser]);
+  }, [
+    canCalculate,
+    mergedSpending,
+    selectedCards,
+    enrolledCards,
+    destination,
+    patternAmounts,
+    patternSelections,
+    selectedBrands,
+    partySize,
+    holderCounts,
+    isDbsEcoNewUser,
+    kumamonWalletPaypayExcluded,
+    isKumamonFlightJpy,
+    dateRange,
+    sinopacLevel,
+    isSinopacNewUser,
+    isUnionJingheNewUser,
+  ]);
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -421,7 +478,7 @@ export default function HomePage(props: {
           </button>
 
           {/* Step 4 — Result (only shown after calculate) */}
-          {hasCalculated && (
+          {result && (
             <>
               <div className="h-px bg-border" role="separator" />
               <ResultPanel result={result} destination={destination} stepNumber={3} partySize={partySize} holderCounts={holderCounts} />
