@@ -921,22 +921,26 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
       </button>
 
       {registrationTasks.length > 0 && (
-        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 overflow-hidden">
-          <div className="px-4 py-3 border-b border-emerald-200">
-            <p className="text-sm font-semibold text-emerald-800">💡 登錄任務：別忘了領額外回饋</p>
+        <div className="mt-4 rounded-xl border border-border bg-muted/40 dark:border-white/10 dark:bg-white/5 overflow-hidden">
+          <div className="border-b border-border dark:border-white/10 px-4 py-4 sm:px-6 sm:py-4">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">
+              💡 登錄任務：別忘了領額外回饋
+            </p>
           </div>
-          <div className="divide-y divide-emerald-100">
+          <div className="divide-y divide-border dark:divide-white/10">
             {registrationTasks.map((task) => (
-              <div key={task.cardId} className="px-4 py-3 flex items-center gap-3">
+              <div key={task.cardId} className="px-4 py-4 sm:px-6 flex items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-foreground">{task.cardName}</p>
-                  <p className="text-[11px] text-muted-foreground">{task.note}，可再省 {formatTWD(task.bonus)}</p>
+                  <p className="text-xs font-medium text-foreground dark:text-white">{task.cardName}</p>
+                  <p className="text-[11px] text-muted-foreground dark:text-white/60 mt-1 leading-relaxed">
+                    {task.note}，可再省 {formatTWD(task.bonus)}
+                  </p>
                 </div>
                 <a
                   href={task.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center rounded-lg border border-emerald-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                  className="inline-flex shrink-0 items-center rounded-lg border border-border bg-background/80 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 hover:bg-muted dark:border-white/20 dark:bg-white/10 dark:text-amber-200 dark:hover:bg-white/15 dark:hover:border-white/30 transition-colors"
                 >
                   點我登錄
                 </a>
