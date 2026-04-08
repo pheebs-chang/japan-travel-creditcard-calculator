@@ -91,59 +91,56 @@ function formatStrategyCardLine(step: WaterfallStep, partySize: number): string 
   return step.cardName;
 }
 
-/** 是否需在「上一筆 → 本筆」之間顯示換手／溢出提示 */
-function shouldShowSpillBanner(prev: WaterfallStep, curr: WaterfallStep): boolean {
-  if (prev.isDbsEcoBonus && curr.isDbsEcoBaseOnly && prev.cardId === curr.cardId) return true;
-  if (prev.isKumamonBonus && !curr.isKumamonBonus && prev.cardId === curr.cardId) return true;
-  if (!prev.isCapReached) return false;
-  return (
-    prev.cardId !== curr.cardId ||
-    (prev.travelerIndex ?? 0) !== (curr.travelerIndex ?? 0) ||
-    !!curr.isOverflow
-  );
+type DisplayStepItem =
+  | { type: "single"; step: WaterfallStep; stepIndex: number }
+  | { type: "merged"; steps: WaterfallStep[]; stepIndex: number };
+
+function buildDisplayStepItems(steps: WaterfallStep[]): DisplayStepItem[] {
+  const out: DisplayStepItem[] = [];
+  for (let i = 0; i < steps.length; i++) {
+    const curr = steps[i];
+    if (!curr.splitGroupKey) {
+      out.push({ type: "single", step: curr, stepIndex: curr.stepIndex });
+      continue;
+    }
+    const group = [curr];
+    let j = i + 1;
+    while (j < steps.length && steps[j].splitGroupKey === curr.splitGroupKey) {
+      group.push(steps[j]);
+      j += 1;
+    }
+    if (group.length > 1) {
+      out.push({ type: "merged", steps: group, stepIndex: group[0].stepIndex });
+      i = j - 1;
+      continue;
+    }
+    out.push({ type: "single", step: curr, stepIndex: curr.stepIndex });
+  }
+  return out;
 }
 
-/** 動態換手提示（旅客編號為 1 起算） */
-function getSpillHandoffBannerText(prev: WaterfallStep, curr: WaterfallStep, partySize: number): string | null {
-  if (!shouldShowSpillBanner(prev, curr)) return null;
-
-  if (partySize <= 1) {
-    if (prev.isDbsEcoBonus && curr.isDbsEcoBaseOnly && prev.cardId === curr.cardId) {
-      return `🛑 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
-    }
-    if (prev.isKumamonBonus && !curr.isKumamonBonus && prev.cardId === curr.cardId) {
-      return `🛑 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
-    }
-    if (prev.cardId !== curr.cardId) {
-      return `🛑 ${prev.cardShortName}卡 額度已滿，剩餘金額請改刷 ${curr.cardShortName}卡`;
-    }
-    if (curr.isOverflow && prev.cardId === curr.cardId) {
-      return `🛑 ${prev.cardShortName}卡 額度已滿，剩餘金額改以超額回饋計算`;
-    }
-    return "🛑 此卡已達加碼上限";
+function buildShoppingStrategySummary(steps: WaterfallStep[]): string[] {
+  const lines: string[] = [];
+  const groups = new Map<string, WaterfallStep[]>();
+  for (const s of steps) {
+    if (s.splitGroupType !== "shopping" || !s.splitGroupKey) continue;
+    const list = groups.get(s.splitGroupKey) ?? [];
+    list.push(s);
+    groups.set(s.splitGroupKey, list);
   }
-
-  const p1 = (prev.travelerIndex ?? 0) + 1;
-  const p2 = (curr.travelerIndex ?? 0) + 1;
-  const samePerson = (prev.travelerIndex ?? 0) === (curr.travelerIndex ?? 0);
-
-  if (prev.isDbsEcoBonus && curr.isDbsEcoBaseOnly && prev.cardId === curr.cardId) {
-    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
+  for (const [, list] of groups) {
+    if (list.length < 2) continue;
+    const store = list[0].detailLabel ?? list[0].brandName ?? "該商店";
+    const cards = Array.from(new Set(list.map((x) => x.cardShortName)));
+    if (cards.length < 2) continue;
+    const firstCardAmount = list
+      .filter((x) => x.cardId === list[0].cardId)
+      .reduce((sum, x) => sum + x.amount, 0);
+    lines.push(
+      `🛍️ 在 ${store}，前 ${formatTWD(firstCardAmount)} 請刷 [${cards[0]}]，超過的部分請改刷 [${cards[1]}]`
+    );
   }
-  if (prev.isKumamonBonus && !curr.isKumamonBonus && prev.cardId === curr.cardId) {
-    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
-  }
-
-  if (samePerson && prev.cardId !== curr.cardId) {
-    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 額度已滿，剩餘金額請改刷 ${curr.cardShortName}卡`;
-  }
-  if (!samePerson) {
-    return `🛑 旅客 ${p1} 的額度已滿，剩餘金額請交由 👤 旅客 ${p2} 繼續刷卡`;
-  }
-  if (prev.cardId === curr.cardId && curr.isOverflow) {
-    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 額度已滿，剩餘金額改以超額回饋計算`;
-  }
-  return "🛑 此卡已達加碼上限";
+  return lines;
 }
 
 function StatCard({
@@ -293,6 +290,8 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
     })
     .filter((x): x is { cardId: string; cardName: string; url: string; note: string; bonus: number } => !!x);
   const registrationExtraSaving = registrationTasks.reduce((sum, t) => sum + t.bonus, 0);
+  const displayStepItems = buildDisplayStepItems(waterfallSteps);
+  const shoppingStrategyLines = buildShoppingStrategySummary(waterfallSteps);
 
   const handleCopy = async () => {
     const tripPhrase = destination === "日本" ? "日本行" : "韓國行";
@@ -523,17 +522,42 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
         </div>
       </div>
 
+      {shoppingStrategyLines.length > 0 && (
+        <div className="mb-3 rounded-xl border border-amber-300/30 bg-amber-50/50 dark:bg-amber-500/10 overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-amber-300/30 px-4 py-3">
+            <Lightbulb className="h-4 w-4 text-amber-700 dark:text-amber-200" />
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-800 dark:text-amber-200">
+              購物省錢攻略
+            </p>
+          </div>
+          <div className="space-y-2 px-4 py-3">
+            {shoppingStrategyLines.map((line, idx) => (
+              <p key={idx} className="text-xs leading-relaxed text-amber-900 dark:text-amber-100">
+                {line}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Waterfall order list */}
       <div className="rounded-xl border border-border bg-card overflow-hidden mb-3">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">刷卡攻略</p>
-          <span className="text-[10px] text-muted-foreground">{waterfallSteps.length} 個步驟</span>
+          <span className="text-[10px] text-muted-foreground">{displayStepItems.length} 個步驟</span>
         </div>
         <div className="divide-y divide-border">
-          {waterfallSteps.map((step, index) => {
+          {displayStepItems.map((item) => {
+            const step = item.type === "single" ? item.step : item.steps[0];
             const disclaimer = strategyDisclaimerPrefix(step);
+            const mergedAmount = item.type === "merged" ? item.steps.reduce((sum, s) => sum + s.amount, 0) : step.amount;
+            const mergedNet = item.type === "merged" ? item.steps.reduce((sum, s) => sum + s.netCashback, 0) : step.netCashback;
+            const mergedAdvice =
+              item.type === "merged" && item.steps.length >= 2
+                ? `💡 建議：${formatTWD(item.steps[0].amount)} 用 ${item.steps[0].cardShortName}，剩餘改刷 ${item.steps[item.steps.length - 1].cardShortName}`
+                : null;
             return (
-            <React.Fragment key={step.stepIndex}>
+            <React.Fragment key={item.stepIndex}>
             <div
               className={cn(
                 "flex items-start gap-3 px-4 py-3",
@@ -542,7 +566,7 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
             >
               {/* Step number */}
               <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border bg-secondary mt-0.5">
-                <span className="text-[10px] font-bold font-mono text-foreground">{step.stepIndex}</span>
+                <span className="text-[10px] font-bold font-mono text-foreground">{item.stepIndex}</span>
               </div>
 
               <div className="flex-1 min-w-0">
@@ -596,7 +620,7 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                 </div>
                 {/* Amount detail */}
                 <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                  {formatTWD(step.amount)} × {step.cashbackRate}%
+                  {formatTWD(mergedAmount)} × {step.cashbackRate}%
                   {step.foreignFee > 0 && ` - 手續費 ${formatTWD(step.foreignFee)}`}
                   {step.foreignFee === 0 && (step.cardId === "sinopac-doublebei") && (
                     <span className="text-muted-foreground/60"> （雙幣卡免手續費）</span>
@@ -614,6 +638,9 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                     {step.bonusCashback != null ? ` + 4% 加碼回饋 ${formatTWD(step.bonusCashback)}` : ""}
                   </p>
                 )}
+                {mergedAdvice && (
+                  <p className="text-[10px] text-muted-foreground/80 mt-1">{mergedAdvice}</p>
+                )}
                 {/* Special note */}
                 {step.specialNote && (
                   <div className="flex items-center gap-1 mt-1">
@@ -625,23 +652,12 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
 
               {/* Net cashback */}
               <div className="text-right flex-shrink-0">
-                <p className={cn("text-sm font-bold font-mono", step.netCashback > 0 ? "text-foreground" : "text-muted-foreground")}>
-                  {step.netCashback > 0 ? `+${formatTWD(step.netCashback)}` : formatTWD(step.netCashback)}
+                <p className={cn("text-sm font-bold font-mono", mergedNet > 0 ? "text-foreground" : "text-muted-foreground")}>
+                  {mergedNet > 0 ? `+${formatTWD(mergedNet)}` : formatTWD(mergedNet)}
                 </p>
                 <p className="text-[10px] text-muted-foreground">淨回饋</p>
               </div>
             </div>
-          {index > 0 &&
-            (() => {
-              const prev = waterfallSteps[index - 1];
-              const line = getSpillHandoffBannerText(prev, step, partySize);
-              if (!line) return null;
-              return (
-                <div className="mx-4 -mt-1 mb-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-[10px] font-medium text-amber-700 leading-relaxed">
-                  {line}
-                </div>
-              );
-            })()}
           </React.Fragment>
             );
           })}

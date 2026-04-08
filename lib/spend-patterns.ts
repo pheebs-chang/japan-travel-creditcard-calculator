@@ -167,45 +167,18 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
     subGroups: [
       {
         id: "ic_card",
-        label: "交通IC卡儲值",
+        label: "日本交通卡儲值",
         perPerson: true,
         brands: [
           {
             id: "jp_ic_wallet_topup",
-            name: "📱 儲值日本交通卡 (Suica／PASMO)",
+            name: "📱 日本交通卡儲值 (Suica / PASMO / ICOCA)",
             unitPrice: 5000,
             isDbsEcoExcluded: true,
             isKumamonEligible: true,
             highlight: true,
             specialNote:
-              "與 SUICA／PASMO 儲值試算相同；可搭配 Apple Pay 開關。",
-          },
-          {
-            id: "suica",
-            name: "SUICA",
-            unitPrice: 5000,
-            isDbsEcoExcluded: true,
-            isKumamonEligible: true,
-            specialNote:
-              "Apple Pay 儲值：星展 eco 不計入 4% 加碼；台新 FlyGo 玩旅刷 3.3% 精選含 AP 儲值。可切換「Apple Pay」開關以試算。",
-          },
-          {
-            id: "pasmo",
-            name: "PASMO",
-            unitPrice: 5000,
-            isDbsEcoExcluded: true,
-            isKumamonEligible: true,
-            specialNote:
-              "Apple Pay 儲值：星展 eco 不計入 4% 加碼；台新 FlyGo 玩旅刷 3.3% 精選含 AP 儲值。可切換「Apple Pay」開關以試算。",
-          },
-          {
-            id: "icoca",
-            name: "ICOCA",
-            unitPrice: 5000,
-            isDbsEcoExcluded: true,
-            isKumamonEligible: true,
-            specialNote:
-              "Apple Pay 儲值：星展 eco 不計入 4% 加碼；台新 FlyGo 玩旅刷 3.3% 精選含 AP 儲值。可切換「Apple Pay」開關以試算。",
+              "Apple Pay 儲值：富邦 J 可評估 10%、台新 FlyGo 玩旅刷可評估 3.3%；星展 eco 不計入 4% 加碼。可切換「Apple Pay 儲值」與支付方式試算。",
           },
         ],
       },

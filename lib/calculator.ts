@@ -316,6 +316,10 @@ export interface WaterfallStep {
   brandId?: string;
   /** Step2／Step3 支付方式 */
   paymentMethod?: PaymentChannel;
+  /** 同一筆消費被額度切分時的分組鍵（UI 合併顯示用） */
+  splitGroupKey?: string;
+  /** 分組類型（目前僅購物切分） */
+  splitGroupType?: "shopping";
 }
 
 export interface CardBreakdown {
@@ -1029,8 +1033,14 @@ function waterfallForCategorySegmentsV2(
   }
 
   // Allocate each segment with current cap states.
-  for (const seg of safeSegments) {
+  for (const [segIdx, seg] of safeSegments.entries()) {
     let remainingSeg = seg.amount;
+    const shoppingBlob = `${seg.patternLabel ?? ""}${seg.brandName ?? ""}${seg.expenseName ?? ""}`;
+    const isShoppingSplitCandidate =
+      category === "local" && /(購物|百貨|藥妝|電器|outlet|mall|store|bic|三越|伊勢丹)/i.test(shoppingBlob);
+    const splitGroupKey = isShoppingSplitCandidate
+      ? `shopping:${segIdx}:${seg.brandId ?? seg.brandName ?? seg.patternId}`
+      : undefined;
     /** 同一消費片段內，每張卡最後一次刷卡對應的持卡人索引（溢出／降階步驟繼承用） */
     const lastHolderByCardId = new Map<string, number>();
     while (remainingSeg > 0.01) {
@@ -1726,6 +1736,8 @@ function waterfallForCategorySegmentsV2(
         expenseLabel: seg.expenseName,
         subCategory: labels.subCategory,
         detailLabel: labels.detailLabel,
+        splitGroupKey,
+        splitGroupType: splitGroupKey ? "shopping" : undefined,
         baseCashback: (chosen.phase === "dbs-bonus" || chosen.phase === "dbs-online-bonus")
           ? Math.max(0, Math.floor((allocated * (chosen.baseRatePercent ?? 0)) / 100))
           : undefined,
