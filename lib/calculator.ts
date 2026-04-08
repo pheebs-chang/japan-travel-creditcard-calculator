@@ -619,6 +619,97 @@ function getEffectiveRate(
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // 國泰 CUBE（日本賞）special logic：指定通路需領券
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (card.id === "cathay-cube") {
+    const brandIds = new Set(categorySelections.map((s) => s.brandId ?? ""));
+    const hasAny = (ids: string[]) => ids.some((id) => brandIds.has(id));
+    const hasIcTopup = categorySelections.some((s) => IC_BRAND_IDS.has(s.brandId ?? ""));
+
+    if (category === "local") {
+      if (hasAny(["mitsui_outlet_park", "wamazing"])) {
+        return {
+          rate: 10.0,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需領券：日本賞指定通路 10%（3.5%+券後 6.5%）",
+        };
+      }
+      if (hasAny(["daimaru_matsuzakaya"])) {
+        return {
+          rate: 8.0,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需領券：大丸指定通路 8%（3.5%+券後 4.5%）",
+        };
+      }
+      if (hasIcTopup && categorySelections.some((s) => s.isApplePay !== false)) {
+        return {
+          rate: 5.0,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需領券：Apple Pay 儲值交通卡 5%（3.5%+券後 1.5%）",
+        };
+      }
+      if (hasAny(["bic_camera", "edion"])) {
+        return {
+          rate: 3.5,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需領券：卡片回饋 3.5%，現場另有最高 7% 折扣",
+        };
+      }
+      // Klook：日本指定商品 6%
+      if (hasAny(["klook_hotel", "kkday_jr", "kkday_tokyo_park"])) {
+        return {
+          rate: 6.0,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需領券：Klook 日本指定商品 6%",
+        };
+      }
+      return {
+        rate: 3.5,
+        isKumamonBonus: false,
+        isDbsEcoBonus: false,
+        isDbsEcoBaseOnly: false,
+      };
+    }
+
+    if (category === "hotel") {
+      if (hasAny(["hotels_com", "expedia"])) {
+        return {
+          rate: 10.0,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需領券：Hotels.com / Expedia 最高 10%（5%+5%）",
+        };
+      }
+      if (hasAny(["klook_hotel"])) {
+        return {
+          rate: 6.0,
+          isKumamonBonus: false,
+          isDbsEcoBonus: false,
+          isDbsEcoBaseOnly: false,
+          specialNote: "🎟️ 需領券：Klook 日本指定商品 6%",
+        };
+      }
+      return {
+        rate: 3.5,
+        isKumamonBonus: false,
+        isDbsEcoBonus: false,
+        isDbsEcoBaseOnly: false,
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // 中信 UniOpen overflow logic
   // ═══════════════════════════════════════════════════════════════════════════
   // Handled during waterfall allocation, not here

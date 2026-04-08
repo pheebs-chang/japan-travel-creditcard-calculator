@@ -76,6 +76,13 @@ export const HOTEL_BOOKING_BRANDS: BrandItem[] = [
   { id: "hotels_com", name: "Hotels.com", unitPrice: 15000, isKkday: true },
   { id: "booking", name: "Booking.com", unitPrice: 15000, isKkday: true },
   {
+    id: "klook_hotel",
+    name: "Klook",
+    unitPrice: 12000,
+    isKkday: true,
+    specialNote: "國泰 CUBE 日本賞：日本指定商品可評估 6%，其餘情境以 3.5% 試算",
+  },
+  {
     id: "expedia",
     name: "Expedia",
     unitPrice: 18000,
@@ -96,6 +103,7 @@ export const HOTEL_BOOKING_BRANDS: BrandItem[] = [
 export const HOTEL_PLATFORM_DROPDOWN_IDS: string[] = [
   "agoda",
   "booking",
+  "klook_hotel",
   "trip_hotel",
   "rakuten_travel_jp",
   "rakuten_travel_tw",
@@ -417,6 +425,11 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
             isKumamonEligible: true,
           },
           {
+            id: "wamazing",
+            name: "完美行購物 WAmazing",
+            unitPrice: 12000,
+          },
+          {
             id: "yodobashi",
             name: "Yodobashi Camera",
             unitPrice: 25000,
@@ -457,6 +470,7 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
     perPerson: false,
     brands: [
       { id: "mitsukoshi_isetan", name: "三越伊勢丹", unitPrice: 10000 },
+      { id: "mitsui_outlet_park", name: "三井 Outlet（MITSUI OUTLET PARK）", unitPrice: 12000 },
       { id: "takashimaya", name: "高島屋", unitPrice: 8000 },
       { id: "daimaru_matsuzakaya", name: "大丸松坂屋", unitPrice: 8000 },
       { id: "lumine", name: "Lumine", unitPrice: 5000 },
