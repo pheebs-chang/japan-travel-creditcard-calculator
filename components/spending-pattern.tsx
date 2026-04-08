@@ -25,7 +25,18 @@ import {
   BrandItem,
   BrandGroup,
 } from "@/lib/spend-patterns";
+import type { PaymentChannel } from "@/lib/calculator";
+import { defaultPaymentForPattern } from "@/lib/calculator";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+
+const IC_CARD_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
+
+const PATTERN_PAY_OPTIONS: { value: PaymentChannel; label: string }[] = [
+  { value: "physical", label: "實體刷卡" },
+  { value: "apple_pay", label: "Apple Pay／感應" },
+  { value: "online", label: "線上結帳" },
+];
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -33,7 +44,11 @@ interface SpendingPatternPanelProps {
   patternAmounts: Record<string, number>;
   selectedBrands: Record<string, string>;
   partySize?: number;
-  isDbsEcoNewUser?: boolean;
+  /** 交通 IC：是否為 Apple Pay 儲值（預設 true，與舊版 DBS 排除邏輯相容） */
+  applePayByBrand?: Record<string, boolean>;
+  onApplePayByBrandChange?: (brandId: string, value: boolean) => void;
+  patternPaymentByKey?: Record<string, PaymentChannel>;
+  onPatternPaymentChange?: (key: string, channel: PaymentChannel) => void;
   onChange: (amounts: Record<string, number>) => void;
   onBrandChange: (brands: Record<string, string>) => void;
 }
@@ -61,6 +76,12 @@ function BrandInputRow({
   placeholder,
   onChange,
   onSelect,
+  showApplePayToggle,
+  applePayEnabled,
+  onApplePayChange,
+  paymentKey,
+  paymentValue,
+  onPaymentChange,
 }: {
   brand: BrandItem;
   amount: number;    // current stored amount
@@ -69,6 +90,12 @@ function BrandInputRow({
   placeholder?: string;
   onChange: (newAmount: number, brandId: string) => void;
   onSelect: (brandId: string) => void;
+  showApplePayToggle?: boolean;
+  applePayEnabled?: boolean;
+  onApplePayChange?: (enabled: boolean) => void;
+  paymentKey: string;
+  paymentValue: PaymentChannel;
+  onPaymentChange?: (key: string, channel: PaymentChannel) => void;
 }) {
   // For per-person: we show the per-unit input; stored = unitAmount * partySize
   // For total: we show the total input directly
@@ -87,9 +114,10 @@ function BrandInputRow({
 
   return (
     <div className={cn(
-      "rounded-lg border transition-colors",
+      "rounded-lg border transition-colors duration-200",
+      brand.highlight && "ring-1 ring-cyan-500/40 shadow-[0_0_0_1px_rgba(6,182,212,0.25)] bg-cyan-500/5",
       amount > 0 ? "border-foreground/20 bg-foreground/3" : "border-border/60 bg-transparent",
-      "hover:border-foreground/30"
+      !brand.highlight && "hover:border-foreground/30"
     )}>
       <div className="flex items-start gap-2 px-3 py-2.5">
         {/* Brand info */}
@@ -162,6 +190,57 @@ function BrandInputRow({
             </div>
           )}
 
+          {showApplePayToggle && onApplePayChange && (
+            <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-border/50 bg-secondary/25 px-2.5 py-2">
+              <span className="text-[10px] text-muted-foreground leading-tight">
+                Apple Pay 儲值（影響星展／台新／富邦等判斷）
+              </span>
+              <Switch
+                checked={applePayEnabled ?? true}
+                onCheckedChange={onApplePayChange}
+                aria-label={`${brand.name} Apple Pay 儲值`}
+                className="scale-90"
+              />
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows] duration-300 ease-out",
+              amount > 0 ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            )}
+          >
+            <div className="overflow-hidden min-h-0">
+              {onPaymentChange && (
+                <div className="mt-2 space-y-1.5 pt-2 border-t border-border/40">
+                  <span className="text-[10px] font-medium text-muted-foreground">支付方式</span>
+                  <div className="flex flex-wrap gap-1">
+                    {PATTERN_PAY_OPTIONS.map((opt) => (
+                      <label
+                        key={opt.value}
+                        className={cn(
+                          "inline-flex cursor-pointer items-center rounded-full border px-2 py-1 text-[9px] font-medium transition-colors duration-200",
+                          paymentValue === opt.value
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border bg-secondary/30 text-muted-foreground hover:border-foreground/20"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name={`pay-${paymentKey}`}
+                          className="sr-only"
+                          checked={paymentValue === opt.value}
+                          onChange={() => onPaymentChange(paymentKey, opt.value)}
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Special note */}
           {brand.specialNote && amount > 0 && (
             <p className="mt-1.5 flex items-start gap-1 text-[9px] text-muted-foreground/60 leading-relaxed">
@@ -186,7 +265,10 @@ export function SpendingPatternPanel({
   patternAmounts,
   selectedBrands,
   partySize = 1,
-  isDbsEcoNewUser = false,
+  applePayByBrand = {},
+  onApplePayByBrandChange,
+  patternPaymentByKey = {},
+  onPatternPaymentChange,
   onChange,
   onBrandChange,
 }: SpendingPatternPanelProps) {
@@ -323,6 +405,12 @@ export function SpendingPatternPanel({
   const getBrandAmount = (patternId: string, brandId: string) =>
     brandAmounts[`${patternId}:${brandId}`] ?? 0;
 
+  const getPaymentForBrand = (pattern: SpendingPattern, brandId: string): PaymentChannel => {
+    const key = `${pattern.id}:${brandId}`;
+    const fallback = defaultPaymentForPattern(pattern.category, pattern.id, pattern.label);
+    return patternPaymentByKey[key] ?? fallback;
+  };
+
   const getSubGroupTotal = (pattern: SpendingPattern, sg: BrandGroup) => {
     const base = sg.brands.reduce((sum, b) => sum + getBrandAmount(pattern.id, b.id), 0);
     const otherId = `${sg.id}__other`;
@@ -428,6 +516,20 @@ export function SpendingPatternPanel({
             placeholder={sg.perPerson ? `${brand.unitPrice ?? 0}` : "請輸入總金額"}
             onChange={(newAmount, brandId) => handleBrandAmount(pattern, brand, newAmount, brandId)}
             onSelect={(brandId) => onBrandChange({ ...selectedBrands, [pattern.id]: brandId })}
+            showApplePayToggle={IC_CARD_IDS.has(brand.id)}
+            applePayEnabled={
+              brand.id === "jp_ic_wallet_topup"
+                ? applePayByBrand.jp_ic_wallet_topup ?? applePayByBrand.suica ?? true
+                : applePayByBrand[brand.id] ?? true
+            }
+            onApplePayChange={
+              IC_CARD_IDS.has(brand.id)
+                ? (v) => onApplePayByBrandChange?.(brand.id, v)
+                : undefined
+            }
+            paymentKey={`${pattern.id}:${brand.id}`}
+            paymentValue={getPaymentForBrand(pattern, brand.id)}
+            onPaymentChange={onPatternPaymentChange}
           />
         ))}
       </div>
@@ -493,6 +595,20 @@ export function SpendingPatternPanel({
             placeholder={pattern.perPerson ? `${brand.unitPrice ?? 0}` : "請輸入總金額"}
             onChange={(newAmount, brandId) => handleBrandAmount(pattern, brand, newAmount, brandId)}
             onSelect={(brandId) => onBrandChange({ ...selectedBrands, [pattern.id]: brandId })}
+            showApplePayToggle={IC_CARD_IDS.has(brand.id)}
+            applePayEnabled={
+              brand.id === "jp_ic_wallet_topup"
+                ? applePayByBrand.jp_ic_wallet_topup ?? applePayByBrand.suica ?? true
+                : applePayByBrand[brand.id] ?? true
+            }
+            onApplePayChange={
+              IC_CARD_IDS.has(brand.id)
+                ? (v) => onApplePayByBrandChange?.(brand.id, v)
+                : undefined
+            }
+            paymentKey={`${pattern.id}:${brand.id}`}
+            paymentValue={getPaymentForBrand(pattern, brand.id)}
+            onPaymentChange={onPatternPaymentChange}
           />
         ))}
       </div>

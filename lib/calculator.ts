@@ -1,12 +1,17 @@
 import { CreditCard, SpendingCategory, FOREIGN_FEE, CashbackRule, DBS_ECO_EXCLUDED_BRANDS } from "./card-data";
 import { SPENDING_PATTERNS, HOTEL_BOOKING_BRANDS, FLIGHT_BOOKING_BRANDS } from "./spend-patterns";
 
+/** 支付方式：影響中信 UniOpen 線上／實體試算與攻略標籤 */
+export type PaymentChannel = "physical" | "apple_pay" | "online";
+
 /** 單筆住宿訂單（多間飯店分開填寫，各自為不可分割的一筆） */
 export interface AccommodationExpense {
   id: string;
   name: string;
   amount: number;
   platform?: string;
+  /** 預設：線上訂房 */
+  paymentMethod?: PaymentChannel;
 }
 
 export interface SpendingInput {
@@ -14,6 +19,22 @@ export interface SpendingInput {
   accommodationExpenses: AccommodationExpense[];
   rental: number;
   local: number;
+  /** Step2 機票區塊：預設線上 */
+  flightPaymentMethod?: PaymentChannel;
+}
+
+/** 依類別／樣態的預設支付方式（UI 新增列時使用） */
+export function defaultPaymentForPattern(
+  category: SpendingCategory,
+  patternId?: string,
+  patternLabel?: string
+): PaymentChannel {
+  if (category === "flight" || category === "hotel") return "online";
+  if (category === "rental") return "online";
+  if (patternId === "transport") return "apple_pay";
+  if (patternLabel && /購物|百貨|outlet|藥妝/i.test(patternLabel)) return "physical";
+  if (patternLabel && /餐飲|美食/i.test(patternLabel)) return "physical";
+  return "physical";
 }
 
 export function totalAccommodationAmount(sp: SpendingInput): number {
@@ -57,15 +78,30 @@ export interface PatternSelection {
   expenseName?: string;
   /** Step3 類別標題（如：購物消費、交通費用） */
   patternLabel?: string;
+  /** 交通 IC：是否以 Apple Pay 儲值（影響 DBS／台新／富邦等判斷） */
+  isApplePay?: boolean;
+  /** 實體刷卡／Apple Pay／線上（Step2／Step3） */
+  paymentMethod?: PaymentChannel;
 }
 
 // Merges pattern amounts into a SpendingInput by summing each category
 // Also returns the list of pattern selections for card-specific logic
+const IC_BRAND_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
+
+export interface MergePatternPaymentOptions {
+  flightPaymentMethod?: PaymentChannel;
+  accommodationPaymentById?: Record<string, PaymentChannel>;
+  /** key: `${patternId}:${brandId}` */
+  patternPaymentByKey?: Record<string, PaymentChannel>;
+}
+
 export function mergePatternAmounts(
   base: SpendingInput,
   patternAmounts: Record<string, number>,
   selectedBrands?: Record<string, string>,
-  baseFlightBrandId?: string | null
+  baseFlightBrandId?: string | null,
+  applePayByBrand?: Record<string, boolean>,
+  paymentOpts?: MergePatternPaymentOptions
 ): { merged: SpendingInput; selections: PatternSelection[] } {
   const merged: SpendingInput = {
     ...base,
@@ -92,11 +128,15 @@ export function mergePatternAmounts(
       }
       const expId = newPatternExpenseId(patternId);
       const displayName = brand?.name ? `${pattern.label}（${brand.name}）` : pattern.label;
+      const hotelPm =
+        paymentOpts?.patternPaymentByKey?.[`${patternId}:${brand?.id ?? ""}`] ??
+        defaultPaymentForPattern("hotel", patternId, pattern.label);
       merged.accommodationExpenses.push({
         id: expId,
         name: displayName,
         amount,
         platform: brand?.id,
+        paymentMethod: hotelPm,
       });
       selections.push({
         patternId,
@@ -112,6 +152,7 @@ export function mergePatternAmounts(
         expenseId: expId,
         expenseName: displayName,
         patternLabel: "訂購住宿",
+        paymentMethod: hotelPm,
       });
       continue;
     }
@@ -133,6 +174,19 @@ export function mergePatternAmounts(
       }
     }
 
+    const bid = brand?.id;
+    const isIc = bid ? IC_BRAND_IDS.has(bid) : false;
+    const isApplePay =
+      isIc && bid
+        ? bid === "jp_ic_wallet_topup"
+          ? applePayByBrand?.jp_ic_wallet_topup ?? applePayByBrand?.suica ?? true
+          : applePayByBrand?.[bid] ?? true
+        : undefined;
+
+    const segPm =
+      paymentOpts?.patternPaymentByKey?.[`${patternId}:${bid ?? ""}`] ??
+      defaultPaymentForPattern(cat, patternId, pattern.label);
+
     selections.push({
       patternId,
       brandId: brand?.id,
@@ -145,6 +199,8 @@ export function mergePatternAmounts(
       specialNote: brand?.specialNote,
       category: pattern.category,
       patternLabel: pattern.label,
+      isApplePay,
+      paymentMethod: segPm,
     });
   }
 
@@ -154,6 +210,9 @@ export function mergePatternAmounts(
   for (const exp of merged.accommodationExpenses) {
     if (exp.amount <= 0.01) continue;
     if (hotelSelectionIds.has(exp.id)) continue;
+
+    const baseHotelPm =
+      paymentOpts?.accommodationPaymentById?.[exp.id] ?? exp.paymentMethod ?? "online";
 
     if (exp.platform) {
       const hotelBrand = HOTEL_BOOKING_BRANDS.find((b) => b.id === exp.platform);
@@ -172,6 +231,7 @@ export function mergePatternAmounts(
           expenseId: exp.id,
           expenseName: exp.name,
           patternLabel: "訂購住宿",
+          paymentMethod: baseHotelPm,
         });
         continue;
       }
@@ -187,6 +247,7 @@ export function mergePatternAmounts(
       expenseId: exp.id,
       expenseName: exp.name,
       patternLabel: "訂購住宿",
+      paymentMethod: baseHotelPm,
     });
   }
 
@@ -194,6 +255,7 @@ export function mergePatternAmounts(
   if ((merged.flight ?? 0) > 0 && baseFlightBrandId) {
     const flightBrand = FLIGHT_BOOKING_BRANDS.find((b) => b.id === baseFlightBrandId);
     if (flightBrand) {
+      const flightPm = paymentOpts?.flightPaymentMethod ?? "online";
       selections.push({
         patternId: "base-flight-booking",
         brandId: flightBrand.id,
@@ -206,6 +268,7 @@ export function mergePatternAmounts(
         specialNote: flightBrand.specialNote,
         category: "flight",
         patternLabel: "訂購機票",
+        paymentMethod: flightPm,
       });
     }
   }
@@ -247,6 +310,10 @@ export interface WaterfallStep {
   subCategory?: string;
   /** 括號內：品牌或項目 */
   detailLabel?: string;
+  /** 對應消費片段品牌（攻略標籤用） */
+  brandId?: string;
+  /** Step2／Step3 支付方式 */
+  paymentMethod?: PaymentChannel;
 }
 
 export interface CardBreakdown {
@@ -325,7 +392,8 @@ function getEffectiveRate(
   card: CreditCard,
   category: SpendingCategory,
   selections: PatternSelection[],
-  isDbsEcoNewUser: boolean = false
+  isDbsEcoNewUser: boolean = false,
+  rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean }
 ): EffectiveRateResult {
   const rule = card.cashback.find((r) => r.category === category);
   if (!rule) {
@@ -340,19 +408,43 @@ function getEffectiveRate(
   const hasKkday = categorySelections.some((s) => s.isKkday);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // KKday purchased via TaiShin FlyGo: 5% up to NT$1,200
+  // 富邦 J 卡：Apple Pay 儲值 Suica/PASMO/ICOCA 單筆滿 NT$2,000 → 最高 10%
   // ═══════════════════════════════════════════════════════════════════════════
-  if (card.id === "taishin-flygo" && hasKkday) {
-    const flygoRate = 5.0;
-    const flygoCap = 1200;
-    return {
-      rate: flygoRate,
-      cap: flygoCap,
-      isKumamonBonus: false,
-      isDbsEcoBonus: false,
-      isDbsEcoBaseOnly: false,
-      specialNote: "KKday精選通路5%（上限NT$1,200）",
-    };
+  if (card.id === "fubon-j" && category === "local") {
+    const apIcTotal = categorySelections
+      .filter((s) => IC_BRAND_IDS.has(s.brandId ?? "") && s.isApplePay !== false)
+      .reduce((a, s) => a + s.amount, 0);
+    if (apIcTotal >= 2000) {
+      return {
+        rate: 10.0,
+        cap: 200,
+        baseRate: 3.0,
+        bonusRate: 7.0,
+        isKumamonBonus: false,
+        isDbsEcoBonus: false,
+        isDbsEcoBaseOnly: false,
+        specialNote: "Apple Pay 儲值滿 NT$2,000：10%（加碼季上限 NT$200，約 NT$2,857）",
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 聯邦吉鶴：Apple Pay 加碼 +2.5%
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (card.id === "union-jinghe" && category === "local") {
+    const hasApplePayBoost = categorySelections.some((s) => s.isApplePay);
+    if (hasApplePayBoost) {
+      const nu = rateOpts?.isUnionJingheNewUser ? 0.3 : 0;
+      return {
+        rate: 5.0 + nu,
+        isKumamonBonus: false,
+        isDbsEcoBonus: false,
+        isDbsEcoBaseOnly: false,
+        specialNote: rateOpts?.isUnionJingheNewUser
+          ? "Apple Pay 加碼後約 5%+（新戶依登錄）"
+          : "Apple Pay 加碼後約 5%（2.5%+2.5%，依登錄）",
+      };
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -383,10 +475,12 @@ function getEffectiveRate(
   }
 
   if (card.id === "dbs-eco" && category === "local") {
-    // Check if any selection is excluded from bonus (SUICA/PASMO/ICOCA)
-    const hasExcludedBrand = categorySelections.some((s) => s.isDbsEcoExcluded);
-    
-    if (hasExcludedBrand) {
+    /** Apple Pay 儲值 SUICA/PASMO/ICOCA 不計入 4% 加碼；未勾選 AP 之儲值仍可能適用加碼（依公告以試算保守處理） */
+    const excludedFrom4Bonus = categorySelections.some(
+      (s) => IC_BRAND_IDS.has(s.brandId ?? "") && s.isApplePay !== false
+    );
+
+    if (excludedFrom4Bonus) {
       // Only base 1%, no bonus
       return {
         rate: rule.baseRate ?? 1.0,
@@ -459,6 +553,19 @@ function getEffectiveRate(
   // ═══════════════════════════════════════════════════════════════════════════
   // Handled during waterfall allocation, not here
 
+  // 永豐幣倍：新戶加碼（試算 +1%，依登錄）
+  if (card.id === "sinopac-doublebei" && rateOpts?.isSinopacNewUser) {
+    return {
+      rate: Math.min(rule.rate + 1, 10),
+      cap: rule.cap,
+      overflowRate: rule.overflowRate,
+      isKumamonBonus: false,
+      isDbsEcoBonus: false,
+      isDbsEcoBaseOnly: false,
+      specialNote: "新戶額外加碼試算 +1%（依登錄）",
+    };
+  }
+
   // Default
   return {
     rate: rule.rate,
@@ -485,12 +592,13 @@ function sortCardsForWaterfall(
   cards: CreditCard[],
   category: SpendingCategory,
   selections: PatternSelection[],
-  isDbsEcoNewUser: boolean = false
+  isDbsEcoNewUser: boolean = false,
+  rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean }
 ): CardCandidate[] {
   const candidates: CardCandidate[] = [];
 
   for (const card of cards) {
-    const rateResult = getEffectiveRate(card, category, selections, isDbsEcoNewUser);
+    const rateResult = getEffectiveRate(card, category, selections, isDbsEcoNewUser, rateOpts);
     if (rateResult.rate <= 0) continue;
 
     const feeRate = card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE);
@@ -762,7 +870,8 @@ function waterfallForCategorySegmentsV2(
   kumamonFlightJpyEnabled: boolean,
   kumamonBonusCapState: { remainingPoints: number; initialPoints: number } | null,
   dbsEcoBonusCapState: { remainingPoints: number; initialPoints: number } | null,
-  opts?: { indivisible?: boolean }
+  opts?: { indivisible?: boolean },
+  rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean }
 ): WaterfallStep[] {
   if (totalAmount <= 0) return [];
 
@@ -789,6 +898,8 @@ function waterfallForCategorySegmentsV2(
       expenseId: head?.expenseId,
       expenseName: head?.expenseName,
       brandName: head?.brandName,
+      brandId: head?.brandId,
+      paymentMethod: head?.paymentMethod,
       patternLabel:
         head?.patternLabel ??
         (category === "flight"
@@ -854,10 +965,12 @@ function waterfallForCategorySegmentsV2(
   // Allocate each segment with current cap states.
   for (const seg of safeSegments) {
     let remainingSeg = seg.amount;
+    /** 同一消費片段內，每張卡最後一次刷卡對應的持卡人索引（溢出／降階步驟繼承用） */
+    const lastHolderByCardId = new Map<string, number>();
     while (remainingSeg > 0.01) {
       type Candidate = {
         card: CreditCard;
-        phase: "dbs-bonus" | "dbs-base" | "dbs-online-bonus" | "dbs-online-base" | "kumamon-bonus" | "kumamon-base" | "standard-cap" | "standard-uncapped" | "standard-overflow";
+        phase: "dbs-bonus" | "dbs-base" | "dbs-online-bonus" | "dbs-online-base" | "kumamon-bonus" | "kumamon-base" | "fubon-ap-ic" | "union-ap" | "standard-cap" | "standard-uncapped" | "standard-overflow";
         effectiveRatePercent: number; // for display
         maxSpend: number;
         priority: number;
@@ -919,6 +1032,17 @@ function waterfallForCategorySegmentsV2(
             // base only (excluded brand or bonus cap depleted)
             const baseOnlyRatePercent = dbsEcoBaseRate;
             const netRate = baseOnlyRatePercent - feeRate;
+            const holderCountBase = Math.max(1, holderCounts["dbs-eco"] ?? 1);
+            const holderCapBase = dbsEcoBonusCapInitialPoints / holderCountBase;
+            const currentHolderBase =
+              holderCountBase > 1
+                ? Math.min(
+                    holderCountBase - 1,
+                    Math.floor(
+                      (dbsEcoBonusCapInitialPoints - dbsEcoBonusCapRemainingPoints) / Math.max(holderCapBase, 1)
+                    )
+                  )
+                : 0;
 
             if (netRate >= 0 || remainingSeg > 0) {
               const isExcluded = !!seg.isDbsEcoExcluded;
@@ -939,6 +1063,7 @@ function waterfallForCategorySegmentsV2(
                 capUsesPoints: false,
                 segmentSpecialNote: specialNote,
                 baseRatePercent: dbsEcoBaseRate,
+                holderIndex: currentHolderBase,
               });
             }
           }
@@ -980,6 +1105,17 @@ function waterfallForCategorySegmentsV2(
               });
             }
           } else {
+            const holderCountOb = Math.max(1, holderCounts["dbs-eco"] ?? 1);
+            const holderCapOb = dbsEcoBonusCapInitialPoints / holderCountOb;
+            const currentHolderOb =
+              holderCountOb > 1
+                ? Math.min(
+                    holderCountOb - 1,
+                    Math.floor(
+                      (dbsEcoBonusCapInitialPoints - dbsEcoBonusCapRemainingPoints) / Math.max(holderCapOb, 1)
+                    )
+                  )
+                : 0;
             candidates.push({
               card,
               phase: "dbs-online-base",
@@ -993,6 +1129,7 @@ function waterfallForCategorySegmentsV2(
                 ? "超出4%加碼上限，僅享1%基礎回饋"
                 : "旅遊平台消費：非新戶僅享1%基礎回饋",
               baseRatePercent,
+              holderIndex: currentHolderOb,
             });
           }
           continue;
@@ -1056,6 +1193,20 @@ function waterfallForCategorySegmentsV2(
               : bonusCapDepleted
                 ? "超出6%加碼上限，僅享2.5%基礎回饋"
                 : seg.specialNote;
+            const holderCountKm = Math.max(1, holderCounts["esun-kumamon"] ?? 1);
+            const holderCapKm = kumamonBonusCapState
+              ? kumamonBonusCapState.initialPoints / holderCountKm
+              : 0;
+            const currentHolderKm =
+              holderCountKm > 1 && kumamonBonusCapState
+                ? Math.min(
+                    holderCountKm - 1,
+                    Math.floor(
+                      (kumamonBonusCapState.initialPoints - kumamonBonusCapState.remainingPoints) /
+                        Math.max(holderCapKm, 1)
+                    )
+                  )
+                : 0;
             candidates.push({
               card,
               phase: "kumamon-base",
@@ -1067,8 +1218,51 @@ function waterfallForCategorySegmentsV2(
               capUsesPoints: false,
               segmentSpecialNote: specialNote,
               baseRatePercent,
+              holderIndex: currentHolderKm,
             });
           }
+          continue;
+        }
+
+        // ── 富邦 J：Apple Pay 儲值 IC 單筆滿 NT$2,000 → 試算 10%（加碼季上限 NT$200，此處以單段上限近似）
+        if (card.id === "fubon-j" && category === "local") {
+          const isApIc =
+            IC_BRAND_IDS.has(seg.brandId ?? "") && seg.isApplePay !== false;
+          if (isApIc && remainingSeg >= 2000) {
+            const r = 10;
+            const netR = r - feeRate;
+            candidates.push({
+              card,
+              phase: "fubon-ap-ic",
+              effectiveRatePercent: r,
+              maxSpend: remainingSeg,
+              priority: 1000 + netR * 100,
+              roundingMode,
+              feeRate,
+              capUsesPoints: false,
+              segmentSpecialNote: "Apple Pay 儲值 IC 滿 NT$2,000：最高 10%（加碼季上限 NT$200）",
+            });
+            continue;
+          }
+        }
+
+        // ── 聯邦吉鶴：Apple Pay 加碼後試算 5%
+        if (card.id === "union-jinghe" && category === "local" && seg.isApplePay === true) {
+          const r = 5.0 + (rateOpts?.isUnionJingheNewUser ? 0.3 : 0);
+          const netR = r - feeRate;
+          candidates.push({
+            card,
+            phase: "union-ap",
+            effectiveRatePercent: r,
+            maxSpend: remainingSeg,
+            priority: 1000 + netR * 100,
+            roundingMode,
+            feeRate,
+            capUsesPoints: false,
+            segmentSpecialNote: rateOpts?.isUnionJingheNewUser
+              ? "Apple Pay 加碼（新戶依登錄）"
+              : "Apple Pay 加碼（2.5%+2.5%，依登錄）",
+          });
           continue;
         }
 
@@ -1076,6 +1270,22 @@ function waterfallForCategorySegmentsV2(
         const rule = card.cashback.find((r) => r.category === category);
         if (!rule) continue;
         const rounding = roundingMode;
+
+        /** 中信 UniOpen：國外實體 11% vs 線上／第三方 3%（與 Step 支付方式連動） */
+        const flightLikeRule = card.cashback.find((r) => r.category === "flight");
+        const useCtbcOnlineLocal =
+          card.id === "ctbc-uniopen" &&
+          category === "local" &&
+          seg.paymentMethod === "online";
+        let effectiveStandardRate = rule.rate;
+        let effectiveOverflowRate = rule.overflowRate;
+        if (useCtbcOnlineLocal && flightLikeRule) {
+          effectiveStandardRate = flightLikeRule.rate;
+          effectiveOverflowRate = undefined;
+        }
+        if (card.id === "sinopac-doublebei" && rateOpts?.isSinopacNewUser) {
+          effectiveStandardRate = Math.min(effectiveStandardRate + 1, 10);
+        }
 
         const capState = standardCapStateByCardId.get(card.id);
         if (capState && capState.remainingPoints > 0.01) {
@@ -1091,27 +1301,30 @@ function waterfallForCategorySegmentsV2(
           if (holderRemaining <= 0.01) continue;
           const maxSpend = Math.min(
             remainingSeg,
-            maxSpendForPointsCap(holderRemaining, rule.rate, rounding)
+            maxSpendForPointsCap(holderRemaining, effectiveStandardRate, rounding)
           );
           if (maxSpend > 0.01) {
-            const netRate = rule.rate - feeRate;
+            const netRate = effectiveStandardRate - feeRate;
             candidates.push({
               card,
               phase: "standard-cap",
-              effectiveRatePercent: rule.rate,
+              effectiveRatePercent: effectiveStandardRate,
               maxSpend,
               priority: 1000 + netRate * 100,
               roundingMode: rounding,
               feeRate,
               capInitialPoints: capState.initialPoints,
               capUsesPoints: true,
-              segmentSpecialNote: seg.specialNote,
+              segmentSpecialNote: useCtbcOnlineLocal
+                ? "線上／非面對面消費：依公告試算 3%（非實體 11%）"
+                : seg.specialNote,
               holderIndex,
             });
           }
-        } else if (capState && capState.remainingPoints <= 0.01 && rule.overflowRate) {
-          const overflowRate = rule.overflowRate;
+        } else if (capState && capState.remainingPoints <= 0.01 && effectiveOverflowRate) {
+          const overflowRate = effectiveOverflowRate;
           const netRate = overflowRate - feeRate;
+          const overflowHolder = lastHolderByCardId.get(card.id) ?? 0;
           candidates.push({
             card,
             phase: "standard-overflow",
@@ -1122,22 +1335,27 @@ function waterfallForCategorySegmentsV2(
             feeRate,
             capUsesPoints: false,
             segmentSpecialNote: seg.specialNote,
+            holderIndex: overflowHolder,
           });
         } else {
           // uncapped for this category OR cap state not set
           if (!rule.cap) {
-            if (rule.rate > 0) {
-              const netRate = rule.rate - feeRate;
+            if (effectiveStandardRate > 0) {
+              const netRate = effectiveStandardRate - feeRate;
+              const uncappedHolder = lastHolderByCardId.get(card.id) ?? 0;
               candidates.push({
                 card,
                 phase: "standard-uncapped",
-                effectiveRatePercent: rule.rate,
+                effectiveRatePercent: effectiveStandardRate,
                 maxSpend: remainingSeg,
                 priority: netRate * 100,
                 roundingMode: rounding,
                 feeRate,
                 capUsesPoints: false,
-                segmentSpecialNote: seg.specialNote,
+                segmentSpecialNote: useCtbcOnlineLocal
+                  ? "線上／非面對面消費：依公告試算 3%（非實體 11%）"
+                  : seg.specialNote,
+                holderIndex: uncappedHolder,
               });
             }
           } else {
@@ -1158,6 +1376,7 @@ function waterfallForCategorySegmentsV2(
         const fee = applyRounding((remainingSeg * feeRate) / 100, roundingMode);
         const net = gross - fee;
         const labels = resolveSegmentStepLabels(category, seg);
+        const fallbackHolder = lastHolderByCardId.get(fallbackCard.id) ?? 0;
         steps.push({
           stepIndex: stepIndexRef.v++,
           category,
@@ -1173,11 +1392,16 @@ function waterfallForCategorySegmentsV2(
           isCapReached: false,
           enrolled: enrolledIds.has(fallbackCard.id),
           brandName: seg.brandName,
+          brandId: seg.brandId,
+          paymentMethod: seg.paymentMethod,
           specialNote: seg.specialNote,
           expenseLabel: seg.expenseName,
           subCategory: labels.subCategory,
           detailLabel: labels.detailLabel,
+          holderIndex: fallbackHolder,
+          travelerIndex: fallbackHolder,
         });
+        lastHolderByCardId.set(fallbackCard.id, fallbackHolder);
         remainingSeg = 0;
         break;
       }
@@ -1300,7 +1524,7 @@ function waterfallForCategorySegmentsV2(
         specialNote =
           holderCounts[chosen.card.id] && holderCounts[chosen.card.id] > 1 && isCapReached
             ? `${holderCounts[chosen.card.id]}人持有，需分開刷卡各享上限`
-            : seg.specialNote;
+            : (chosen.segmentSpecialNote ?? seg.specialNote);
       } else if (chosen.phase === "standard-overflow") {
         isOverflow = true;
         const rate = chosen.effectiveRatePercent;
@@ -1314,6 +1538,14 @@ function waterfallForCategorySegmentsV2(
         grossCashback = applyRounding((allocated * rate) / 100, roundingMode);
         feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
         netCashback = grossCashback - feePoints;
+      }
+
+      let effectiveHolder = chosen.holderIndex;
+      if (effectiveHolder === undefined) {
+        effectiveHolder = lastHolderByCardId.get(chosen.card.id);
+      }
+      if (effectiveHolder === undefined) {
+        effectiveHolder = 0;
       }
 
       const labels = resolveSegmentStepLabels(category, seg);
@@ -1337,9 +1569,11 @@ function waterfallForCategorySegmentsV2(
         isDbsEcoBaseOnly,
         isOverflow,
         brandName: seg.brandName,
+        brandId: seg.brandId,
+        paymentMethod: seg.paymentMethod,
         specialNote,
-        holderIndex: chosen.holderIndex,
-        travelerIndex: chosen.holderIndex,
+        holderIndex: effectiveHolder,
+        travelerIndex: effectiveHolder,
         needsHolderSwap,
         expenseLabel: seg.expenseName,
         subCategory: labels.subCategory,
@@ -1352,6 +1586,8 @@ function waterfallForCategorySegmentsV2(
           : undefined,
       });
 
+      lastHolderByCardId.set(chosen.card.id, effectiveHolder);
+
       remainingSeg -= allocated;
     }
   }
@@ -1360,6 +1596,23 @@ function waterfallForCategorySegmentsV2(
 }
 
 // ─── Main calculation function ─────────────────────────────────────────────
+
+function applySinopacLevel(cards: CreditCard[], level?: 1 | 2): CreditCard[] {
+  if (!level) return cards;
+  const cap = level === 2 ? 800 : 300;
+  return cards.map((c) => {
+    if (c.id !== "sinopac-doublebei") return c;
+    return {
+      ...c,
+      sinopacBonusCapMonthly: cap,
+      cashback: c.cashback.map((r) => ({
+        ...r,
+        cap,
+        maxSpending: r.rate > 0 ? Math.round((cap / r.rate) * 100) : r.maxSpending,
+      })),
+    };
+  });
+}
 
 export function calculateOptimalCombination(
   spending: SpendingInput,
@@ -1371,24 +1624,28 @@ export function calculateOptimalCombination(
   isDbsEcoNewUser: boolean = false,
   kumamonWalletPaypayExcluded: boolean = false,
   kumamonFlightJpyEnabled: boolean = false,
-  dateRange?: TravelDateRange
+  dateRange?: TravelDateRange,
+  sinopacLevel?: 1 | 2,
+  rateOpts?: { isSinopacNewUser?: boolean; isUnionJingheNewUser?: boolean }
 ): CalculationResult | null {
   if (selectedCards.length === 0) return null;
+
+  const cardsForCalc = applySinopacLevel(selectedCards, sinopacLevel);
 
   const categories: SpendingCategory[] = ["flight", "hotel", "rental", "local"];
   const stepIndexRef = { v: 1 };
   const allSteps: WaterfallStep[] = [];
-  const cardById = new Map(selectedCards.map((c) => [c.id, c]));
+  const cardById = new Map(cardsForCalc.map((c) => [c.id, c]));
 
   // Kumamon bonus cap (6% extra) is shared across hotel + local categories.
   const esunKumamonHolders = holderCounts["esun-kumamon"] ?? 1;
   const kumamonBonusCapState =
-    selectedCards.some((card) => card.id === "esun-kumamon")
+    cardsForCalc.some((card) => card.id === "esun-kumamon")
       ? { remainingPoints: 500 * esunKumamonHolders, initialPoints: 500 * esunKumamonHolders }
       : null;
   const dbsEcoHolders = holderCounts["dbs-eco"] ?? 1;
   const dbsEcoBonusCapState =
-    selectedCards.some((card) => card.id === "dbs-eco")
+    cardsForCalc.some((card) => card.id === "dbs-eco")
       ? { remainingPoints: 600 * dbsEcoHolders, initialPoints: 600 * dbsEcoHolders }
       : null;
 
@@ -1420,13 +1677,14 @@ export function calculateOptimalCombination(
                   expenseId: exp.id,
                   expenseName: exp.name,
                   patternLabel: "訂購住宿",
+                  paymentMethod: exp.paymentMethod ?? "online",
                 },
               ];
         const steps = waterfallForCategorySegmentsV2(
           "hotel",
           exp.amount,
           scaled,
-          selectedCards,
+          cardsForCalc,
           enrolledIds,
           stepIndexRef,
           holderCounts,
@@ -1435,7 +1693,8 @@ export function calculateOptimalCombination(
           kumamonFlightJpyEnabled,
           kumamonBonusCapState,
           dbsEcoBonusCapState,
-          { indivisible: true }
+          { indivisible: true },
+          rateOpts
         );
         allSteps.push(...steps);
       }
@@ -1455,7 +1714,7 @@ export function calculateOptimalCombination(
       category,
       amount,
       categorySegments,
-      selectedCards,
+      cardsForCalc,
       enrolledIds,
       stepIndexRef,
       holderCounts,
@@ -1464,7 +1723,8 @@ export function calculateOptimalCombination(
       kumamonFlightJpyEnabled,
       kumamonBonusCapState,
       dbsEcoBonusCapState,
-      undefined
+      undefined,
+      rateOpts
     );
     allSteps.push(...steps);
   }

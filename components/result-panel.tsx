@@ -51,6 +51,28 @@ function strategyEmoji(subCategory: string | undefined, detailLabel: string | un
   return "📌";
 }
 
+const IC_TOPUP_BRAND_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
+
+/** 攻略列前方防呆標籤（依卡片＋消費情境） */
+function strategyDisclaimerPrefix(step: WaterfallStep): string | null {
+  if (step.cardId === "ctbc-uniopen") {
+    if (step.category === "hotel") return "[限現場實體結帳]";
+    if (step.category === "local") {
+      const blob = `${step.subCategory ?? ""}${step.detailLabel ?? ""}`;
+      if (/交通|IC|SUICA|PASMO|儲值|ICOCA|租車|JR|鐵路/i.test(blob)) return null;
+      return "[限現場實體結帳]";
+    }
+  }
+  const ic = step.brandId && IC_TOPUP_BRAND_IDS.has(step.brandId);
+  if (
+    ic &&
+    (step.cardId === "fubon-j" || step.cardId === "esun-kumamon")
+  ) {
+    return "[限綁定Apple Pay]";
+  }
+  return null;
+}
+
 function formatStrategySourceLine(step: WaterfallStep): string {
   const sub = step.subCategory ?? step.categoryLabel;
   const detail = step.detailLabel;
@@ -67,6 +89,61 @@ function formatStrategyCardLine(step: WaterfallStep, partySize: number): string 
     return `👤 旅客 ${step.travelerIndex + 1} 的 ${step.cardShortName}卡`;
   }
   return step.cardName;
+}
+
+/** 是否需在「上一筆 → 本筆」之間顯示換手／溢出提示 */
+function shouldShowSpillBanner(prev: WaterfallStep, curr: WaterfallStep): boolean {
+  if (prev.isDbsEcoBonus && curr.isDbsEcoBaseOnly && prev.cardId === curr.cardId) return true;
+  if (prev.isKumamonBonus && !curr.isKumamonBonus && prev.cardId === curr.cardId) return true;
+  if (!prev.isCapReached) return false;
+  return (
+    prev.cardId !== curr.cardId ||
+    (prev.travelerIndex ?? 0) !== (curr.travelerIndex ?? 0) ||
+    !!curr.isOverflow
+  );
+}
+
+/** 動態換手提示（旅客編號為 1 起算） */
+function getSpillHandoffBannerText(prev: WaterfallStep, curr: WaterfallStep, partySize: number): string | null {
+  if (!shouldShowSpillBanner(prev, curr)) return null;
+
+  if (partySize <= 1) {
+    if (prev.isDbsEcoBonus && curr.isDbsEcoBaseOnly && prev.cardId === curr.cardId) {
+      return `🛑 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
+    }
+    if (prev.isKumamonBonus && !curr.isKumamonBonus && prev.cardId === curr.cardId) {
+      return `🛑 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
+    }
+    if (prev.cardId !== curr.cardId) {
+      return `🛑 ${prev.cardShortName}卡 額度已滿，剩餘金額請改刷 ${curr.cardShortName}卡`;
+    }
+    if (curr.isOverflow && prev.cardId === curr.cardId) {
+      return `🛑 ${prev.cardShortName}卡 額度已滿，剩餘金額改以超額回饋計算`;
+    }
+    return "🛑 此卡已達加碼上限";
+  }
+
+  const p1 = (prev.travelerIndex ?? 0) + 1;
+  const p2 = (curr.travelerIndex ?? 0) + 1;
+  const samePerson = (prev.travelerIndex ?? 0) === (curr.travelerIndex ?? 0);
+
+  if (prev.isDbsEcoBonus && curr.isDbsEcoBaseOnly && prev.cardId === curr.cardId) {
+    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
+  }
+  if (prev.isKumamonBonus && !curr.isKumamonBonus && prev.cardId === curr.cardId) {
+    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 加碼額度已滿，剩餘金額改以基礎回饋計算`;
+  }
+
+  if (samePerson && prev.cardId !== curr.cardId) {
+    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 額度已滿，剩餘金額請改刷 ${curr.cardShortName}卡`;
+  }
+  if (!samePerson) {
+    return `🛑 旅客 ${p1} 的額度已滿，剩餘金額請交由 👤 旅客 ${p2} 繼續刷卡`;
+  }
+  if (prev.cardId === curr.cardId && curr.isOverflow) {
+    return `🛑 旅客 ${p1} 的 ${prev.cardShortName}卡 額度已滿，剩餘金額改以超額回饋計算`;
+  }
+  return "🛑 此卡已達加碼上限";
 }
 
 function StatCard({
@@ -454,6 +531,7 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
         </div>
         <div className="divide-y divide-border">
           {waterfallSteps.map((step, index) => {
+            const disclaimer = strategyDisclaimerPrefix(step);
             return (
             <React.Fragment key={step.stepIndex}>
             <div
@@ -470,6 +548,11 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
               <div className="flex-1 min-w-0">
                 {/* Category → Card */}
                 <div className="flex items-center gap-1.5 flex-wrap">
+                  {disclaimer && (
+                    <span className="inline-flex shrink-0 rounded border border-amber-600/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:text-amber-200">
+                      {disclaimer}
+                    </span>
+                  )}
                   <span className="text-xs font-medium text-foreground leading-snug">
                     {formatStrategySourceLine(step)}
                   </span>
@@ -548,11 +631,17 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                 <p className="text-[10px] text-muted-foreground">淨回饋</p>
               </div>
             </div>
-          {index > 0 && waterfallSteps[index - 1].cardId !== step.cardId && waterfallSteps[index - 1].isCapReached && (
-            <div className="mx-4 -mt-1 mb-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-[10px] font-medium text-amber-700">
-              🛑 此處已達上限，請更換卡片或持卡人
-            </div>
-          )}
+          {index > 0 &&
+            (() => {
+              const prev = waterfallSteps[index - 1];
+              const line = getSpillHandoffBannerText(prev, step, partySize);
+              if (!line) return null;
+              return (
+                <div className="mx-4 -mt-1 mb-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-[10px] font-medium text-amber-700 leading-relaxed">
+                  {line}
+                </div>
+              );
+            })()}
           </React.Fragment>
             );
           })}

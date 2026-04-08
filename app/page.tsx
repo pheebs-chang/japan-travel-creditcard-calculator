@@ -15,6 +15,8 @@ import {
   logCalculation,
   PatternSelection,
   totalAccommodationAmount,
+  type PaymentChannel,
+  type MergePatternPaymentOptions,
 } from "@/lib/calculator";
 import { CREDIT_CARDS } from "@/lib/card-data";
 import { cn } from "@/lib/utils";
@@ -24,6 +26,7 @@ const DEFAULT_SPENDING: SpendingInput = {
   accommodationExpenses: [],
   rental: 0,
   local: 0,
+  flightPaymentMethod: "online",
 };
 
 const DESTINATIONS = ["日本", "韓國"] as const;
@@ -64,11 +67,36 @@ export default function HomePage(props: {
   const [kumamonWalletPaypayExcluded, setKumamonWalletPaypayExcluded] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const [applePayByBrand, setApplePayByBrand] = useState<Record<string, boolean>>({});
+  const [sinopacLevel, setSinopacLevel] = useState<1 | 2>(1);
+  const [isUnionJingheNewUser, setIsUnionJingheNewUser] = useState(false);
+  const [isSinopacNewUser, setIsSinopacNewUser] = useState(false);
+  const [patternPaymentByKey, setPatternPaymentByKey] = useState<Record<string, PaymentChannel>>({});
 
   // Merge Step 2 base amounts + Step 3 pattern amounts
+  const paymentMergeOpts = useMemo((): MergePatternPaymentOptions => {
+    const accommodationPaymentById: Record<string, PaymentChannel> = {};
+    for (const e of spending.accommodationExpenses ?? []) {
+      accommodationPaymentById[e.id] = e.paymentMethod ?? "online";
+    }
+    return {
+      flightPaymentMethod: spending.flightPaymentMethod ?? "online",
+      accommodationPaymentById,
+      patternPaymentByKey,
+    };
+  }, [spending.accommodationExpenses, spending.flightPaymentMethod, patternPaymentByKey]);
+
   const { merged: mergedSpending, selections: patternSelections } = useMemo(
-    () => mergePatternAmounts(spending, patternAmounts, selectedBrands, flightBrandId),
-    [spending, patternAmounts, selectedBrands, flightBrandId]
+    () =>
+      mergePatternAmounts(
+        spending,
+        patternAmounts,
+        selectedBrands,
+        flightBrandId,
+        applePayByBrand,
+        paymentMergeOpts
+      ),
+    [spending, patternAmounts, selectedBrands, flightBrandId, applePayByBrand, paymentMergeOpts]
   );
 
   const hasInput = useMemo(() => {
@@ -97,7 +125,9 @@ export default function HomePage(props: {
       isDbsEcoNewUser,
       kumamonWalletPaypayExcluded,
       isKumamonFlightJpy,
-      dateRange
+      dateRange,
+      sinopacLevel,
+      { isSinopacNewUser, isUnionJingheNewUser }
     );
     setResult(calc);
     setHasCalculated(true);
@@ -118,7 +148,7 @@ export default function HomePage(props: {
         result: calc,
       });
     }
-  }, [canCalculate, mergedSpending, selectedCards, enrolledCards, destination, patternAmounts, patternSelections, selectedBrands, partySize, holderCounts, isDbsEcoNewUser, kumamonWalletPaypayExcluded, isKumamonFlightJpy, dateRange]);
+  }, [canCalculate, mergedSpending, selectedCards, enrolledCards, destination, patternAmounts, patternSelections, selectedBrands, partySize, holderCounts, isDbsEcoNewUser, kumamonWalletPaypayExcluded, isKumamonFlightJpy, dateRange, sinopacLevel, isSinopacNewUser, isUnionJingheNewUser]);
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -202,32 +232,36 @@ export default function HomePage(props: {
                   <p className="text-sm font-medium text-foreground">預計旅遊日期</p>
                   <p className="text-xs text-muted-foreground">用於檢查卡片優惠是否涵蓋整段旅程</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="relative z-10 grid grid-cols-2 gap-2 pointer-events-auto">
                   <input
                     type="date"
                     value={dateRange.from}
                     onChange={(e) => {
                       const from = e.target.value;
-                      setDateRange((prev) => ({
-                        from,
-                        to: prev.to && prev.to < from ? from : prev.to,
-                      }));
+                      setDateRange((prev) => {
+                        if (!from) return prev;
+                        const nextTo = prev.to < from ? from : prev.to;
+                        return { from, to: nextTo };
+                      });
                     }}
-                    className="rounded-lg border border-border bg-secondary/40 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-foreground/40"
+                    className="relative z-10 min-h-9 w-full cursor-pointer rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground shadow-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                     aria-label="預計旅遊開始日期"
                   />
                   <input
                     type="date"
                     value={dateRange.to}
                     min={dateRange.from}
-                    onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                    className="rounded-lg border border-border bg-secondary/40 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-foreground/40"
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setDateRange((prev) => {
+                        if (!raw) return prev;
+                        return { ...prev, to: raw < prev.from ? prev.from : raw };
+                      });
+                    }}
+                    className="relative z-10 min-h-9 w-full cursor-pointer rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground shadow-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                     aria-label="預計旅遊結束日期"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {dateRange.from || "未設定"} - {dateRange.to || "未設定"}
-                </p>
               </div>
             </div>
 
@@ -282,6 +316,14 @@ export default function HomePage(props: {
               enrolled={enrolledCards}
               holderCounts={holderCounts}
               partySize={partySize}
+              sinopacDoublebeiLevel={sinopacLevel}
+              onSinopacDoublebeiLevelChange={setSinopacLevel}
+              isDbsEcoNewUser={isDbsEcoNewUser}
+              onDbsEcoNewUserChange={setIsDbsEcoNewUser}
+              isSinopacNewUser={isSinopacNewUser}
+              onSinopacNewUserChange={setIsSinopacNewUser}
+              isUnionJingheNewUser={isUnionJingheNewUser}
+              onUnionJingheNewUserChange={setIsUnionJingheNewUser}
               onSelectedChange={setSelectedCards}
               onEnrolledChange={setEnrolledCards}
               onHolderCountsChange={setHolderCounts}
@@ -323,13 +365,19 @@ export default function HomePage(props: {
               onFlightBrandIdChange={setFlightBrandId}
               isKumamonFlightJpy={isKumamonFlightJpy}
               onKumamonFlightJpyChange={setIsKumamonFlightJpy}
-              isDbsEcoNewUser={isDbsEcoNewUser}
-              onDbsEcoNewUserChange={setIsDbsEcoNewUser}
             />
             <SpendingPatternPanel 
               patternAmounts={patternAmounts} 
               selectedBrands={selectedBrands}
               partySize={partySize}
+              applePayByBrand={applePayByBrand}
+              onApplePayByBrandChange={(brandId, value) =>
+                setApplePayByBrand((prev) => ({ ...prev, [brandId]: value }))
+              }
+              patternPaymentByKey={patternPaymentByKey}
+              onPatternPaymentChange={(key, channel) =>
+                setPatternPaymentByKey((prev) => ({ ...prev, [key]: channel }))
+              }
               onChange={setPatternAmounts} 
               onBrandChange={setSelectedBrands}
             />

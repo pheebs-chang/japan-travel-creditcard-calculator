@@ -17,6 +17,15 @@ interface CardSelectorProps {
   enrolled: string[];
   holderCounts?: Record<string, number>; // cardId -> number of holders in party
   partySize?: number;
+  /** 永豐幣倍卡：Level 1 加碼上限 NT$300／月；Level 2 NT$800／月 */
+  sinopacDoublebeiLevel?: 1 | 2;
+  onSinopacDoublebeiLevelChange?: (level: 1 | 2) => void;
+  isDbsEcoNewUser?: boolean;
+  onDbsEcoNewUserChange?: (v: boolean) => void;
+  isSinopacNewUser?: boolean;
+  onSinopacNewUserChange?: (v: boolean) => void;
+  isUnionJingheNewUser?: boolean;
+  onUnionJingheNewUserChange?: (v: boolean) => void;
   onSelectedChange: (selected: string[]) => void;
   onEnrolledChange: (enrolled: string[]) => void;
   onHolderCountsChange?: (counts: Record<string, number>) => void;
@@ -28,6 +37,14 @@ function CardBadge({
   enrolled,
   holderCount,
   partySize,
+  sinopacDoublebeiLevel,
+  onSinopacDoublebeiLevelChange,
+  isDbsEcoNewUser,
+  onDbsEcoNewUserChange,
+  isSinopacNewUser,
+  onSinopacNewUserChange,
+  isUnionJingheNewUser,
+  onUnionJingheNewUserChange,
   onToggleSelected,
   onToggleEnrolled,
   onHolderCountChange,
@@ -37,6 +54,14 @@ function CardBadge({
   enrolled: boolean;
   holderCount: number;
   partySize: number;
+  sinopacDoublebeiLevel?: 1 | 2;
+  onSinopacDoublebeiLevelChange?: (level: 1 | 2) => void;
+  isDbsEcoNewUser?: boolean;
+  onDbsEcoNewUserChange?: (v: boolean) => void;
+  isSinopacNewUser?: boolean;
+  onSinopacNewUserChange?: (v: boolean) => void;
+  isUnionJingheNewUser?: boolean;
+  onUnionJingheNewUserChange?: (v: boolean) => void;
   onToggleSelected: () => void;
   onToggleEnrolled: () => void;
   onHolderCountChange: (delta: number) => void;
@@ -140,6 +165,123 @@ function CardBadge({
 
       {/* Divider */}
       <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+
+      {/* 永豐幣倍：會員等級 */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          card.id === "sinopac-doublebei" && selected && onSinopacDoublebeiLevelChange
+            ? "grid-rows-[1fr]"
+            : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden min-h-0">
+          {card.id === "sinopac-doublebei" && selected && onSinopacDoublebeiLevelChange && (
+            <>
+              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="px-3 py-2.5 flex flex-col gap-2">
+                <span className={cn("text-[10px] font-medium", isInverted ? "text-background/70" : "text-muted-foreground")}>
+                  會員等級（加碼上限）
+                </span>
+                <div className="flex gap-1.5">
+                  {([1, 2] as const).map((lv) => (
+                    <button
+                      key={lv}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSinopacDoublebeiLevelChange(lv);
+                      }}
+                      className={cn(
+                        "flex-1 rounded-lg border px-2 py-1.5 text-[10px] font-semibold transition-colors duration-200",
+                        (sinopacDoublebeiLevel ?? 1) === lv
+                          ? isInverted
+                            ? "border-background bg-background text-foreground"
+                            : "border-foreground bg-foreground text-background"
+                          : isInverted
+                            ? "border-background/25 text-background/80 hover:bg-background/10"
+                            : "border-border text-muted-foreground hover:bg-secondary"
+                      )}
+                    >
+                      {lv === 1 ? "一般戶（Level 1）" : "大戶（Level 2）"}
+                    </button>
+                  ))}
+                </div>
+                <p className={cn("text-[9px] leading-snug", isInverted ? "text-background/45" : "text-muted-foreground/70")}>
+                  Level 1：+4% 月上限 NT$300；Level 2：+4% 月上限 NT$800
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 新戶加碼：星展 eco／聯邦吉鶴／永豐幣倍 */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          selected &&
+            ((card.id === "dbs-eco" && onDbsEcoNewUserChange) ||
+              (card.id === "union-jinghe" && onUnionJingheNewUserChange) ||
+              (card.id === "sinopac-doublebei" && onSinopacNewUserChange))
+            ? "grid-rows-[1fr]"
+            : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden min-h-0">
+          {selected && card.id === "dbs-eco" && onDbsEcoNewUserChange && (
+            <>
+              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="px-3 py-2 flex items-center justify-between gap-2">
+                <span className={cn("text-[10px] leading-tight flex-1", isInverted ? "text-background/80" : "text-foreground/90")}>
+                  是否為新戶（享額外加碼）？
+                </span>
+                <Switch
+                  checked={!!isDbsEcoNewUser}
+                  onCheckedChange={onDbsEcoNewUserChange}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="星展 eco 新戶"
+                  className={cn("scale-75 flex-shrink-0", isInverted ? "data-[state=checked]:bg-background" : "")}
+                />
+              </div>
+            </>
+          )}
+          {selected && card.id === "union-jinghe" && onUnionJingheNewUserChange && (
+            <>
+              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="px-3 py-2 flex items-center justify-between gap-2">
+                <span className={cn("text-[10px] leading-tight flex-1", isInverted ? "text-background/80" : "text-foreground/90")}>
+                  是否為新戶（享額外加碼）？
+                </span>
+                <Switch
+                  checked={!!isUnionJingheNewUser}
+                  onCheckedChange={onUnionJingheNewUserChange}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="聯邦吉鶴新戶"
+                  className={cn("scale-75 flex-shrink-0", isInverted ? "data-[state=checked]:bg-background" : "")}
+                />
+              </div>
+            </>
+          )}
+          {selected && card.id === "sinopac-doublebei" && onSinopacNewUserChange && (
+            <>
+              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="px-3 py-2 flex items-center justify-between gap-2">
+                <span className={cn("text-[10px] leading-tight flex-1", isInverted ? "text-background/80" : "text-foreground/90")}>
+                  是否為新戶（享額外加碼）？
+                </span>
+                <Switch
+                  checked={!!isSinopacNewUser}
+                  onCheckedChange={onSinopacNewUserChange}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="永豐幣倍新戶"
+                  className={cn("scale-75 flex-shrink-0", isInverted ? "data-[state=checked]:bg-background" : "")}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Holder count row - only show when party > 1 and card is selected */}
       {partySize > 1 && selected && (
@@ -265,6 +407,14 @@ export function CardSelector({
   enrolled,
   holderCounts = {},
   partySize = 1,
+  sinopacDoublebeiLevel = 1,
+  onSinopacDoublebeiLevelChange,
+  isDbsEcoNewUser = false,
+  onDbsEcoNewUserChange,
+  isSinopacNewUser = false,
+  onSinopacNewUserChange,
+  isUnionJingheNewUser = false,
+  onUnionJingheNewUserChange,
   onSelectedChange,
   onEnrolledChange,
   onHolderCountsChange,
@@ -322,6 +472,14 @@ export function CardSelector({
             enrolled={enrolled.includes(card.id)}
             holderCount={holderCounts[card.id] ?? 1}
             partySize={partySize}
+            sinopacDoublebeiLevel={sinopacDoublebeiLevel}
+            onSinopacDoublebeiLevelChange={onSinopacDoublebeiLevelChange}
+            isDbsEcoNewUser={isDbsEcoNewUser}
+            onDbsEcoNewUserChange={onDbsEcoNewUserChange}
+            isSinopacNewUser={isSinopacNewUser}
+            onSinopacNewUserChange={onSinopacNewUserChange}
+            isUnionJingheNewUser={isUnionJingheNewUser}
+            onUnionJingheNewUserChange={onUnionJingheNewUserChange}
             onToggleSelected={() => toggleSelected(card.id)}
             onToggleEnrolled={() => toggleEnrolled(card.id)}
             onHolderCountChange={(delta) => updateHolderCount(card.id, delta)}

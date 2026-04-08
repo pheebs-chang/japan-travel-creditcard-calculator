@@ -1,13 +1,58 @@
 "use client";
 
-import { Hotel, Plane, Star, Info, UserCheck, Users, Plus, Trash2 } from "lucide-react";
-import type { AccommodationExpense, SpendingInput } from "@/lib/calculator";
+import { Hotel, Plane, Star, Info, Users, Plus, Trash2 } from "lucide-react";
+import type { AccommodationExpense, SpendingInput, PaymentChannel } from "@/lib/calculator";
 import {
   FLIGHT_BOOKING_BRANDS,
   HOTEL_BOOKING_BRANDS,
   HOTEL_PLATFORM_DROPDOWN_IDS,
 } from "@/lib/spend-patterns";
 import { cn } from "@/lib/utils";
+
+const PAYMENT_OPTIONS: { value: PaymentChannel; label: string }[] = [
+  { value: "physical", label: "實體刷卡" },
+  { value: "apple_pay", label: "Apple Pay／感應" },
+  { value: "online", label: "線上結帳" },
+];
+
+function PaymentMethodField({
+  value,
+  onChange,
+  idPrefix,
+}: {
+  value: PaymentChannel;
+  onChange: (v: PaymentChannel) => void;
+  idPrefix: string;
+}) {
+  return (
+    <div className="space-y-1.5" role="radiogroup" aria-label="支付方式">
+      <span className="text-[10px] font-medium text-muted-foreground">支付方式</span>
+      <div className="flex flex-wrap gap-1.5">
+        {PAYMENT_OPTIONS.map((opt) => (
+          <label
+            key={opt.value}
+            className={cn(
+              "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-medium transition-all duration-200",
+              value === opt.value
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-secondary/40 text-muted-foreground hover:border-foreground/25"
+            )}
+          >
+            <input
+              type="radio"
+              name={`${idPrefix}-pay`}
+              value={opt.value}
+              checked={value === opt.value}
+              onChange={() => onChange(opt.value)}
+              className="sr-only"
+            />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface SpendingInputPanelProps {
   spending: SpendingInput;
@@ -16,9 +61,7 @@ interface SpendingInputPanelProps {
   onFlightBrandIdChange?: (brandId: string | null) => void;
   isKumamonFlightJpy?: boolean;
   onKumamonFlightJpyChange?: (enabled: boolean) => void;
-  isDbsEcoNewUser?: boolean;
   onChange: (spending: SpendingInput) => void;
-  onDbsEcoNewUserChange?: (isNewUser: boolean) => void;
 }
 
 function formatNum(n: number) {
@@ -47,9 +90,7 @@ export function SpendingInputPanel({
   onFlightBrandIdChange,
   isKumamonFlightJpy = false,
   onKumamonFlightJpyChange,
-  isDbsEcoNewUser = false,
   onChange,
-  onDbsEcoNewUserChange,
 }: SpendingInputPanelProps) {
   const accommodationList = spending.accommodationExpenses ?? [];
 
@@ -73,7 +114,7 @@ export function SpendingInputPanel({
       ...spending,
       accommodationExpenses: [
         ...accommodationList,
-        { id: newExpenseId(), name: `住宿 ${nextIndex}`, amount: 0 },
+        { id: newExpenseId(), name: `住宿 ${nextIndex}`, amount: 0, paymentMethod: "online" },
       ],
     });
   };
@@ -97,6 +138,9 @@ export function SpendingInputPanel({
 
   return (
     <section aria-label="線上訂機票與住宿消費金額">
+      <p className="text-[10px] text-muted-foreground/80 leading-relaxed mb-3">
+        若您在 Step 3「消費樣態」填寫交通 IC 儲值，請於該處開啟或關閉「Apple Pay 儲值」，以正確試算星展／台新／富邦等權益。
+      </p>
       <div className="space-y-4">
         <div className="rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-foreground/30">
           <div className="flex items-center gap-3 p-4">
@@ -169,6 +213,22 @@ export function SpendingInputPanel({
             <p className="mt-1.5 text-[10px] text-muted-foreground/50">
               建議使用台新 FlyGo 或星展新戶卡領取 5% 回饋；JAL/ANA 建議用熊本熊卡刷日圓。
             </p>
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-300 ease-out",
+                (spending.flight ?? 0) > 0 ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              )}
+            >
+              <div className="overflow-hidden min-h-0">
+                <div className="mt-3 pt-3 border-t border-border/60">
+                  <PaymentMethodField
+                    idPrefix="flight"
+                    value={spending.flightPaymentMethod ?? "online"}
+                    onChange={(v) => onChange({ ...spending, flightPaymentMethod: v })}
+                  />
+                </div>
+              </div>
+            </div>
             {(selectedFlightBrand?.id === "jal" || selectedFlightBrand?.id === "ana") && onKumamonFlightJpyChange && (
               <div
                 role="button"
@@ -311,6 +371,22 @@ export function SpendingInputPanel({
                         {brandNote}
                       </p>
                     )}
+                    <div
+                      className={cn(
+                        "grid transition-[grid-template-rows] duration-300 ease-out",
+                        exp.amount > 0 ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                      )}
+                    >
+                      <div className="overflow-hidden min-h-0">
+                        <div className="pt-2 border-t border-border/50">
+                          <PaymentMethodField
+                            idPrefix={`acc-${exp.id}`}
+                            value={exp.paymentMethod ?? "online"}
+                            onChange={(v) => updateAccommodation(exp.id, { paymentMethod: v })}
+                          />
+                        </div>
+                      </div>
+                    </div>
                     {exp.platform === "rakuten_travel_tw" && (
                       <div className="flex items-start gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-2">
                         <Info className="h-3 w-3 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -326,43 +402,6 @@ export function SpendingInputPanel({
           )}
         </div>
 
-        {onDbsEcoNewUserChange && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => onDbsEcoNewUserChange(!isDbsEcoNewUser)}
-            onKeyDown={(e) => e.key === "Enter" && onDbsEcoNewUserChange(!isDbsEcoNewUser)}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border p-4 cursor-pointer select-none transition-colors",
-              isDbsEcoNewUser
-                ? "border-foreground/30 bg-foreground/5"
-                : "border-border bg-card hover:border-foreground/20"
-            )}
-            aria-pressed={isDbsEcoNewUser}
-          >
-            <div className={cn(
-              "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors",
-              isDbsEcoNewUser ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
-            )}>
-              <UserCheck className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">{"我是星展 eco 永續卡新戶"}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {"新戶核卡專屬期間，線上訂房/訂機票等旅遊平台享 5% 加碼（消費上限 NT$ 15,000）"}
-              </p>
-            </div>
-            <div className={cn(
-              "flex h-5 w-9 flex-shrink-0 rounded-full border-2 transition-colors relative",
-              isDbsEcoNewUser ? "bg-foreground border-foreground" : "bg-secondary border-border"
-            )}>
-              <div className={cn(
-                "absolute top-0.5 h-3 w-3 rounded-full transition-all",
-                isDbsEcoNewUser ? "left-4 bg-background" : "left-0.5 bg-muted-foreground/50"
-              )} />
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

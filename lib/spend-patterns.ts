@@ -14,6 +14,8 @@ export interface BrandItem {
   isDbsEcoExcluded?: boolean;   // excluded from DBS eco 4% bonus (e.g. SUICA)
   isKkday?: boolean;            // sold / purchased via KKday platform
   specialNote?: string;
+  /** UI：交通等類別的醒目子選項 */
+  highlight?: boolean;
 }
 
 /** A named group of brands within a pattern (e.g. "IC卡儲值" inside transport) */
@@ -142,12 +144,12 @@ export const KUMAMON_ELIGIBLE_BRANDS = new Set([
   "fuji_q", "ghibli", "legoland",
   "uniqlo", "gu", "bic_camera", "yodobashi",
   "rakuten_travel_jp",
-  "suica", "pasmo", "icoca",
+  "suica", "pasmo", "icoca", "jp_ic_wallet_topup",
   "orix", "toyota_rent", "times_car", "nippon_rent", "ots",
 ]);
 
 export const DBS_ECO_EXCLUDED_BRANDS = new Set([
-  "suica", "pasmo", "icoca", "t_money",
+  "suica", "pasmo", "icoca", "jp_ic_wallet_topup", "t_money",
 ]);
 
 // ── Pattern definitions ───────────────────────────────────────────────────────
@@ -169,12 +171,23 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
         perPerson: true,
         brands: [
           {
+            id: "jp_ic_wallet_topup",
+            name: "📱 儲值日本交通卡 (Suica／PASMO)",
+            unitPrice: 5000,
+            isDbsEcoExcluded: true,
+            isKumamonEligible: true,
+            highlight: true,
+            specialNote:
+              "與 SUICA／PASMO 儲值試算相同；可搭配 Apple Pay 開關。",
+          },
+          {
             id: "suica",
             name: "SUICA",
             unitPrice: 5000,
             isDbsEcoExcluded: true,
             isKumamonEligible: true,
-            specialNote: "電子票證儲值：星展eco僅享1%基礎回饋，不計入4%加碼",
+            specialNote:
+              "Apple Pay 儲值：星展 eco 不計入 4% 加碼；台新 FlyGo 玩旅刷 3.3% 精選含 AP 儲值。可切換「Apple Pay」開關以試算。",
           },
           {
             id: "pasmo",
@@ -182,7 +195,8 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
             unitPrice: 5000,
             isDbsEcoExcluded: true,
             isKumamonEligible: true,
-            specialNote: "電子票證儲值：星展eco僅享1%基礎回饋，不計入4%加碼",
+            specialNote:
+              "Apple Pay 儲值：星展 eco 不計入 4% 加碼；台新 FlyGo 玩旅刷 3.3% 精選含 AP 儲值。可切換「Apple Pay」開關以試算。",
           },
           {
             id: "icoca",
@@ -190,7 +204,8 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
             unitPrice: 5000,
             isDbsEcoExcluded: true,
             isKumamonEligible: true,
-            specialNote: "電子票證儲值：星展eco僅享1%基礎回饋，不計入4%加碼",
+            specialNote:
+              "Apple Pay 儲值：星展 eco 不計入 4% 加碼；台新 FlyGo 玩旅刷 3.3% 精選含 AP 儲值。可切換「Apple Pay」開關以試算。",
           },
         ],
       },
