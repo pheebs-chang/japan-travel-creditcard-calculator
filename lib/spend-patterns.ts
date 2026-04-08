@@ -247,6 +247,19 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
           },
         ],
       },
+      {
+        id: "taoyuan_metro",
+        label: "桃園機場捷運",
+        perPerson: false,
+        brands: [
+          {
+            id: "taoyuan_airport_metro",
+            name: "🚄 桃園機場捷運",
+            unitPrice: 320,
+            specialNote: "限感應過閘門刷卡；不含加值金消費。",
+          },
+        ],
+      },
     ],
   },
 

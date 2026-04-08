@@ -681,6 +681,11 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                 {needsApplePayReminder && (
                   <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1">需開啟 Apple Pay 儲值</p>
                 )}
+                {step.brandId === "taoyuan_airport_metro" && step.cardId === "cathay-cube" && (
+                  <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1">
+                    ⚠️ 限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值
+                  </p>
+                )}
                 {/* Special note */}
                 {step.specialNote && (
                   <div className="flex items-center gap-1 mt-1">

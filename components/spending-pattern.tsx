@@ -408,6 +408,7 @@ export function SpendingPatternPanel({
   const getPaymentForBrand = (pattern: SpendingPattern, brandId: string): PaymentChannel => {
     const key = `${pattern.id}:${brandId}`;
     if (patternPaymentByKey[key]) return patternPaymentByKey[key];
+    if (brandId === "taoyuan_airport_metro") return "physical";
     // 交通卡儲值預設為 Apple Pay／感應，符合實務情境。
     if (IC_CARD_IDS.has(brandId)) return "apple_pay";
     const fallback = defaultPaymentForPattern(pattern.category, pattern.id, pattern.label);

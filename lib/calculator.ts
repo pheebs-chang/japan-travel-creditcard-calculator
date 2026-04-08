@@ -1161,7 +1161,42 @@ function waterfallForCategorySegmentsV2(
       for (const card of cards) {
         const enrolled = enrolledIds.has(card.id);
         const roundingMode = getCardRoundingMode(card);
-        const feeRate = card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE);
+        const isTaoyuanMetro =
+          category === "local" && seg.brandId === "taoyuan_airport_metro";
+        const feeRate = isTaoyuanMetro ? 0 : (card.noForeignFee ? 0 : (card.foreignFee ?? FOREIGN_FEE));
+
+        // ── 桃園機場捷運專屬：CUBE 5%（限感應過閘），其餘卡一律一般 1% ──
+        if (isTaoyuanMetro) {
+          const isCubeGateTap =
+            card.id === "cathay-cube" &&
+            (seg.paymentMethod === "physical" || seg.paymentMethod === "apple_pay");
+          if (isCubeGateTap) {
+            candidates.push({
+              card,
+              phase: "standard-uncapped",
+              effectiveRatePercent: 5.0,
+              maxSpend: remainingSeg,
+              priority: 100000,
+              roundingMode,
+              feeRate,
+              capUsesPoints: false,
+              segmentSpecialNote: "⚠️ 限感應過閘門使用，不適用商務卡/簽帳金卡/悠遊卡加值（請切換日本賞）",
+            });
+          } else {
+            candidates.push({
+              card,
+              phase: "standard-uncapped",
+              effectiveRatePercent: 1.0,
+              maxSpend: remainingSeg,
+              priority: 1000,
+              roundingMode,
+              feeRate,
+              capUsesPoints: false,
+              segmentSpecialNote: "桃園機捷以一般國內消費 1% 試算",
+            });
+          }
+          continue;
+        }
 
         // ── 日本交通卡儲值（Apple Pay）專屬優先序 ──
         if (isApIcTopup) {
