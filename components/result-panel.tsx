@@ -27,6 +27,9 @@ import { CREDIT_CARDS } from "@/lib/card-data";
 import { CalculationResult, formatTWD, type WaterfallStep } from "@/lib/calculator";
 import { cn } from "@/lib/utils";
 
+const CUBE_COUPON_URL =
+  "https://www.cathaybk.com.tw/cathaybk/promo/event/credit-card/product/japanrewards/index.html";
+
 interface ResultPanelProps {
   result: CalculationResult | null;
   destination: "日本" | "韓國";
@@ -272,24 +275,31 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
         ? "from-violet-400 via-fuchsia-300 to-cyan-300"
         : "from-slate-300 via-zinc-400 to-orange-400";
   const cardSpendMap = new Map(cardBreakdown.map((c) => [c.cardId, c.spending]));
+  type RegistrationTask = { cardId: string; cardName: string; url: string; note: string; bonus?: number };
   const registrationTasks = cardBreakdown
-    .map((cb) => {
+    .map<RegistrationTask | null>((cb) => {
       const card = CREDIT_CARDS.find((c) => c.id === cb.cardId);
-      if (!card?.registrationBonus || !card.registrationUrl) return null;
+      if (!card?.registrationUrl) return null;
+      const isCube = cb.cardId === "cathay-cube";
+      if (!card.registrationBonus && !isCube) return null;
       const spend = cardSpendMap.get(cb.cardId) ?? 0;
-      const bonus = card.registrationBonus.type === "percent"
-        ? Math.round((spend * card.registrationBonus.value) / 100)
-        : Math.round(card.registrationBonus.value);
+      const bonus = card.registrationBonus
+        ? card.registrationBonus.type === "percent"
+          ? Math.round((spend * card.registrationBonus.value) / 100)
+          : Math.round(card.registrationBonus.value)
+        : undefined;
       return {
         cardId: cb.cardId,
         cardName: cb.cardName,
-        url: card.registrationUrl,
-        note: card.registrationBonus.note ?? "登錄活動",
-        bonus,
+        url: isCube ? CUBE_COUPON_URL : card.registrationUrl,
+        note: isCube
+          ? "日本賞指定通路需先領券；未領券僅套用一般回饋"
+          : (card.registrationBonus?.note ?? "登錄活動"),
+        ...(bonus != null ? { bonus } : {}),
       };
     })
-    .filter((x): x is { cardId: string; cardName: string; url: string; note: string; bonus: number } => !!x);
-  const registrationExtraSaving = registrationTasks.reduce((sum, t) => sum + t.bonus, 0);
+    .filter((x): x is RegistrationTask => x !== null);
+  const registrationExtraSaving = registrationTasks.reduce((sum, t) => sum + (t.bonus ?? 0), 0);
   const displayStepItems = buildDisplayStepItems(waterfallSteps);
   const shoppingStrategyLines = buildShoppingStrategySummary(waterfallSteps);
 
@@ -584,6 +594,17 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                   <span className="text-sm font-semibold text-foreground">
                     {formatStrategyCardLine(step, partySize)}
                   </span>
+                  {step.cardId === "cathay-cube" && (
+                    <a
+                      href={CUBE_COUPON_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-200"
+                      title="國泰 CUBE 日本賞領券頁"
+                    >
+                      🎟️ 需領券
+                    </a>
+                  )}
                   {step.isKumamonBonus && (
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-foreground/10 border border-foreground/20 px-1.5 py-0.5 text-[9px] font-medium text-foreground">
                       <Star className="h-2.5 w-2.5" />
@@ -949,7 +970,8 @@ export function ResultPanel({ result, destination, stepNumber = 4, partySize = 1
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-foreground dark:text-white">{task.cardName}</p>
                   <p className="text-[11px] text-muted-foreground dark:text-white/60 mt-1 leading-relaxed">
-                    {task.note}，可再省 {formatTWD(task.bonus)}
+                    {task.note}
+                    {task.bonus != null ? `，可再省 ${formatTWD(task.bonus)}` : ""}
                   </p>
                 </div>
                 <a
