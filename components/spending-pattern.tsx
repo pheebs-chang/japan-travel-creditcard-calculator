@@ -12,6 +12,7 @@ import {
   Plane,
   Hotel,
   Car,
+  Bus,
   X,
   ChevronRight,
   Star,
@@ -25,7 +26,7 @@ import {
   BrandItem,
   BrandGroup,
 } from "@/lib/spend-patterns";
-import type { PaymentChannel } from "@/lib/calculator";
+import type { PaymentChannel, DomesticRailPurchaseMode } from "@/lib/calculator";
 import { defaultPaymentForPattern } from "@/lib/calculator";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -62,13 +63,26 @@ interface SpendingPatternPanelProps {
   onPatternBrandAmountsChange?: (snapshot: Record<string, number>) => void;
   onChange: Dispatch<SetStateAction<Record<string, number>>>;
   onBrandChange: Dispatch<SetStateAction<Record<string, string>>>;
+  /** 台灣高鐵：一起買／分開買（寫入 SpendingInput.taiwanHsrPurchaseMode） */
+  taiwanHsrPurchaseMode?: DomesticRailPurchaseMode;
+  onTaiwanHsrPurchaseModeChange?: (mode: DomesticRailPurchaseMode) => void;
 }
 
 // ── Icon map ──────────────────────────────────────────────────────────────────
 
+/** Step3 類別選單圖示（Lucide outline），尺寸／顏色於渲染處統一 */
 const ICON_MAP: Record<string, React.ElementType> = {
-  ShoppingBag, Building2, Store, UtensilsCrossed,
-  Train, Sparkles, Cpu, Plane, Hotel, Car,
+  ShoppingBag,
+  Building2,
+  Store,
+  UtensilsCrossed,
+  Train,
+  Sparkles,
+  Cpu,
+  Plane,
+  Hotel,
+  Car,
+  Bus,
 };
 
 function formatNum(n: number) {
@@ -304,6 +318,8 @@ export function SpendingPatternPanel({
   onPatternBrandAmountsChange,
   onChange,
   onBrandChange,
+  taiwanHsrPurchaseMode = "together",
+  onTaiwanHsrPurchaseModeChange,
 }: SpendingPatternPanelProps) {
   // Which patterns have been added
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
@@ -570,9 +586,62 @@ export function SpendingPatternPanel({
             💡 採分開感應過閘門模式，依人數拆分試算回饋
           </p>
         ) : sg.id === "taiwan_hsr" ? (
-          <p className="mb-2 rounded-md border border-violet-500/20 bg-violet-500/10 px-2.5 py-1.5 text-[10px] text-violet-200">
-            💡 系統將自動比較「一起刷 / 分開刷」高鐵回饋並擇優套用
-          </p>
+          partySize > 1 && onTaiwanHsrPurchaseModeChange ? (
+            <div
+              className="mb-2 rounded-lg border border-border/80 bg-secondary/25 px-2.5 py-2 dark:border-white/15 dark:bg-zinc-900/60"
+              role="radiogroup"
+              aria-label="台灣高鐵購票方式"
+            >
+              <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-zinc-400">
+                高鐵購票方式
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {(
+                  [
+                    { value: "together" as const, label: "一起買", hint: "一人統籌付款" },
+                    { value: "split" as const, label: "分開買", hint: "依人數拆分試算" },
+                  ] as const
+                ).map((opt) => {
+                  const active = taiwanHsrPurchaseMode === opt.value;
+                  return (
+                    <label
+                      key={opt.value}
+                      className={cn(
+                        "inline-flex min-w-[6rem] cursor-pointer flex-col gap-0.5 rounded-md border px-2 py-1.5 text-[10px] transition-colors",
+                        active
+                          ? "border-violet-500/80 bg-gradient-to-r from-violet-600 to-indigo-700 font-bold text-white shadow-md dark:from-violet-600 dark:to-indigo-700"
+                          : "border-gray-700 bg-transparent font-medium text-gray-400 hover:border-gray-600"
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <input
+                          type="radio"
+                          name="taiwan-hsr-purchase-mode"
+                          value={opt.value}
+                          checked={active}
+                          onChange={() => onTaiwanHsrPurchaseModeChange(opt.value)}
+                          className="sr-only"
+                        />
+                        {opt.label}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[8px] leading-tight",
+                          active ? "font-semibold text-white/90" : "text-gray-400"
+                        )}
+                      >
+                        {opt.hint}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="mb-2 rounded-md border border-violet-500/20 bg-violet-500/10 px-2.5 py-1.5 text-[10px] text-violet-200">
+              💡 台灣高鐵試算以單筆帳單計；多人時請於上方調整旅遊人數後可選「分開買」。
+            </p>
+          )
         ) : null
       ) : null;
 
@@ -717,11 +786,11 @@ export function SpendingPatternPanel({
                   tabIndex={0}
                   onClick={() => toggleExpand(pattern.id)}
                   onKeyDown={(e) => e.key === "Enter" && toggleExpand(pattern.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/30 transition-colors cursor-pointer select-none"
+                  className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-secondary/30 transition-colors cursor-pointer select-none"
                   aria-expanded={isExpanded}
                 >
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-                    {pattern.id !== "domestic_transport" && <Icon className="h-3.5 w-3.5" />}
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-secondary/40">
+                    <Icon className="h-4 w-4 text-gray-400" aria-hidden />
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium text-foreground">{pattern.label}</span>
@@ -777,9 +846,9 @@ export function SpendingPatternPanel({
                   key={pattern.id}
                   type="button"
                   onClick={() => addPattern(pattern)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-secondary hover:text-foreground"
+                  className="inline-flex items-center rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-secondary hover:text-foreground"
                 >
-                  {pattern.id !== "domestic_transport" && <Icon className="h-3 w-3" />}
+                  <Icon className="mr-2 h-4 w-4 shrink-0 text-gray-400" aria-hidden />
                   {pattern.label}
                 </button>
               );

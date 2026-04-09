@@ -1,4 +1,12 @@
-import { CreditCard, SpendingCategory, FOREIGN_FEE, CashbackRule, DBS_ECO_EXCLUDED_BRANDS } from "./card-data";
+import {
+  CreditCard,
+  SpendingCategory,
+  FOREIGN_FEE,
+  CashbackRule,
+  DBS_ECO_EXCLUDED_BRANDS,
+  SINOPAC_MAX_SPENDING_FOR_BONUS,
+  SINOPAC_NEW_USER_PROMO_CAP_TWD,
+} from "./card-data";
 import {
   SPENDING_PATTERNS,
   HOTEL_BOOKING_BRANDS,
@@ -988,16 +996,32 @@ function getEffectiveRate(
   // ═══════════════════════════════════════════════════════════════════════════
   // Handled during waterfall allocation, not here
 
-  // 永豐幣倍：新戶加碼（試算 +1%，依登錄）
-  if (card.id === "sinopac-doublebei" && rateOpts?.isSinopacNewUser) {
+  // 永豐幣倍：2%+4% 精選加碼；新戶另 +4% 合計試算 10% 與合併加碼上限（依登錄）
+  if (card.id === "sinopac-doublebei") {
+    const bonusCap = rule.bonusCap ?? rule.cap ?? 300;
+    if (rateOpts?.isSinopacNewUser) {
+      return {
+        rate: 10,
+        cap: bonusCap + SINOPAC_NEW_USER_PROMO_CAP_TWD,
+        baseRate: 2,
+        bonusRate: 8,
+        overflowRate: rule.overflowRate,
+        isKumamonBonus: false,
+        isDbsEcoBonus: false,
+        isDbsEcoBaseOnly: false,
+        specialNote: `新戶加碼試算：合計 10%（2%+4%精選+4%新戶，依登錄）；新戶加碼上限通常 NT$${SINOPAC_NEW_USER_PROMO_CAP_TWD.toLocaleString("zh-TW")}／期`,
+      };
+    }
     return {
-      rate: Math.min(rule.rate + 1, 10),
-      cap: rule.cap,
+      rate: 6,
+      cap: bonusCap,
+      baseRate: 2,
+      bonusRate: 4,
       overflowRate: rule.overflowRate,
       isKumamonBonus: false,
       isDbsEcoBonus: false,
       isDbsEcoBaseOnly: false,
-      specialNote: "新戶額外加碼試算 +1%（依登錄）",
+      specialNote: "精選通路 2%+4%（加碼月上限依 Level；4% 加碼刷滿約 NT$7,500／20,000）",
     };
   }
 
@@ -1379,7 +1403,7 @@ function waterfallForCategorySegmentsV2(
   >();
 
   for (const card of cards) {
-    if (card.id === "dbs-eco" || card.id === "esun-kumamon") continue;
+    if (card.id === "dbs-eco" || card.id === "esun-kumamon" || card.id === "sinopac-doublebei") continue;
     const rule = card.cashback.find((r) => r.category === category);
     if (!rule || rule.cap === undefined) continue;
     const rawHolders = holderCounts[card.id];
@@ -1397,6 +1421,21 @@ function waterfallForCategorySegmentsV2(
       overflowRate: rule.overflowRate,
       holderRemainingPoints: Array.from({ length: holders }, () => rule.cap ?? 0),
     });
+  }
+
+  // 永豐幣倍：2%+4% 精選加碼（月上限依 Level）；新戶路徑改於候選中以 10% 合併試算
+  const sinopacCardForCap = cards.find((c) => c.id === "sinopac-doublebei");
+  const sinopacRuleForCap = sinopacCardForCap?.cashback.find((r) => r.category === category);
+  let sinopacBonusRemaining = 0;
+  let sinopacBonusInitial = 0;
+  let sinopacNewUserRemaining = 0;
+  if (sinopacRuleForCap?.bonusCap != null) {
+    const sh = Math.max(1, holderCounts["sinopac-doublebei"] ?? 1);
+    sinopacBonusInitial = sinopacRuleForCap.bonusCap * sh;
+    sinopacBonusRemaining = sinopacBonusInitial;
+    if (rateOpts?.isSinopacNewUser) {
+      sinopacNewUserRemaining = (sinopacRuleForCap.bonusCap + SINOPAC_NEW_USER_PROMO_CAP_TWD) * sh;
+    }
   }
 
   // DBS eco: 4% bonus cap applies only to the 4% bonus portion (600 points/period per holder).
@@ -1479,7 +1518,22 @@ function waterfallForCategorySegmentsV2(
     while (remainingSeg > 0.01) {
       type Candidate = {
         card: CreditCard;
-        phase: "dbs-bonus" | "dbs-base" | "dbs-online-bonus" | "dbs-online-base" | "kumamon-bonus" | "kumamon-base" | "fubon-ap-ic" | "union-ap" | "standard-cap" | "standard-uncapped" | "standard-overflow" | "ic-priority";
+        phase:
+          | "dbs-bonus"
+          | "dbs-base"
+          | "dbs-online-bonus"
+          | "dbs-online-base"
+          | "kumamon-bonus"
+          | "kumamon-base"
+          | "sinopac-bonus"
+          | "sinopac-base"
+          | "sinopac-newuser"
+          | "fubon-ap-ic"
+          | "union-ap"
+          | "standard-cap"
+          | "standard-uncapped"
+          | "standard-overflow"
+          | "ic-priority";
         effectiveRatePercent: number; // for display
         maxSpend: number;
         priority: number;
@@ -1930,6 +1984,92 @@ function waterfallForCategorySegmentsV2(
           continue;
         }
 
+        // ── 永豐幣倍：2%+4% 精選加碼（月上限依 Level）；新戶合併試算 10% 與加碼上限 ──
+        if (card.id === "sinopac-doublebei") {
+          const rule = card.cashback.find((r) => r.category === category);
+          if (!rule) continue;
+          const baseR = rule.baseRate ?? 2;
+          const bonusR = rule.bonusRate ?? 4;
+          const rounding = roundingMode;
+
+          if (rateOpts?.isSinopacNewUser) {
+            if (sinopacNewUserRemaining > 0.01) {
+              const maxSpend = Math.min(
+                remainingSeg,
+                maxSpendForPointsCap(sinopacNewUserRemaining, 10, rounding)
+              );
+              if (maxSpend > 0.01) {
+                const netR = 10 - feeRate;
+                candidates.push({
+                  card,
+                  phase: "sinopac-newuser",
+                  effectiveRatePercent: 10,
+                  maxSpend,
+                  priority: 1000 + netR * 100,
+                  roundingMode: rounding,
+                  feeRate,
+                  capUsesPoints: true,
+                  capInitialPoints: (rule.bonusCap ?? 300) + SINOPAC_NEW_USER_PROMO_CAP_TWD,
+                  segmentSpecialNote:
+                    `新戶加碼試算：合計 10%（依登錄）；加碼合併上限含新戶 NT$${SINOPAC_NEW_USER_PROMO_CAP_TWD.toLocaleString("zh-TW")}／期`,
+                });
+              }
+            } else {
+              const netR = baseR - feeRate;
+              candidates.push({
+                card,
+                phase: "sinopac-base",
+                effectiveRatePercent: baseR,
+                maxSpend: remainingSeg,
+                priority: netR * 100,
+                roundingMode: rounding,
+                feeRate,
+                capUsesPoints: false,
+                baseRatePercent: baseR,
+                segmentSpecialNote: "加碼額度已盡，僅享 2% 基本回饋（依登錄）",
+              });
+            }
+          } else if (sinopacBonusRemaining > 0.01) {
+            const maxSpend = Math.min(
+              remainingSeg,
+              maxSpendForPointsCap(sinopacBonusRemaining, bonusR, rounding)
+            );
+            if (maxSpend > 0.01) {
+              const effectiveRatePercent = baseR + bonusR;
+              const netR = effectiveRatePercent - feeRate;
+              candidates.push({
+                card,
+                phase: "sinopac-bonus",
+                effectiveRatePercent,
+                maxSpend,
+                priority: 1000 + netR * 100,
+                roundingMode: rounding,
+                feeRate,
+                capUsesPoints: true,
+                baseRatePercent: baseR,
+                bonusRatePercent: bonusR,
+                capInitialPoints: sinopacBonusInitial,
+                segmentSpecialNote: rule.ruleNote,
+              });
+            }
+          } else {
+            const netR = baseR - feeRate;
+            candidates.push({
+              card,
+              phase: "sinopac-base",
+              effectiveRatePercent: baseR,
+              maxSpend: remainingSeg,
+              priority: netR * 100,
+              roundingMode: rounding,
+              feeRate,
+              capUsesPoints: false,
+              baseRatePercent: baseR,
+              segmentSpecialNote: "精選加碼已達上限，僅享 2% 基本回饋（依登錄）",
+            });
+          }
+          continue;
+        }
+
         // ── Standard cards (cap/overflow/uncapped) ──
         const rule = card.cashback.find((r) => r.category === category);
         if (!rule) continue;
@@ -1946,9 +2086,6 @@ function waterfallForCategorySegmentsV2(
         if (useCtbcOnlineLocal && flightLikeRule) {
           effectiveStandardRate = flightLikeRule.rate;
           effectiveOverflowRate = undefined;
-        }
-        if (card.id === "sinopac-doublebei" && rateOpts?.isSinopacNewUser) {
-          effectiveStandardRate = Math.min(effectiveStandardRate + 1, 10);
         }
 
         const capState = standardCapStateByCardId.get(card.id);
@@ -2299,6 +2436,36 @@ function waterfallForCategorySegmentsV2(
         grossCashback = applyRounding((allocated * baseRate) / 100, roundingMode);
         feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
         netCashback = grossCashback - feePoints;
+      } else if (chosen.phase === "sinopac-bonus") {
+        const baseRate = chosen.baseRatePercent ?? 2;
+        const bonusRate = chosen.bonusRatePercent ?? 4;
+        const basePoints = Math.floor((allocated * baseRate) / 100);
+        const bonusPoints = Math.round((allocated * bonusRate) / 100);
+        grossCashback = basePoints + bonusPoints;
+        feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+        netCashback = grossCashback - feePoints;
+        sinopacBonusRemaining = Math.max(0, sinopacBonusRemaining - bonusPoints);
+        isCapReached = sinopacBonusRemaining <= 0.01;
+        capAmount = sinopacBonusInitial;
+        specialNote = isCapReached
+          ? "精選 4% 加碼月上限已達標（依登錄）"
+          : chosen.segmentSpecialNote ?? seg.specialNote;
+      } else if (chosen.phase === "sinopac-base") {
+        const baseRate = chosen.baseRatePercent ?? 2;
+        grossCashback = applyRounding((allocated * baseRate) / 100, roundingMode);
+        feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+        netCashback = grossCashback - feePoints;
+        specialNote = chosen.segmentSpecialNote ?? seg.specialNote;
+      } else if (chosen.phase === "sinopac-newuser") {
+        grossCashback = applyRounding((allocated * 10) / 100, roundingMode);
+        feePoints = applyRounding((allocated * chosen.feeRate) / 100, roundingMode);
+        netCashback = grossCashback - feePoints;
+        sinopacNewUserRemaining = Math.max(0, sinopacNewUserRemaining - grossCashback);
+        isCapReached = sinopacNewUserRemaining <= 0.01;
+        capAmount = chosen.capInitialPoints;
+        specialNote = isCapReached
+          ? "新戶加碼合併上限已達標（依登錄）"
+          : chosen.segmentSpecialNote ?? seg.specialNote;
       } else if (chosen.phase === "standard-cap") {
         const rate = chosen.effectiveRatePercent;
         const flightRule = chosen.card.cashback.find((r) => r.category === category);
@@ -2503,16 +2670,22 @@ function waterfallForCategorySegmentsV2(
 
 function applySinopacLevel(cards: CreditCard[], level?: 1 | 2): CreditCard[] {
   if (!level) return cards;
-  const cap = level === 2 ? 800 : 300;
+  const lv: 1 | 2 = level === 2 ? 2 : 1;
+  const bonusCapMonthly = lv === 2 ? 800 : 300;
+  const maxSpendingCeiling = SINOPAC_MAX_SPENDING_FOR_BONUS[lv];
   return cards.map((c) => {
     if (c.id !== "sinopac-doublebei") return c;
     return {
       ...c,
-      sinopacBonusCapMonthly: cap,
+      sinopacBonusCapMonthly: bonusCapMonthly,
       cashback: c.cashback.map((r) => ({
         ...r,
-        cap,
-        maxSpending: r.rate > 0 ? Math.round((cap / r.rate) * 100) : r.maxSpending,
+        baseRate: 2,
+        bonusRate: 4,
+        bonusCap: bonusCapMonthly,
+        cap: bonusCapMonthly,
+        maxSpending: maxSpendingCeiling,
+        rate: 6,
       })),
     };
   });
@@ -2675,24 +2848,33 @@ export function calculateOptimalCombination(
         };
       };
 
+      /** 依使用者設定的 `flightPurchaseMode` 試算，不再自動擇優覆寫 */
+      const flightPurchaseMode = spending.flightPurchaseMode ?? "together";
+      const wantFlightSplit = partySize > 1 && flightPurchaseMode === "split";
+
       const togetherRun = runFlightStrategy("together");
-      const splitRun = partySize > 1 ? runFlightStrategy("split") : undefined;
-      const togetherSteps = togetherRun.steps;
-      const splitSteps = splitRun?.steps ?? [];
-      const togetherNet = togetherSteps.reduce((sum, s) => sum + s.netCashback, 0);
-      const splitNet = splitSteps.reduce((sum, s) => sum + s.netCashback, 0);
-      const splitBetter = partySize > 1 && splitNet > togetherNet + 0.01;
-      const chosenFlightSteps = splitBetter ? splitSteps : togetherSteps;
-      const chosenKmAfter = splitBetter ? splitRun?.kmAfter : togetherRun.kmAfter;
-      const chosenDbsAfter = splitBetter ? splitRun?.dbsAfter : togetherRun.dbsAfter;
-      restoreFlightCapState(chosenKmAfter, chosenDbsAfter);
-      const delta = Math.max(0, Math.round(Math.abs(splitNet - togetherNet)));
-      const strategyNote = splitBetter
-        ? `💡 建議：分開刷卡（每人各自支付），可多領 ${formatTWD(delta)} 加碼回饋。`
-        : "💡 建議：一起刷卡，方便管理且已拿滿回饋。";
+      const togetherNet = togetherRun.steps.reduce((sum, s) => sum + s.netCashback, 0);
+
+      let splitRun = togetherRun;
+      let splitNet = togetherNet;
+      if (partySize > 1) {
+        restoreFlightCapState(kmBefore, dbsBefore);
+        splitRun = runFlightStrategy("split");
+        splitNet = splitRun.steps.reduce((sum, s) => sum + s.netCashback, 0);
+      }
+
+      const chosenRun = partySize > 1 && wantFlightSplit ? splitRun : togetherRun;
+      restoreFlightCapState(chosenRun.kmAfter, chosenRun.dbsAfter);
+
+      const strategyNote =
+        partySize > 1 && wantFlightSplit
+          ? "💡 試算依您的設定：機票分開購買（每人拆票、各自上限）。"
+          : partySize > 1
+            ? "💡 試算依您的設定：機票一起購買（單筆總額）。"
+            : "💡 機票回饋試算。";
 
       allSteps.push(
-        ...chosenFlightSteps.map((s) => ({
+        ...chosenRun.steps.map((s) => ({
           ...s,
           specialNote: s.specialNote ? `${s.specialNote} ${strategyNote}` : strategyNote,
           flightStrategyTogetherNet: togetherNet,
@@ -2826,16 +3008,32 @@ export function calculateOptimalCombination(
           };
         };
 
+        /** 依 `taiwanHsrPurchaseMode`（或舊版 domesticRailPurchaseMode）試算，不自動擇優 */
+        const hsrPurchaseMode =
+          spending.taiwanHsrPurchaseMode ?? spending.domesticRailPurchaseMode ?? "together";
+        const wantHsrSplit = partySize > 1 && hsrPurchaseMode === "split";
+
         const togetherRun = runHsrStrategy("together");
-        const splitRun = runHsrStrategy("split");
-        const togetherNet = togetherRun.steps.reduce((s, x) => s + x.netCashback, 0);
-        const splitNet = splitRun.steps.reduce((s, x) => s + x.netCashback, 0);
-        const splitBetter = splitNet > togetherNet + 0.01;
-        const note = splitBetter
-          ? "💡 建議：分開刷卡，可避開單筆回饋上限。"
-          : "💡 建議：一起刷卡即可。";
-        const chosen = splitBetter ? splitRun : togetherRun;
+        const togetherNetHsr = togetherRun.steps.reduce((s, x) => s + x.netCashback, 0);
+
+        let splitRun = togetherRun;
+        let splitNetHsr = togetherNetHsr;
+        if (partySize > 1) {
+          restoreLocalCapState(kmBefore, dbsBefore);
+          splitRun = runHsrStrategy("split");
+          splitNetHsr = splitRun.steps.reduce((s, x) => s + x.netCashback, 0);
+        }
+
+        const chosen = partySize > 1 && wantHsrSplit ? splitRun : togetherRun;
         restoreLocalCapState(chosen.kmAfter, chosen.dbsAfter);
+
+        const note =
+          partySize > 1 && wantHsrSplit
+            ? "💡 試算依您的設定：高鐵分開購票（每人拆票試算）。"
+            : partySize > 1
+              ? "💡 試算依您的設定：高鐵一筆代購（單筆總額）。"
+              : "💡 台灣高鐵回饋試算。";
+
         allSteps.push(
           ...chosen.steps.map((s) => ({
             ...s,

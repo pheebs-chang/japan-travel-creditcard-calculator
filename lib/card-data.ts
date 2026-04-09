@@ -33,6 +33,10 @@ export interface CreditCard {
   noForeignFee?: boolean;
   color: string;      // tailwind bg classes for visual only
   notes?: string;
+  /** 官方／商品介紹頁（選卡區卡名連結用） */
+  officialUrl?: string;
+  /** 卡面外觀简述，協助辨識卡片 */
+  appearance?: string;
   registrationUrl: string;  // link to enrollment page
   registrationBonus?: { type: "percent" | "fixed"; value: number; note?: string };
   tags: string[];           // e.g. ["推薦", "Apple Pay"]
@@ -51,6 +55,23 @@ export interface CreditCard {
 
 export const FOREIGN_FEE = 1.5;
 
+/** 永豐幣倍：精選 4% 加碼「刷滿」對應刷卡金額（300÷4%=7,500、800÷4%=20,000） */
+export const SINOPAC_MAX_SPENDING_FOR_BONUS: Record<1 | 2, number> = {
+  1: 7500,
+  2: 20000,
+};
+
+/** 選卡 UI 與試算引擎共用：依會員等級顯示／試算刷卡上限 */
+export function getSinopacDisplayMaxSpending(level?: 1 | 2): number {
+  return level === 2 ? SINOPAC_MAX_SPENDING_FOR_BONUS[2] : SINOPAC_MAX_SPENDING_FOR_BONUS[1];
+}
+
+/**
+ * 新戶另 +4% 試算合計 10% 時，新戶加碼常見上限（元／期，依登錄）。
+ * 與精選加碼月上限合併試算：加碼點數池 = 精選加碼上限 + 本值。
+ */
+export const SINOPAC_NEW_USER_PROMO_CAP_TWD = 500;
+
 // Brands excluded from DBS eco 4% bonus
 export const DBS_ECO_EXCLUDED_BRANDS = new Set(["suica", "pasmo", "icoca"]);
 
@@ -65,6 +86,8 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "星展銀行",
     annualFee: 0,
     color: "bg-emerald-800",
+    officialUrl: "https://www.dbs.com.tw/personal-zh/cards/eco/index.html",
+    appearance: "卡面為全綠色漸層，中間有環保標誌",
     registrationUrl: "https://www.dbs.com.tw/",
     registrationBonus: { type: "percent", value: 1.0, note: "登錄活動加碼" },
     tags: ["推薦", "Apple Pay", "實體5%"],
@@ -100,6 +123,9 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "中國信託",
     annualFee: 0,
     color: "bg-zinc-800",
+    officialUrl:
+      "https://www.ctbcbank.com/twrbo/zh_tw/cc_index/cc_product/cc_introduction_index/C_uniopen.html",
+    appearance: "卡面為銀灰色，有 Uniopen 字樣",
     registrationUrl: "https://www.ctbcbank.com/",
     registrationBonus: { type: "percent", value: 1.0, note: "指定活動額外加碼" },
     tags: ["推薦", "實體11%"],
@@ -136,15 +162,17 @@ export const CREDIT_CARDS: CreditCard[] = [
     perks: { shuttle: 2, lounge: 4, insurance: 5000, roadside: 3 },
   },
   // ═══════════════════════════════════════════════════════════════════════════
-  // 3. 台新FlyGo卡
+  // 3. 台新 Richart 卡
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "taishin-flygo",
-    name: "台新 FlyGO卡",
-    shortName: "台新 FlyGO卡",
+    name: "台新 Richart 卡",
+    shortName: "台新 Richart 卡",
     bank: "台新銀行",
     annualFee: 0,
     color: "bg-zinc-700",
+    officialUrl: "https://mkp.taishinbank.com.tw/TsCms/marketing/expose/WM_20251216135624463/index.html",
+    appearance: "卡面銀灰色，有一隻 Richart 小狗",
     registrationUrl: "https://www.taishinbank.com.tw/",
     registrationBonus: { type: "percent", value: 1.0, note: "指定通路登錄加碼" },
     tags: ["Richart", "玩旅刷3.3%"],
@@ -186,7 +214,7 @@ export const CREDIT_CARDS: CreditCard[] = [
     ],
     foreignFee: FOREIGN_FEE,
     notes:
-      "Richart／FlyGo 玩旅刷精選通路 3.3%（2026/04/01–06/30）。含海外實體及線上、指定航空、Uber／Grab、Apple Pay 儲值 SUICA／ICOCA／PASMO、訂房平台等。台灣高鐵：官網、T-EX 行動購票、車站售票窗口等享 3.3% 台新 Point（須 Richart 自動扣繳＋「天天刷」）。當期一般消費達 NT$20,000 享機場接送禮遇（依登錄）。",
+      "台新 Richart 卡玩旅刷精選通路 3.3%（2026/04/01–06/30）。含海外實體及線上、指定航空、Uber／Grab、Apple Pay 儲值 SUICA／ICOCA／PASMO、訂房平台等。台灣高鐵：官網、T-EX 行動購票、車站售票窗口等享 3.3% 台新 Point（須 Richart 自動扣繳＋「天天刷」）。當期一般消費達 NT$20,000 享機場接送禮遇（依登錄）。",
     perks: { shuttle: 2, lounge: 2, insurance: 3000 },
   },
   // ═══════════════════════════════════════════════════════════════════════════
@@ -199,6 +227,8 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "台北富邦",
     annualFee: 0,
     color: "bg-zinc-700",
+    officialUrl: "https://www.fubon.com/banking/personal/credit_card/all_card/omiyage/omiyage.htm",
+    appearance: "卡面有達摩或日本元素圖案",
     registrationUrl: "https://www.fubon.com/banking/",
     tags: ["免年費", "日本實體6%"],
     cashback: [
@@ -228,6 +258,8 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "聯邦銀行",
     annualFee: 0,
     color: "bg-zinc-600",
+    officialUrl: "https://activity.ubot.com.tw/2026JiHoCard/index.htm",
+    appearance: "卡面為黑金色，有一隻白色的鶴",
     registrationUrl: "https://www.unionbank.com.tw/",
     tags: ["日幣2.5%", "Apple Pay"],
     cashback: [
@@ -255,6 +287,9 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "國泰世華",
     annualFee: 0,
     color: "bg-zinc-600",
+    officialUrl:
+      "https://www.cathay-cube.com.tw/cathaybk/personal/product/credit-card/cards/cube?Cub_ProjectCode=DBB4100001",
+    appearance: "卡面為銀白色",
     registrationUrl: "https://www.cathaybk.com.tw/cathaybk/promo/event/credit-card/product/japanrewards/index.html",
     registrationBonus: { type: "percent", value: 0, note: "日本賞方案需先領券啟用；指定通路最高 10%" },
     tags: ["日本賞", "需領券", "Apple Pay", "Google Pay"],
@@ -282,6 +317,8 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "玉山銀行",
     annualFee: 0,
     color: "bg-zinc-500",
+    officialUrl: "https://event.esunbank.com.tw/credit/kumamon-card/japan-discount.html",
+    appearance: "卡面有顯眼的熊本熊圖案",
     registrationUrl:
       "https://card.esunbank.com.tw/EsunCreditweb/txnservice/Activity/RegisterEvent?EventId=KU2512&mac=665f4f4fc547cbcac6f3799523e320b7ce10cae170343350f9095a425e2ed115&PRJCD=ACTIVITY#b",
     registrationBonus: { type: "percent", value: 0.5, note: "活動登錄加碼" },
@@ -334,6 +371,9 @@ export const CREDIT_CARDS: CreditCard[] = [
     bank: "永豐銀行",
     annualFee: 0,
     color: "bg-zinc-500",
+    officialUrl:
+      "https://bank.sinopac.com/sinopacBT/personal/credit-card/introduction/bankcard/dual-currency-card.html",
+    appearance: "卡面米黃色，中間有橘色富士山",
     registrationUrl: "https://mma.sinopac.com/SinoCard/Activity/Register?Code=XE90",
     registrationBonus: { type: "percent", value: 1.0, note: "任務登錄加碼" },
     tags: ["雙幣卡", "免手續費", "Level加碼"],
@@ -342,37 +382,52 @@ export const CREDIT_CARDS: CreditCard[] = [
       {
         category: "flight",
         rate: 6.0,
+        baseRate: 2.0,
+        bonusRate: 4.0,
         label: "訂購機票",
         cap: 300,
-        maxSpending: 5000,
-        ruleNote: "試算以合併費率 6% 近似（基本2%+精選+4%，加碼上限依 Level）",
+        bonusCap: 300,
+        maxSpending: SINOPAC_MAX_SPENDING_FOR_BONUS[1],
+        ruleNote:
+          "試算：2%+4% 精選加碼（加碼月上限依 Level）；勾選新戶時合併試算 10% 與新戶加碼上限",
       },
       {
         category: "hotel",
         rate: 6.0,
+        baseRate: 2.0,
+        bonusRate: 4.0,
         label: "住宿網站",
         cap: 300,
-        maxSpending: 5000,
+        bonusCap: 300,
+        maxSpending: SINOPAC_MAX_SPENDING_FOR_BONUS[1],
       },
       {
         category: "rental",
         rate: 6.0,
+        baseRate: 2.0,
+        bonusRate: 4.0,
         label: "租車費用",
         cap: 300,
-        maxSpending: 5000,
+        bonusCap: 300,
+        maxSpending: SINOPAC_MAX_SPENDING_FOR_BONUS[1],
       },
       {
         category: "local",
         rate: 6.0,
+        baseRate: 2.0,
+        bonusRate: 4.0,
         label: "國外實體／精選",
         cap: 300,
-        maxSpending: 5000,
-        ruleNote: "國外實體、SUICA 儲值、Agoda、Klook 等；新戶另+4% 依公告",
+        bonusCap: 300,
+        maxSpending: SINOPAC_MAX_SPENDING_FOR_BONUS[1],
+        ruleNote:
+          "國外實體與精選通路；Suica / PASMO 儲值亦享加碼（日本旅遊常用，依登錄）。Agoda、Klook 等；新戶另 +4% 合計試算 10%（依登錄）",
       },
     ],
     foreignFee: 0,
     noForeignFee: true,
-    notes: "國外基本 2% 無上限；精選通路 +4%（Level 1 月上限 NT$300／Level 2 月上限 NT$800，於選卡區切換）。新戶加碼依公告。雙幣卡免海外手續費。",
+    notes:
+      "國外基本 2% 無上限；精選通路 +4%（Level 1 加碼月上限 NT$300、刷卡上限約 NT$7,500；Level 2 加碼 NT$800、約 NT$20,000，於選卡區切換）。新戶另 +4% 試算合計 10%，新戶加碼上限通常 NT$500／期（依登錄）。雙幣卡免海外手續費。",
     perks: { shuttle: 1, insurance: 2500, roadside: 2 },
   },
 ];

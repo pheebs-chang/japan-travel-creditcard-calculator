@@ -2,7 +2,7 @@
 
 // Card selection component with holder count support
 import { Check, BadgeCheck, ExternalLink, Minus, Plus, Users } from "lucide-react";
-import { CREDIT_CARDS, CreditCard } from "@/lib/card-data";
+import { CREDIT_CARDS, CreditCard, getSinopacDisplayMaxSpending } from "@/lib/card-data";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 
@@ -17,7 +17,7 @@ interface CardSelectorProps {
   enrolled: string[];
   holderCounts?: Record<string, number>; // cardId -> number of holders in party
   partySize?: number;
-  /** 永豐幣倍卡：Level 1 加碼上限 NT$300／月；Level 2 NT$800／月 */
+  /** 永豐幣倍卡：Level 1 加碼 NT$300／月（刷卡上限約 NT$7,500）；Level 2 NT$800／月（約 NT$20,000） */
   sinopacDoublebeiLevel?: 1 | 2;
   onSinopacDoublebeiLevelChange?: (level: 1 | 2) => void;
   isDbsEcoNewUser?: boolean;
@@ -31,7 +31,7 @@ interface CardSelectorProps {
   onHolderCountsChange?: (counts: Record<string, number>) => void;
 }
 
-function CardBadge({
+export function CardBadge({
   card,
   selected,
   enrolled,
@@ -67,104 +67,167 @@ function CardBadge({
   onHolderCountChange: (delta: number) => void;
 }) {
   const isInverted = selected;
+  const cardDocUrl = card.officialUrl ?? card.registrationUrl;
+  const sinopacLevelResolved = sinopacDoublebeiLevel ?? 1;
 
   return (
     <div
       className={cn(
-        "relative flex flex-col w-full rounded-xl border transition-all duration-200 overflow-hidden",
+        "relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border p-4 transition-all duration-200",
         isInverted
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-card text-foreground"
       )}
     >
-      {/* Tags row — top right absolute */}
-      {card.tags.length > 0 && (
-        <div className="absolute top-2.5 right-2.5 flex flex-wrap gap-1 justify-end z-10 max-w-[55%]">
-          {card.tags.map((tag) => (
-            <span
-              key={tag}
+      {/* 主內容區 flex-1：供 footer mt-auto 對齊卡片底部 */}
+      <div className="flex min-h-0 flex-1 flex-col gap-y-2">
+        {/* 卡名（官方連結）＋外觀說明＋標籤＋銀行 — 不可包在 button 內（避免 a 巢狀無效） */}
+        <div className="flex w-full min-w-0 items-start gap-2">
+          <div className="min-w-0 flex-1 flex flex-col gap-y-1">
+            <a
+              href={cardDocUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className={cn(
-                "inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-tight whitespace-nowrap",
-                isInverted
-                  ? "bg-background/15 text-background"
-                  : "bg-secondary border border-border text-muted-foreground"
+                "block w-fit max-w-full text-left text-base font-semibold leading-snug tracking-tight underline-offset-2 hover:underline",
+                isInverted ? "text-background" : "text-foreground"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {card.name}
+            </a>
+            {card.appearance ? (
+              <p
+                className={cn(
+                  "text-[10px] leading-snug",
+                  isInverted ? "text-background/55" : "text-gray-500 dark:text-gray-400"
+                )}
+              >
+                {card.appearance}
+              </p>
+            ) : null}
+            {card.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {card.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className={cn(
+                      "inline-flex rounded-full border px-1.5 py-px text-[8px] font-semibold leading-tight",
+                      isInverted
+                        ? "border-background/25 bg-background/15 text-background"
+                        : "border-border bg-secondary text-muted-foreground"
+                    )}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <p
+              className={cn(
+                "text-left text-[10px] leading-snug",
+                isInverted ? "text-background/50" : "text-gray-400 dark:text-gray-500"
               )}
             >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Main toggle area */}
-      <button
-        type="button"
-        onClick={onToggleSelected}
-        aria-pressed={selected}
-        aria-label={`${selected ? "Deselect" : "Select"} ${card.id}`}
-        className="flex-1 w-full text-left p-3 pb-2.5"
-      >
-        {/* Card name + checkbox — leave space for tags */}
-        <div className="flex items-start justify-between gap-2 pr-2">
-          <div className="min-w-0 flex-1">
-            <p className={cn("font-semibold text-sm leading-tight pr-1", isInverted ? "text-background" : "text-foreground")}>
-              {card.name}
-            </p>
-            <p className={cn("text-[11px] mt-0.5", isInverted ? "text-background/55" : "text-muted-foreground")}>
               {card.bank}
             </p>
           </div>
-          <div
+          <button
+            type="button"
+            onClick={onToggleSelected}
+            aria-pressed={selected}
+            aria-label={`${selected ? "取消選取" : "選取"} ${card.name}`}
             className={cn(
-              "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border transition-all mt-0.5",
-              isInverted ? "border-background/60 bg-background" : "border-border"
+              "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors",
+              isInverted ? "border-background/60 bg-background" : "border-border hover:bg-secondary"
             )}
           >
-            {selected && <Check className="h-3 w-3 text-foreground" strokeWidth={3} />}
-          </div>
+            {selected ? <Check className="h-3 w-3 text-foreground" strokeWidth={3} /> : null}
+          </button>
         </div>
 
-        {/* Cashback rates grid — 2 cols */}
-        <div className="mt-2.5 grid grid-cols-2 gap-1">
-          {card.cashback.map((rule) => (
-            <div
-              key={rule.category}
+        {/* 福利網格與備註：點擊可切換選取 */}
+        <button
+          type="button"
+          onClick={onToggleSelected}
+          aria-pressed={selected}
+          aria-label={`${selected ? "取消選取" : "選取"} ${card.name}（福利試算區）`}
+          className="flex w-full flex-col gap-y-2 p-0 text-left"
+        >
+          <div className="grid grid-cols-2 items-stretch gap-1.5">
+            {card.cashback.map((rule) => {
+              const ceilingRule =
+                card.id === "sinopac-doublebei"
+                  ? { ...rule, maxSpending: getSinopacDisplayMaxSpending(sinopacLevelResolved) }
+                  : rule;
+              return (
+                <div
+                  key={rule.category}
+                  className={cn(
+                    "flex h-full min-h-[60px] min-w-0 flex-col justify-between rounded-md px-1.5 py-1.5",
+                    isInverted ? "bg-background/10" : "bg-secondary"
+                  )}
+                >
+                  <p
+                    className={cn(
+                      "shrink-0 text-[8px] leading-tight",
+                      isInverted ? "text-background/70" : "text-muted-foreground"
+                    )}
+                  >
+                    {rule.label}
+                  </p>
+                  <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-center gap-0.5">
+                    <div className="flex flex-wrap items-end justify-between gap-x-0.5 gap-y-0.5">
+                      <span
+                        className={cn(
+                          "shrink-0 font-mono text-[10px] font-bold tabular-nums leading-none",
+                          isInverted ? "text-background" : "text-foreground"
+                        )}
+                      >
+                        {rule.rate}%
+                      </span>
+                      {ceilingRule.maxSpending !== undefined && (
+                        <span
+                          className={cn(
+                            "max-w-[min(100%,8.5rem)] text-right text-[7px] leading-tight break-words",
+                            isInverted ? "text-background/55" : "text-muted-foreground"
+                          )}
+                        >
+                          {formatCeiling(ceilingRule)}
+                        </span>
+                      )}
+                    </div>
+                    {rule.ruleNote && (
+                      <p
+                        className={cn(
+                          "line-clamp-2 text-[7px] leading-tight",
+                          isInverted ? "text-background/45" : "text-muted-foreground/80"
+                        )}
+                      >
+                        {rule.ruleNote}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {card.notes && (
+            <p
+              title={card.notes}
               className={cn(
-                "rounded-md px-2 py-1.5",
-                isInverted ? "bg-background/10" : "bg-secondary"
+                "line-clamp-3 text-left text-[10px] leading-tight",
+                isInverted ? "text-background/85" : "text-muted-foreground"
               )}
             >
-              <p className={cn("text-[9px] leading-tight truncate", isInverted ? "text-background/55" : "text-muted-foreground")}>
-                {rule.label}
-              </p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <span className={cn("text-xs font-bold font-mono", isInverted ? "text-background" : "text-foreground")}>
-                  {rule.rate}%
-                </span>
-                {rule.maxSpending !== undefined && (
-                  <span className={cn("text-[9px]", isInverted ? "text-background/40" : "text-muted-foreground/60")}>
-                    {formatCeiling(rule)}
-                  </span>
-                )}
-              </div>
-              {rule.ruleNote && (
-                <p className={cn("text-[8px] leading-tight mt-0.5 line-clamp-2", isInverted ? "text-background/35" : "text-muted-foreground/50")}>
-                  {rule.ruleNote}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+              {card.notes}
+            </p>
+          )}
+        </button>
 
-        {card.notes && (
-          <p className={cn("mt-2 text-[9px] leading-relaxed line-clamp-2", isInverted ? "text-background/45" : "text-muted-foreground/65")}>
-            {card.notes}
-          </p>
-        )}
-      </button>
-
-      {/* Divider */}
-      <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+        {/* Divider：與 p-4 對齊全寬 */}
+        <div className={cn("-mx-4 h-px shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
 
       {/* 永豐幣倍：會員等級 */}
       <div
@@ -178,12 +241,12 @@ function CardBadge({
         <div className="overflow-hidden min-h-0">
           {card.id === "sinopac-doublebei" && selected && onSinopacDoublebeiLevelChange && (
             <>
-              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
-              <div className="px-3 py-2.5 flex flex-col gap-2">
+              <div className={cn("-mx-4 h-px shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="flex w-full flex-col gap-1.5 py-2">
                 <span className={cn("text-[10px] font-medium", isInverted ? "text-background/70" : "text-muted-foreground")}>
                   會員等級（加碼上限）
                 </span>
-                <div className="flex gap-1.5">
+                <div className="grid w-full grid-cols-2 gap-2">
                   {([1, 2] as const).map((lv) => (
                     <button
                       key={lv}
@@ -193,7 +256,7 @@ function CardBadge({
                         onSinopacDoublebeiLevelChange(lv);
                       }}
                       className={cn(
-                        "flex-1 rounded-lg border px-2 py-1.5 text-[10px] font-semibold transition-colors duration-200",
+                        "w-full min-w-0 rounded-lg border px-2 py-1.5 text-[10px] font-semibold transition-colors duration-200",
                         (sinopacDoublebeiLevel ?? 1) === lv
                           ? isInverted
                             ? "border-background bg-background text-foreground"
@@ -231,8 +294,8 @@ function CardBadge({
         <div className="overflow-hidden min-h-0">
           {selected && card.id === "dbs-eco" && onDbsEcoNewUserChange && (
             <>
-              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
-              <div className="px-3 py-2 flex items-center justify-between gap-2">
+              <div className={cn("-mx-4 h-px shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="flex items-center justify-between gap-2 py-2">
                 <span className={cn("text-[10px] leading-tight flex-1", isInverted ? "text-background/80" : "text-foreground/90")}>
                   是否為新戶（享額外加碼）？
                 </span>
@@ -248,8 +311,8 @@ function CardBadge({
           )}
           {selected && card.id === "union-jinghe" && onUnionJingheNewUserChange && (
             <>
-              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
-              <div className="px-3 py-2 flex items-center justify-between gap-2">
+              <div className={cn("-mx-4 h-px shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="flex items-center justify-between gap-2 py-2">
                 <span className={cn("text-[10px] leading-tight flex-1", isInverted ? "text-background/80" : "text-foreground/90")}>
                   是否為新戶（享額外加碼）？
                 </span>
@@ -265,8 +328,8 @@ function CardBadge({
           )}
           {selected && card.id === "sinopac-doublebei" && onSinopacNewUserChange && (
             <>
-              <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
-              <div className="px-3 py-2 flex items-center justify-between gap-2">
+              <div className={cn("-mx-4 h-px shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+              <div className="flex items-center justify-between gap-2 py-2">
                 <span className={cn("text-[10px] leading-tight flex-1", isInverted ? "text-background/80" : "text-foreground/90")}>
                   是否為新戶（享額外加碼）？
                 </span>
@@ -286,8 +349,8 @@ function CardBadge({
       {/* Holder count row - only show when party > 1 and card is selected */}
       {partySize > 1 && selected && (
         <>
-          <div className={cn("mx-3 h-px flex-shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
-          <div className="flex items-center justify-between px-3 py-2 gap-2">
+          <div className={cn("-mx-4 h-px shrink-0", isInverted ? "bg-background/10" : "bg-border")} />
+          <div className="flex items-center justify-between gap-2 py-2">
             <div className="flex items-center gap-1.5 min-w-0">
               <Users
                 className={cn(
@@ -350,19 +413,26 @@ function CardBadge({
         </>
       )}
 
-      {/* Bottom row: switch + registration link */}
-      <div className="flex items-center justify-between px-3 py-2 gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
+      </div>
+
+      {/* Footer：底邊由外層 p-4 統一 */}
+      <div
+        className={cn(
+          "mt-auto flex min-h-9 shrink-0 items-center justify-between gap-2 border-t pt-2",
+          isInverted ? "border-background/15" : "border-border/60"
+        )}
+      >
+        <div className="flex min-h-6 min-w-0 items-center gap-1.5">
           <BadgeCheck
             className={cn(
-              "h-3.5 w-3.5 flex-shrink-0",
+              "h-3.5 w-3.5 shrink-0",
               enrolled
                 ? isInverted ? "text-background" : "text-foreground"
                 : isInverted ? "text-background/30" : "text-muted-foreground/40"
             )}
           />
           <span className={cn(
-            "text-[10px] font-medium truncate",
+            "text-[10px] font-medium leading-none truncate",
             enrolled
               ? isInverted ? "text-background" : "text-foreground"
               : isInverted ? "text-background/50" : "text-muted-foreground"
@@ -370,7 +440,7 @@ function CardBadge({
             已成功登錄
           </span>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           {/* Registration link */}
           <a
             href={card.registrationUrl}
@@ -463,7 +533,7 @@ export function CardSelector({
       </div>
 
       {/* 2-col on sm+, 1-col on mobile */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2 sm:gap-3">
         {CREDIT_CARDS.map((card) => (
           <CardBadge
             key={card.id}

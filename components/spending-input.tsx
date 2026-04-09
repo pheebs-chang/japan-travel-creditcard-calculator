@@ -2,7 +2,12 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { Hotel, Plane, Star, Info, Users, Plus, Trash2 } from "lucide-react";
-import type { AccommodationExpense, SpendingInput, PaymentChannel } from "@/lib/calculator";
+import type {
+  AccommodationExpense,
+  SpendingInput,
+  PaymentChannel,
+  DomesticRailPurchaseMode,
+} from "@/lib/calculator";
 import {
   FLIGHT_BOOKING_BRANDS,
   HOTEL_BOOKING_BRANDS,
@@ -76,6 +81,15 @@ function newExpenseId(): string {
   return `h-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
+const FLIGHT_PURCHASE_OPTIONS: {
+  value: DomesticRailPurchaseMode;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "together", label: "一起買", hint: "單筆代購／一人刷總額" },
+  { value: "split", label: "分開買", hint: "每人各自刷卡試算" },
+];
+
 const PLATFORM_SELECT_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "未指定（可選）" },
   ...HOTEL_PLATFORM_DROPDOWN_IDS.map((id) => {
@@ -95,9 +109,15 @@ export function SpendingInputPanel({
 }: SpendingInputPanelProps) {
   const accommodationList = spending.accommodationExpenses ?? [];
 
+  const flightPurchaseMode = spending.flightPurchaseMode ?? "together";
+
   const handleFlightChange = (raw: string) => {
     const unit = parseFloat(raw.replace(/,/g, "")) || 0;
-    const total = partySize > 1 ? unit * partySize : unit;
+    const mode = spending.flightPurchaseMode ?? "together";
+    let total = unit;
+    if (partySize > 1) {
+      total = mode === "split" ? unit * partySize : unit;
+    }
     onChange((prev) => ({ ...prev, flight: total }));
   };
 
@@ -105,7 +125,8 @@ export function SpendingInputPanel({
     onFlightBrandIdChange?.(brandId);
     onChange((prev) => {
       if (prev.flight) return prev;
-      const total = partySize > 1 ? unitPrice * partySize : unitPrice;
+      const ps = partySize > 1 ? partySize : 1;
+      const total = ps > 1 ? unitPrice * ps : unitPrice;
       return { ...prev, flight: total };
     });
   };
@@ -151,7 +172,10 @@ export function SpendingInputPanel({
   };
 
   const selectedFlightBrand = FLIGHT_BOOKING_BRANDS.find((b) => b.id === flightBrandId);
-  const flightUnitValue = partySize > 1 ? Math.round((spending.flight || 0) / partySize) : (spending.flight || 0);
+  const flightUnitValue =
+    partySize > 1 && flightPurchaseMode === "split"
+      ? Math.round((spending.flight || 0) / partySize)
+      : spending.flight || 0;
 
   return (
     <section aria-label="線上訂機票與住宿消費金額">
@@ -159,7 +183,7 @@ export function SpendingInputPanel({
         若您在 Step 3「消費樣態」填寫「日本交通卡儲值 (Suica / PASMO / ICOCA)」，請於該處開啟或關閉「Apple Pay 儲值」，以正確試算星展／台新／富邦等權益。
       </p>
       <p className="text-[10px] text-muted-foreground/70 leading-relaxed mb-2">
-        「桃園機場捷運」「台灣高鐵」已獨立至 Step 3「🏠 國內交通」；機票回饋將由系統自動比較「一起刷／分開刷」後擇優套用。
+        「桃園機場捷運」「台灣高鐵」已獨立至 Step 3「國內交通」；機票試算請在下方選擇「一起買／分開買」以符合實際刷卡方式。
       </p>
       <p className="text-[10px] text-cyan-300/90 leading-relaxed mb-2">
         💡 日本交通卡儲值（Suica / PASMO / ICOCA）採個人手機操作，系統會自動按人數拆分計算每人回饋上限。
@@ -179,6 +203,53 @@ export function SpendingInputPanel({
           </div>
 
           <div className="px-4 pb-2">
+            <div
+              className="mb-2.5 rounded-lg border border-border/80 bg-secondary/25 px-2.5 py-2 dark:border-white/15 dark:bg-zinc-900/60"
+              role="radiogroup"
+              aria-label="機票購買方式"
+            >
+              <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-zinc-400">
+                購票方式
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {FLIGHT_PURCHASE_OPTIONS.map((opt) => {
+                  const active = flightPurchaseMode === opt.value;
+                  return (
+                    <label
+                      key={opt.value}
+                      className={cn(
+                        "inline-flex min-w-[6rem] cursor-pointer flex-col gap-0.5 rounded-md border px-2 py-1.5 text-[10px] transition-colors",
+                        active
+                          ? "border-violet-500/80 bg-gradient-to-r from-violet-600 to-indigo-700 font-bold text-white shadow-md dark:from-violet-600 dark:to-indigo-700"
+                          : "border-gray-700 bg-transparent font-medium text-gray-400 hover:border-gray-600"
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <input
+                          type="radio"
+                          name="flight-purchase-mode"
+                          value={opt.value}
+                          checked={active}
+                          onChange={() =>
+                            onChange((prev) => ({ ...prev, flightPurchaseMode: opt.value }))
+                          }
+                          className="sr-only"
+                        />
+                        {opt.label}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[8px] leading-tight",
+                          active ? "font-semibold text-white/90" : "text-gray-400"
+                        )}
+                      >
+                        {opt.hint}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               {FLIGHT_BOOKING_BRANDS.map((brand) => (
                 <button
@@ -220,9 +291,15 @@ export function SpendingInputPanel({
                 value={flightUnitValue || ""}
                 onChange={(e) => handleFlightChange(e.target.value)}
                 className="flex-1 bg-transparent text-foreground font-mono text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                aria-label={partySize > 1 ? "機票單人金額" : "機票總金額"}
+                aria-label={
+                  partySize > 1
+                    ? flightPurchaseMode === "split"
+                      ? "機票單人金額"
+                      : "機票總金額（一起購買）"
+                    : "機票總金額"
+                }
               />
-              {partySize > 1 && (
+              {partySize > 1 && flightPurchaseMode === "split" && (
                 <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5">
                   <Users className="h-3 w-3" />× {partySize} 人
                 </span>
@@ -231,14 +308,13 @@ export function SpendingInputPanel({
             <button
               type="button"
               onClick={() => {
-                console.log("[INSURANCE_CTA] flight_block_insurance_prompt_click");
                 window.alert("保險試算功能即將上線！");
               }}
               className="mt-2 w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-left text-[11px] font-medium leading-snug text-foreground/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md transition hover:bg-white/[0.1] dark:border-white/10 dark:bg-white/[0.04]"
             >
               🛡️ 機票買好了，那保障呢？檢視此行程的最優保險組合 (班機延誤 / 海外醫療) →
             </button>
-            {partySize > 1 && spending.flight > 0 && (
+            {partySize > 1 && spending.flight > 0 && flightPurchaseMode === "split" && (
               <p className="mt-1.5 text-[10px] text-muted-foreground/60">
                 合計 NT${formatNum(spending.flight)}
               </p>

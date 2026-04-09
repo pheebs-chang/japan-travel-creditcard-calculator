@@ -255,10 +255,10 @@ export const SPENDING_PATTERNS: SpendingPattern[] = [
   // ── 2. 國內交通 — total ───────────────────────────────────────────────────
   {
     id: "domestic_transport",
-    label: "🏠 國內交通",
+    label: "國內交通",
     examples: "桃園機捷 / 台灣高鐵",
     category: "local",
-    icon: "Train",
+    icon: "Bus",
     perPerson: false,
     subGroups: [
       {

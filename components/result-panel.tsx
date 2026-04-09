@@ -142,8 +142,6 @@ function logCtaClick(counterKey: string, meta?: Record<string, unknown>) {
   const next = (bag[counterKey] ?? 0) + 1;
   bag[counterKey] = next;
   w.__cta_click_counter__ = bag;
-  // 商業轉單測試：用 console 觀察按鈕點擊次數
-  console.log(`[CTA_CLICK] ${counterKey} #${next}`, meta ?? {});
 }
 
 function ApplyCardLegalBlock() {
@@ -551,6 +549,94 @@ export function ResultPanel({
   const [downloading, setDownloading] = useState(false);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
 
+  const applyCardRecommendations = useMemo(() => {
+    if (!result || !recommendationContext || result.totalSpending <= 0) return [];
+    const {
+      waterfallSteps: wf,
+      totalSpending: ts,
+      totalNetCashback: tnc,
+      savingsBreakdown: sb,
+    } = result;
+    const enrolledSet = new Set(recommendationContext.enrolledCards);
+    const currentNet = Math.round(tnc);
+    const selectedIds = recommendationContext.selectedCardIds;
+
+    const rows = APPLY_RECOMMENDATION_CARD_IDS.map((id) => {
+      const card = CREDIT_CARDS.find((c) => c.id === id);
+      if (!card) return null;
+      const applyUrl = CARD_APPLY_URLS[id];
+      if (!applyUrl) return null;
+
+      const solo = calculateOptimalCombination(
+        recommendationContext.mergedSpending,
+        [card],
+        enrolledSet,
+        recommendationContext.patternSelections,
+        recommendationContext.selectedBrands,
+        recommendationContext.holderCounts,
+        recommendationContext.isDbsEcoNewUser,
+        recommendationContext.kumamonWalletPaypayExcluded,
+        recommendationContext.isKumamonFlightJpy,
+        recommendationContext.dateRange,
+        recommendationContext.sinopacLevel,
+        {
+          isSinopacNewUser: recommendationContext.isSinopacNewUser,
+          isUnionJingheNewUser: recommendationContext.isUnionJingheNewUser,
+        },
+        recommendationContext.partySize
+      );
+      const tripSaving = Math.round(solo?.totalNetCashback ?? 0);
+
+      const poolIds = new Set(selectedIds);
+      poolIds.add(id);
+      const poolCards = CREDIT_CARDS.filter((c) => poolIds.has(c.id));
+      const withCardOpt = calculateOptimalCombination(
+        recommendationContext.mergedSpending,
+        poolCards,
+        enrolledSet,
+        recommendationContext.patternSelections,
+        recommendationContext.selectedBrands,
+        recommendationContext.holderCounts,
+        recommendationContext.isDbsEcoNewUser,
+        recommendationContext.kumamonWalletPaypayExcluded,
+        recommendationContext.isKumamonFlightJpy,
+        recommendationContext.dateRange,
+        recommendationContext.sinopacLevel,
+        {
+          isSinopacNewUser: recommendationContext.isSinopacNewUser,
+          isUnionJingheNewUser: recommendationContext.isUnionJingheNewUser,
+        },
+        recommendationContext.partySize
+      );
+      const potentialSavings = Math.max(0, Math.round(withCardOpt?.totalNetCashback ?? 0) - currentNet);
+
+      const primarySaving =
+        withCardOpt && potentialSavings > 0
+          ? findPrimaryMarginalSaving(
+              wf,
+              withCardOpt.waterfallSteps,
+              recommendationContext.partySize,
+              sb,
+              withCardOpt.savingsBreakdown
+            )
+          : null;
+
+      return {
+        cardId: id,
+        cardName: card.name,
+        shortName: card.shortName,
+        highlight: CARD_CORE_HIGHLIGHT[id] ?? card.notes ?? "",
+        tripSaving,
+        potentialSavings,
+        applyUrl,
+        primarySaving,
+      };
+    }).filter((x): x is NonNullable<typeof x> => x != null);
+
+    rows.sort((a, b) => b.tripSaving - a.tripSaving);
+    return rows.slice(0, 3);
+  }, [result, recommendationContext]);
+
   if (!result) {
     return (
       <section aria-label="計算結果">
@@ -688,96 +774,6 @@ export function ResultPanel({
   const cardStrategyGroups = buildCardStrategyGroups(waterfallSteps);
   const shoppingStrategyLines = buildShoppingStrategySummary(waterfallSteps);
 
-  const applyCardRecommendations = useMemo(() => {
-    if (!recommendationContext || totalSpending <= 0) return [];
-    const enrolledSet = new Set(recommendationContext.enrolledCards);
-    const currentNet = Math.round(totalNetCashback);
-    const selectedIds = recommendationContext.selectedCardIds;
-
-    const rows = APPLY_RECOMMENDATION_CARD_IDS.map((id) => {
-      const card = CREDIT_CARDS.find((c) => c.id === id);
-      if (!card) return null;
-      const applyUrl = CARD_APPLY_URLS[id];
-      if (!applyUrl) return null;
-
-      const solo = calculateOptimalCombination(
-        recommendationContext.mergedSpending,
-        [card],
-        enrolledSet,
-        recommendationContext.patternSelections,
-        recommendationContext.selectedBrands,
-        recommendationContext.holderCounts,
-        recommendationContext.isDbsEcoNewUser,
-        recommendationContext.kumamonWalletPaypayExcluded,
-        recommendationContext.isKumamonFlightJpy,
-        recommendationContext.dateRange,
-        recommendationContext.sinopacLevel,
-        {
-          isSinopacNewUser: recommendationContext.isSinopacNewUser,
-          isUnionJingheNewUser: recommendationContext.isUnionJingheNewUser,
-        },
-        recommendationContext.partySize
-      );
-      const tripSaving = Math.round(solo?.totalNetCashback ?? 0);
-
-      const poolIds = new Set(selectedIds);
-      poolIds.add(id);
-      const poolCards = CREDIT_CARDS.filter((c) => poolIds.has(c.id));
-      const withCardOpt = calculateOptimalCombination(
-        recommendationContext.mergedSpending,
-        poolCards,
-        enrolledSet,
-        recommendationContext.patternSelections,
-        recommendationContext.selectedBrands,
-        recommendationContext.holderCounts,
-        recommendationContext.isDbsEcoNewUser,
-        recommendationContext.kumamonWalletPaypayExcluded,
-        recommendationContext.isKumamonFlightJpy,
-        recommendationContext.dateRange,
-        recommendationContext.sinopacLevel,
-        {
-          isSinopacNewUser: recommendationContext.isSinopacNewUser,
-          isUnionJingheNewUser: recommendationContext.isUnionJingheNewUser,
-        },
-        recommendationContext.partySize
-      );
-      /** 加入卡包後可再增加的淨回饋（排序主鍵） */
-      const potentialSavings = Math.max(0, Math.round(withCardOpt?.totalNetCashback ?? 0) - currentNet);
-
-      const primarySaving =
-        withCardOpt && potentialSavings > 0
-          ? findPrimaryMarginalSaving(
-              waterfallSteps,
-              withCardOpt.waterfallSteps,
-              recommendationContext.partySize,
-              savingsBreakdown,
-              withCardOpt.savingsBreakdown
-            )
-          : null;
-
-      return {
-        cardId: id,
-        cardName: card.name,
-        shortName: card.shortName,
-        highlight: CARD_CORE_HIGHLIGHT[id] ?? card.notes ?? "",
-        tripSaving,
-        potentialSavings,
-        applyUrl,
-        primarySaving,
-      };
-    }).filter((x): x is NonNullable<typeof x> => x != null);
-
-    // 依「加入後這趟旅程總淨省下金額」由高到低排序
-    rows.sort((a, b) => b.tripSaving - a.tripSaving);
-    return rows.slice(0, 3);
-  }, [
-    recommendationContext,
-    totalSpending,
-    totalNetCashback,
-    waterfallSteps,
-    savingsBreakdown,
-  ]);
-
   const handleCopy = async () => {
     const tripPhrase = "日本行";
     const savingsAmountLabel = formatTWD(savingsValue);
@@ -842,25 +838,25 @@ export function ResultPanel({
       {/* Summary stats */}
       <div className="mb-2">
         <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
-          <StatCard
-            label="總消費"
-            value={formatTWD(totalSpending)}
-            sub="NTD 計算基礎"
-          />
-          <StatCard
-            label="海外手續費"
-            value={`-${formatTWD(totalForeignFee)}`}
-            sub="1.5% 已扣除"
+        <StatCard
+          label="總消費"
+          value={formatTWD(totalSpending)}
+          sub="NTD 計算基礎"
+        />
+        <StatCard
+          label="海外手續費"
+          value={`-${formatTWD(totalForeignFee)}`}
+          sub="1.5% 已扣除"
             weight="soft"
-          />
-          <StatCard
-            label="淨省下"
-            value={formatTWD(totalNetCashback > 0 ? totalNetCashback : 0)}
-            sub={`回饋率 ${savingsRate}%`}
-            highlight
+        />
+        <StatCard
+          label="淨省下"
+          value={formatTWD(totalNetCashback > 0 ? totalNetCashback : 0)}
+          sub={`回饋率 ${savingsRate}%`}
+          highlight
             weight="hero"
-          />
-        </div>
+        />
+      </div>
         <DataRecencyBlock className="mt-8 text-center text-xs text-muted-foreground/60" />
       </div>
       {registrationExtraSaving > 0 && (
@@ -879,7 +875,7 @@ export function ResultPanel({
           <div className="flex items-center justify-between gap-2">
             <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold">{destinationTag}</span>
             <span className="text-[11px] text-white/70">{partySize} 人同行</span>
-          </div>
+        </div>
 
           <p className="mt-3 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-cyan-300/90 drop-shadow-[0_0_8px_rgba(34,211,238,0.45)]">
             日幣匯率 0.20x 時代的精省奇蹟 🇯🇵
@@ -904,7 +900,7 @@ export function ResultPanel({
             <p className="mt-0.5 text-[11px] text-amber-100/80">
               省下了 {savingsDisneyPercent}% 的東京迪士尼門票預算 🎟️
             </p>
-          </div>
+              </div>
 
           {/* 最神組合卡片：頭銜標籤在上、標題與卡名；置於總省下金額下方、消費熱力圖上方 */}
           <div
@@ -938,13 +934,13 @@ export function ResultPanel({
                     {i > 0 && (
                       <span className="text-xl font-extrabold text-amber-300/90 drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]">
                         +
-                      </span>
-                    )}
+                    </span>
+                  )}
                     <span className="inline-flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)] sm:text-2xl">
                       <CreditCard className="h-7 w-7 shrink-0 text-amber-200 sm:h-8 sm:w-8 drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]" />
                       <span className="bg-gradient-to-r from-amber-100 via-white to-amber-50 bg-clip-text text-transparent">
                         {c.cardShortName}
-                      </span>
+                    </span>
                     </span>
                   </React.Fragment>
                 ))
@@ -1076,7 +1072,7 @@ export function ResultPanel({
                         className="inline-flex max-w-full items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold leading-snug text-amber-700 dark:text-amber-400"
                       >
                         {prefixActionNoteLabel(note)}
-                      </span>
+                    </span>
                     ))}
                   </div>
                 )}
@@ -1109,17 +1105,17 @@ export function ResultPanel({
                             {disclaimer && (
                               <span className="inline-flex rounded border border-amber-600/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:text-amber-200">
                                 {disclaimer}
-                              </span>
-                            )}
+                    </span>
+                  )}
                             <span className="text-xs font-medium text-zinc-100 leading-snug">
                               {formatStrategySourceLine(step)}
                             </span>
                             {icRankTag && (
                               <span className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-700 dark:text-cyan-200">
                                 {icRankTag}
-                              </span>
-                            )}
-                          </div>
+                    </span>
+                  )}
+                </div>
                           <p className="mt-1 text-[11px] font-mono text-zinc-300">
                             消費金額 {formatTWD(step.amount)} / 預計淨回饋{" "}
                             {step.netCashback > 0 ? `+${formatTWD(step.netCashback)}` : formatTWD(step.netCashback)}
@@ -1134,13 +1130,13 @@ export function ResultPanel({
                           {needsApplePayReminder && (
                             <p className="mt-1 text-[10px] text-amber-700 dark:text-amber-300">需開啟 Apple Pay 儲值</p>
                           )}
-                          {step.specialNote && (
+                {step.specialNote && (
                             <div className="mt-1 flex items-center gap-1">
-                              <Info className="h-2.5 w-2.5 text-muted-foreground/60" />
+                    <Info className="h-2.5 w-2.5 text-muted-foreground/60" />
                               <p className={cn("text-[10px]", step.needsHolderSwap ? "font-medium text-amber-400" : "text-zinc-400")}>
                                 {step.specialNote}
                               </p>
-                            </div>
+                  </div>
                           )}
                           {step.category === "local" &&
                             (step.subCategory?.startsWith("🛍️ 購物消費 (") ?? false) &&
@@ -1148,8 +1144,8 @@ export function ResultPanel({
                               <p className="mt-1 text-[10px] font-medium text-amber-300">
                                 ⚠️ 此筆已達卡片回饋上限，建議下一筆購物改用他卡
                               </p>
-                            )}
-                        </div>
+                )}
+              </div>
                       </div>
                     </div>
                   );
@@ -1166,7 +1162,7 @@ export function ResultPanel({
             </div>
           );
         })}
-      </div>
+        </div>
 
       {waterfallSteps.some((s) => s.category === "flight") && (
         <div className="mb-4 rounded-xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3">
@@ -1181,7 +1177,7 @@ export function ResultPanel({
             >
               立即查看
             </button>
-          </div>
+      </div>
         </div>
       )}
 
@@ -1199,7 +1195,7 @@ export function ResultPanel({
 
         const splitInstructions: { card: string; amount: number; person: number }[] = [];
         if (main && holders > 1 && perPersonSuggested > 0) {
-          for (let i = 1; i <= holders; i++) {
+            for (let i = 1; i <= holders; i++) {
             const amt = Math.min(perPersonSuggested, Math.max(0, main.spending - perPersonSuggested * (i - 1)));
             if (amt > 0) splitInstructions.push({ card: main.cardShortName, amount: amt, person: i });
           }

@@ -206,6 +206,8 @@ export default function HomePage(props: {
     isSinopacNewUser,
     isUnionJingheNewUser,
     partySize,
+    spending.flightPurchaseMode,
+    spending.taiwanHsrPurchaseMode,
   ]);
 
   const handleCalculate = useCallback(() => {
@@ -447,8 +449,8 @@ export default function HomePage(props: {
               isKumamonFlightJpy={isKumamonFlightJpy}
               onKumamonFlightJpyChange={setIsKumamonFlightJpy}
             />
-            <SpendingPatternPanel 
-              patternAmounts={patternAmounts} 
+            <SpendingPatternPanel
+              patternAmounts={patternAmounts}
               selectedBrands={selectedBrands}
               partySize={partySize}
               applePayByBrand={applePayByBrand}
@@ -460,8 +462,12 @@ export default function HomePage(props: {
                 setPatternPaymentByKey((prev) => ({ ...prev, [key]: channel }))
               }
               onPatternBrandAmountsChange={setPatternBrandAmounts}
-              onChange={setPatternAmounts} 
+              onChange={setPatternAmounts}
               onBrandChange={setSelectedBrands}
+              taiwanHsrPurchaseMode={spending.taiwanHsrPurchaseMode ?? "together"}
+              onTaiwanHsrPurchaseModeChange={(mode) =>
+                setSpending((prev) => ({ ...prev, taiwanHsrPurchaseMode: mode }))
+              }
             />
           </section>
 
