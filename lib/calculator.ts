@@ -2944,7 +2944,9 @@ export function calculateOptimalCombination(
     }
 
     const usePerBrandSplit =
-      category === "local" && partySize > 1 && splitBuckets.size > 0;
+      category === "local" &&
+      partySize > 1 &&
+      (splitBuckets.size > 0 || hsrSegs.length > 0);
 
     if (usePerBrandSplit) {
       const togetherSum = togetherSegs.reduce((a, s) => a + s.amount, 0);

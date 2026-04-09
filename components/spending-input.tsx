@@ -126,7 +126,8 @@ export function SpendingInputPanel({
     onChange((prev) => {
       if (prev.flight) return prev;
       const ps = partySize > 1 ? partySize : 1;
-      const total = ps > 1 ? unitPrice * ps : unitPrice;
+      const mode = prev.flightPurchaseMode ?? "together";
+      const total = ps > 1 && mode === "split" ? unitPrice * ps : unitPrice;
       return { ...prev, flight: total };
     });
   };
