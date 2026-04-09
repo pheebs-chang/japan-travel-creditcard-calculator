@@ -249,7 +249,9 @@ function formatStrategySourceLine(step: WaterfallStep): string {
 
 function formatStrategyCardLine(step: WaterfallStep, partySize: number): string {
   if (step.travelerIndex !== undefined && partySize > 1) {
-    return `👤 旅客 ${step.travelerIndex + 1} 的 ${step.cardShortName}卡`;
+    const short = step.cardShortName;
+    const withCard = /卡$/.test(short) ? short : `${short}卡`;
+    return `👤 旅客 ${step.travelerIndex + 1} 的 ${withCard}`;
   }
   return step.cardName;
 }

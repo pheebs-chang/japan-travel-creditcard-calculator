@@ -195,7 +195,7 @@ export const CREDIT_CARDS: CreditCard[] = [
   {
     id: "fubon-j",
     name: "富邦J卡",
-    shortName: "富邦J",
+    shortName: "富邦J卡",
     bank: "台北富邦",
     annualFee: 0,
     color: "bg-zinc-700",
@@ -224,7 +224,7 @@ export const CREDIT_CARDS: CreditCard[] = [
   {
     id: "union-jinghe",
     name: "聯邦吉鶴卡",
-    shortName: "聯邦吉鶴",
+    shortName: "聯邦吉鶴卡",
     bank: "聯邦銀行",
     annualFee: 0,
     color: "bg-zinc-600",
@@ -278,7 +278,7 @@ export const CREDIT_CARDS: CreditCard[] = [
   {
     id: "esun-kumamon",
     name: "玉山熊本熊卡",
-    shortName: "玉山熊本熊",
+    shortName: "玉山熊本熊卡",
     bank: "玉山銀行",
     annualFee: 0,
     color: "bg-zinc-500",
@@ -330,7 +330,7 @@ export const CREDIT_CARDS: CreditCard[] = [
   {
     id: "sinopac-doublebei",
     name: "永豐幣倍卡",
-    shortName: "永豐幣倍",
+    shortName: "永豐幣倍卡",
     bank: "永豐銀行",
     annualFee: 0,
     color: "bg-zinc-500",
