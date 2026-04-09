@@ -26,6 +26,9 @@ import {
 } from "@/lib/calculator";
 import { CREDIT_CARDS } from "@/lib/card-data";
 import { cn } from "@/lib/utils";
+import { syncGlobalAnalyticsProperties } from "@/lib/analytics";
+import { setEngagementRuntimeContext } from "@/lib/card-engagement-analytics";
+import { analyticsService } from "@/lib/analytics-service";
 
 const DEFAULT_SPENDING: SpendingInput = {
   flight: 0,
@@ -82,9 +85,17 @@ export default function HomePage(props: {
   const [patternBrandAmounts, setPatternBrandAmounts] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState(false);
   const [showExpirationWarning, setShowExpirationWarning] = useState(false);
+  const [modelAlpha, setModelAlpha] = useState(0);
+  const calcClickCountRef = useRef(0);
+  const [calcClickCount, setCalcClickCount] = useState(0);
 
   useEffect(() => {
     setIsMounted(true);
+    syncGlobalAnalyticsProperties();
+    const q = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    const hasScenarioBudget =
+      q.has("flight") || q.has("hotel") || q.has("rental") || q.has("local") || q.has("budget");
+    analyticsService.trackAppInit({ isScenarioSimulation: hasScenarioBudget });
     const now = new Date();
     const expiryThreshold = new Date("2026-06-30T23:59:59");
     setShowExpirationWarning(now > expiryThreshold);
@@ -129,6 +140,64 @@ export default function HomePage(props: {
         patternBrandAmounts
       ),
     [spending, patternAmounts, selectedBrands, flightBrandId, applePayByBrand, paymentMergeOpts, patternBrandAmounts]
+  );
+
+  const estimateModelAlpha = useCallback(
+    (baseCalc: CalculationResult): number => {
+      const currentNet = Math.round(baseCalc.totalNetCashback ?? 0);
+      const selectedSet = new Set(selectedCards);
+      let bestNet = currentNet;
+
+      const candidateCards = CREDIT_CARDS.filter((c) => !selectedSet.has(c.id));
+      for (const candidate of candidateCards) {
+        const poolIds = new Set(selectedSet);
+        poolIds.add(candidate.id);
+        const poolCards = CREDIT_CARDS.filter((c) => poolIds.has(c.id));
+        const withCandidate = calculateOptimalCombination(
+          mergedSpending,
+          poolCards,
+          unenrolledCards,
+          patternSelections,
+          selectedBrands,
+          holderCounts,
+          isDbsEcoNewUser,
+          kumamonWalletPaypayExcluded,
+          isKumamonFlightJpy,
+          dateRange,
+          sinopacLevel,
+          { isSinopacNewUser, isUnionJingheNewUser },
+          partySize
+        );
+        bestNet = Math.max(bestNet, Math.round(withCandidate?.totalNetCashback ?? currentNet));
+      }
+      return Math.max(0, bestNet - currentNet);
+    },
+    [
+      selectedCards,
+      mergedSpending,
+      unenrolledCards,
+      patternSelections,
+      selectedBrands,
+      holderCounts,
+      isDbsEcoNewUser,
+      kumamonWalletPaypayExcluded,
+      isKumamonFlightJpy,
+      dateRange,
+      sinopacLevel,
+      isSinopacNewUser,
+      isUnionJingheNewUser,
+      partySize,
+    ]
+  );
+
+  const emitBudgetCalculated = useCallback(
+    (alpha: number) => {
+      setEngagementRuntimeContext({
+        model_alpha: alpha,
+        n_calc: calcClickCountRef.current,
+      });
+    },
+    []
   );
 
   const hasInput = useMemo(() => {
@@ -180,6 +249,20 @@ export default function HomePage(props: {
     ]
   );
 
+  const engagementSnapshot = useMemo(() => {
+    if (!result) return null;
+    return {
+      cardBreakdown: result.cardBreakdown,
+      totalNetCashback: result.totalNetCashback,
+      model_alpha: modelAlpha,
+      n_calc: calcClickCount,
+    };
+  }, [result, modelAlpha, calcClickCount]);
+
+  useEffect(() => {
+    analyticsService.onCardSelectionChanged(selectedCards);
+  }, [selectedCards]);
+
   useEffect(() => {
     if (!canCalculate) {
       setResult(null);
@@ -202,6 +285,17 @@ export default function HomePage(props: {
       partySize
     );
     setResult(calc);
+    if (calc) {
+      const alpha = estimateModelAlpha(calc);
+      setModelAlpha(alpha);
+      emitBudgetCalculated(alpha);
+    } else {
+      setModelAlpha(0);
+      setEngagementRuntimeContext({
+        model_alpha: 0,
+        n_calc: calcClickCountRef.current,
+      });
+    }
   }, [
     canCalculate,
     mergedSpending,
@@ -219,10 +313,22 @@ export default function HomePage(props: {
     partySize,
     spending.flightPurchaseMode,
     spending.taiwanHsrPurchaseMode,
+    estimateModelAlpha,
+    emitBudgetCalculated,
   ]);
 
   const handleCalculate = useCallback(() => {
     if (!canCalculate) return;
+    calcClickCountRef.current += 1;
+    setCalcClickCount(calcClickCountRef.current);
+    analyticsService.onCalculateAttempt({
+      totalSpend:
+        (mergedSpending.flight ?? 0) +
+        totalAccommodationAmount(mergedSpending) +
+        (mergedSpending.rental ?? 0) +
+        (mergedSpending.local ?? 0),
+      clickedFinalCta: false,
+    });
     const cards = CREDIT_CARDS.filter((c) => selectedCards.includes(c.id));
     const calc = calculateOptimalCombination(
       mergedSpending,
@@ -240,6 +346,29 @@ export default function HomePage(props: {
       partySize
     );
     setResult(calc);
+    if (calc) {
+      const alpha = estimateModelAlpha(calc);
+      setModelAlpha(alpha);
+      emitBudgetCalculated(alpha);
+      analyticsService.onBudgetCalculated({
+        totalSpend: calc.totalSpending,
+        flightAmt: mergedSpending.flight ?? 0,
+        hotelAmt: totalAccommodationAmount(mergedSpending),
+        transAmt: mergedSpending.rental ?? 0,
+        alpha,
+        nCalc: calcClickCountRef.current,
+      });
+      analyticsService.onCardPortfolioUpdated({
+        targetCardSet: selectedCards,
+        rewardNet: calc.totalNetCashback,
+      });
+    } else {
+      setModelAlpha(0);
+      setEngagementRuntimeContext({
+        model_alpha: 0,
+        n_calc: calcClickCountRef.current,
+      });
+    }
 
     if (calc) {
       const isKkdayUsed = patternSelections.some((s) => s.isKkday && s.amount > 0);
@@ -274,6 +403,8 @@ export default function HomePage(props: {
     sinopacLevel,
     isSinopacNewUser,
     isUnionJingheNewUser,
+    estimateModelAlpha,
+    emitBudgetCalculated,
   ]);
 
   return (
@@ -418,6 +549,7 @@ export default function HomePage(props: {
               onUnionJingheNewUserChange={setIsUnionJingheNewUser}
               onSelectedChange={setSelectedCards}
               onHolderCountsChange={setHolderCounts}
+              engagementSnapshot={engagementSnapshot}
             />
 
             {/* Kumamon Wallet/PayPay exclusion */}
@@ -508,6 +640,9 @@ export default function HomePage(props: {
                 partySize={partySize}
                 holderCounts={holderCounts}
                 recommendationContext={recommendationContext}
+                modelAlpha={modelAlpha}
+                nCalc={calcClickCount}
+                onCapLimitTriggered={(cardNames) => analyticsService.onCapLimitTriggered(cardNames)}
               />
             </>
           )}

@@ -81,13 +81,14 @@ export const CREDIT_CARDS: CreditCard[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "dbs-eco",
-    name: "星展永續卡",
-    shortName: "星展永續卡",
+    name: "星展eco永續卡",
+    shortName: "星展eco永續卡",
     bank: "星展銀行",
     annualFee: 0,
     color: "bg-emerald-800",
-    officialUrl: "https://www.dbs.com.tw/personal-zh/cards/eco/index.html",
-    appearance: "卡面為全綠色漸層，中間有環保標誌",
+    officialUrl:
+      "https://www.dbs.com.tw/personal-zh/cards/dbs_eco/index.html?referralcode=gspe310028&sc=6fb46525256332e8670926ec837bb29c&cid=tw:zh:cbg:dbs:sem:goo:acq:txt:eco:cc:ecoacq:gspe310028:na&gad_source=1&gad_campaignid=21294139662&gbraid=0AAAAAozNhJMmr69QsGfRhYLFtOSZTijzM&gclid=CjwKCAjw-dfOBhAjEiwAq0RwI875jjFpRRvIWec8ftGtWDrDHi4fI6-mmKfy1Bahhomax_1NfVuT-BoCO84QAvD_BwE",
+    appearance: "卡面為全綠色漸層",
     registrationUrl: "https://www.dbs.com.tw/",
     registrationBonus: { type: "percent", value: 1.0, note: "登錄活動加碼" },
     tags: ["推薦", "Apple Pay", "實體5%"],

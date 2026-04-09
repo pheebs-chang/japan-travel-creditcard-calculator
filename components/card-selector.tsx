@@ -3,6 +3,13 @@
 // Card selection component with holder count support
 import { Check, Minus, Plus, Users } from "lucide-react";
 import { CREDIT_CARDS, CreditCard, getSinopacDisplayMaxSpending } from "@/lib/card-data";
+import type { CardEngagementSnapshot } from "@/lib/card-engagement-analytics";
+import {
+  computeOspIndex,
+  getIndividualAlpha,
+  rankPositionByNetInBreakdown,
+  trackCardDetailEngagement,
+} from "@/lib/card-engagement-analytics";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 
@@ -27,6 +34,8 @@ interface CardSelectorProps {
   onUnionJingheNewUserChange?: (v: boolean) => void;
   onSelectedChange: (selected: string[]) => void;
   onHolderCountsChange?: (counts: Record<string, number>) => void;
+  /** 最近一次試算結果：用於卡名連結埋點（alpha、OSP、淨回饋名次） */
+  engagementSnapshot?: CardEngagementSnapshot | null;
 }
 
 export function CardBadge({
@@ -44,6 +53,7 @@ export function CardBadge({
   onUnionJingheNewUserChange,
   onToggleSelected,
   onHolderCountChange,
+  engagementSnapshot,
 }: {
   card: CreditCard;
   selected: boolean;
@@ -59,6 +69,7 @@ export function CardBadge({
   onUnionJingheNewUserChange?: (v: boolean) => void;
   onToggleSelected: () => void;
   onHolderCountChange: (delta: number) => void;
+  engagementSnapshot?: CardEngagementSnapshot | null;
 }) {
   const isInverted = selected;
   const cardDocUrl = card.officialUrl ?? card.registrationUrl;
@@ -86,7 +97,23 @@ export function CardBadge({
                 "block w-fit max-w-full text-left text-base font-semibold leading-snug tracking-tight underline-offset-2 hover:underline",
                 isInverted ? "text-background" : "text-foreground"
               )}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                const bd = engagementSnapshot?.cardBreakdown ?? [];
+                const totalNet = engagementSnapshot?.totalNetCashback ?? 0;
+                const visualRank = CREDIT_CARDS.findIndex((c) => c.id === card.id) + 1;
+                const netRank = rankPositionByNetInBreakdown(card.id, bd);
+                trackCardDetailEngagement({
+                  cardId: card.id,
+                  cardName: card.name,
+                  engagement_type: "Identity_Confirmation",
+                  individual_alpha: getIndividualAlpha(card.id, bd),
+                  osp_index_at_click: computeOspIndex(bd, totalNet),
+                  rank_position: netRank ?? visualRank,
+                  model_alpha: engagementSnapshot?.model_alpha,
+                  n_calc: engagementSnapshot?.n_calc,
+                });
+              }}
             >
               {card.name}
             </a>
@@ -426,6 +453,7 @@ export function CardSelector({
   onUnionJingheNewUserChange,
   onSelectedChange,
   onHolderCountsChange,
+  engagementSnapshot = null,
 }: CardSelectorProps) {
   const toggleSelected = (id: string) => {
     onSelectedChange(
@@ -483,6 +511,7 @@ export function CardSelector({
             onUnionJingheNewUserChange={onUnionJingheNewUserChange}
             onToggleSelected={() => toggleSelected(card.id)}
             onHolderCountChange={(delta) => updateHolderCount(card.id, delta)}
+            engagementSnapshot={engagementSnapshot}
           />
         ))}
       </div>

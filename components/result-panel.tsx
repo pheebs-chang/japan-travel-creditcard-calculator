@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
   Check,
@@ -36,24 +36,17 @@ import {
   type SavingsBreakdown,
 } from "@/lib/calculator";
 import { cn } from "@/lib/utils";
+import {
+  computeOspIndex,
+  getIndividualAlpha,
+  rankPositionByNetInBreakdown,
+  trackCardDetailEngagement,
+} from "@/lib/card-engagement-analytics";
+import { analyticsService } from "@/lib/analytics-service";
 
 const CUBE_COUPON_URL =
   "https://www.cathaybk.com.tw/cathaybk/promo/event/credit-card/product/japanrewards/index.html";
 const IC_TOPUP_IDS = new Set(["suica", "pasmo", "icoca", "jp_ic_wallet_topup"]);
-
-/** 預留 GA4／gtag：辦卡、登錄連結等轉換追蹤（目前為 no-op，接入時在此呼叫 gtag / dataLayer） */
-export function trackConversion(
-  cardName: string,
-  kind: "apply_card" | "register_task" = "apply_card"
-): void {
-  void cardName;
-  void kind;
-  if (typeof window === "undefined") return;
-  const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-  if (typeof gtag === "function") {
-    // 例：gtag("event", "conversion", { send_to: "...", ... });
-  }
-}
 
 /** 與「登錄任務」區塊一致：領券／登錄加碼類卡片 */
 function cardNeedsActivityRegistration(card: CreditCard | undefined): boolean {
@@ -65,17 +58,6 @@ function cardNeedsActivityRegistration(card: CreditCard | undefined): boolean {
 function activityRegistrationHref(card: CreditCard | undefined): string | null {
   if (!cardNeedsActivityRegistration(card) || !card) return null;
   return card.id === "cathay-cube" ? CUBE_COUPON_URL : card.registrationUrl;
-}
-
-/** 計算結果內「活動登錄」連結：供 GA4 / GTM 觀察轉化 */
-export function trackRegistrationLinkClick(cardName: string): void {
-  if (typeof window === "undefined") return;
-  const w = window as Window & { gtag?: (...args: unknown[]) => void; dataLayer?: Record<string, unknown>[] };
-  if (typeof w.gtag === "function") {
-    w.gtag("event", "Registration_Link_Click", { card_name: cardName });
-  }
-  w.dataLayer = w.dataLayer ?? [];
-  w.dataLayer.push({ event: "Registration_Link_Click", card_name: cardName });
 }
 
 /** 與試算引擎同步，供「單卡的全額試算」重跑 */
@@ -113,7 +95,8 @@ const CARD_APPLY_URLS: Record<string, string> = {
   "taishin-flygo": "https://www.taishinbank.com.tw/TSB/personal/credit/intro/flygo/",
   "union-jinghe": "https://ubot.cc/JiheCard/",
   "ctbc-uniopen": "https://www.ctbcbank.com.tw/twrbo/zh_tw/cc_index/cc_product/cc_card_introduction/UNI.html",
-  "dbs-eco": "https://www.dbs.com.tw/personal-zh/cards/eco-card/index.html",
+  "dbs-eco":
+    "https://www.dbs.com.tw/personal-zh/cards/dbs_eco/index.html?referralcode=gspe310028&sc=6fb46525256332e8670926ec837bb29c&cid=tw:zh:cbg:dbs:sem:goo:acq:txt:eco:cc:ecoacq:gspe310028:na&gad_source=1&gad_campaignid=21294139662&gbraid=0AAAAAozNhJMmr69QsGfRhYLFtOSZTijzM&gclid=CjwKCAjw-dfOBhAjEiwAq0RwI875jjFpRRvIWec8ftGtWDrDHi4fI6-mmKfy1Bahhomax_1NfVuT-BoCO84QAvD_BwE",
 };
 
 const APPLY_RECOMMENDATION_CARD_IDS = [
@@ -209,6 +192,9 @@ interface ResultPanelProps {
   holderCounts?: Record<string, number>;
   /** 與目前試算相同參數，用於單卡潛在回饋試算 */
   recommendationContext?: ResultPanelRecommendationContext | null;
+  modelAlpha?: number;
+  nCalc?: number;
+  onCapLimitTriggered?: (cardNames: string[]) => void;
 }
 
 function strategyEmoji(subCategory: string | undefined, detailLabel: string | undefined): string {
@@ -565,6 +551,9 @@ export function ResultPanel({
   partySize = 1,
   holderCounts = {},
   recommendationContext = null,
+  modelAlpha = 0,
+  nCalc = 0,
+  onCapLimitTriggered,
 }: ResultPanelProps) {
   const [copied, setCopied] = useState(false);
   const [copiedStrategy, setCopiedStrategy] = useState(false);
@@ -694,10 +683,40 @@ export function ResultPanel({
     hasDbsEcoBonus,
     savingsBreakdown,
   } = result;
+
+  const ospIndexAtClick = computeOspIndex(cardBreakdown, totalNetCashback);
+  function fireOfferDeepDive(
+    cardId: string,
+    cardName: string,
+    rank_position: number | null,
+    fallbackAlpha?: number
+  ): void {
+    trackCardDetailEngagement({
+      cardId,
+      cardName,
+      engagement_type: "Offer_Deep_Dive",
+      individual_alpha: getIndividualAlpha(cardId, cardBreakdown, fallbackAlpha),
+      osp_index_at_click: ospIndexAtClick,
+      rank_position,
+      model_alpha: modelAlpha,
+      n_calc: nCalc,
+    });
+  }
+
   const capWarnings = cardBreakdown.filter((c) => c.capReached);
   const cubeNetCashback = cardBreakdown.find((c) => c.cardId === "cathay-cube")?.netCashback ?? 0;
   const cubeZeroNetReward = cubeNetCashback <= 0;
   const savingsRate = totalSpending > 0 ? ((totalNetCashback / totalSpending) * 100).toFixed(2) : "0.00";
+  const lastCapSignatureRef = useRef<string>("");
+
+  useEffect(() => {
+    if (capWarnings.length === 0) return;
+    const names = capWarnings.map((c) => c.cardName);
+    const signature = names.join("|");
+    if (signature === lastCapSignatureRef.current) return;
+    lastCapSignatureRef.current = signature;
+    onCapLimitTriggered?.(names);
+  }, [capWarnings, onCapLimitTriggered]);
 
   const url = typeof window !== "undefined" ? window.location.href : "https://card-calc.vercel.app";
 
@@ -1052,7 +1071,9 @@ export function ResultPanel({
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">刷卡攻略（按卡片）</p>
           <span className="text-[10px] text-muted-foreground">{cardStrategyGroups.length} 張卡片策略</span>
         </div>
-        {cardStrategyGroups.map((group) => {
+        {cardStrategyGroups.map((group, groupIdx) => {
+          const strategyRankPosition =
+            rankPositionByNetInBreakdown(group.cardId, cardBreakdown) ?? groupIdx + 1;
           const shouldShowCardIndex = (holderCounts[group.cardId] ?? 1) > 1;
           const cardIndex = group.holderIndex + 1;
           const displayCardTitle = shouldShowCardIndex
@@ -1106,7 +1127,14 @@ export function ResultPanel({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => {
-                        trackRegistrationLinkClick(group.cardName);
+                        fireOfferDeepDive(group.cardId, group.cardName, strategyRankPosition);
+                        analyticsService.onCtaClicked({
+                          ctaType: "register_event",
+                          targetCard: group.cardName,
+                          displayedReward: totalNetCashback,
+                          registrationFrictionRatio:
+                            totalNetCashback > 0 ? registrationExtraSaving / totalNetCashback : 0,
+                        });
                         logCtaClick("group_register", { cardId: group.cardId, cardName: group.cardName });
                       }}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-400/25"
@@ -1154,7 +1182,16 @@ export function ResultPanel({
                                 href={stepRegHref}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={() => trackRegistrationLinkClick(step.cardName)}
+                                onClick={() =>
+                                  (fireOfferDeepDive(step.cardId, step.cardName, strategyRankPosition),
+                                  analyticsService.onCtaClicked({
+                                    ctaType: "register_event",
+                                    targetCard: step.cardName,
+                                    displayedReward: totalNetCashback,
+                                    registrationFrictionRatio:
+                                      totalNetCashback > 0 ? registrationExtraSaving / totalNetCashback : 0,
+                                  }))
+                                }
                                 className="inline-flex shrink-0 items-center rounded-md border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200 underline-offset-2 hover:bg-amber-500/20 hover:underline"
                               >
                                 活動連結
@@ -1502,7 +1539,7 @@ export function ResultPanel({
             </p>
           </div>
           <div className="flex flex-col gap-3 p-4 sm:p-4">
-            {registrationTasks.map((task) => (
+            {registrationTasks.map((task, taskIdx) => (
               <div
                 key={task.cardId}
                 className={cn(
@@ -1521,8 +1558,19 @@ export function ResultPanel({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
-                      trackRegistrationLinkClick(task.cardName);
-                      trackConversion(task.cardName, "register_task");
+                      fireOfferDeepDive(
+                        task.cardId,
+                        task.cardName,
+                        rankPositionByNetInBreakdown(task.cardId, cardBreakdown) ?? taskIdx + 1,
+                        task.bonus
+                      );
+                      analyticsService.onCtaClicked({
+                        ctaType: "register_event",
+                        targetCard: task.cardName,
+                        displayedReward: totalNetCashback,
+                        registrationFrictionRatio:
+                          totalNetCashback > 0 ? registrationExtraSaving / totalNetCashback : 0,
+                      });
                     }}
                     className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[11px] font-semibold text-amber-600 transition-colors hover:bg-amber-400/20 dark:border-amber-300/40 dark:bg-amber-300/10 dark:text-amber-200 dark:hover:bg-amber-300/20"
                   >
@@ -1558,7 +1606,7 @@ export function ResultPanel({
             </p>
           </div>
           <ul className="list-none space-y-3 border-t border-violet-500/15 bg-black/25 p-3 sm:p-4 dark:bg-black/45">
-            {applyCardRecommendations.map((row) => {
+            {applyCardRecommendations.map((row, rowIdx) => {
               const projectedTotalSaving = row.tripSaving;
               const btnClass =
                 CARD_APPLY_BUTTON_CLASS[row.cardId] ??
@@ -1588,7 +1636,16 @@ export function ResultPanel({
                         href={applyRegHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={() => trackRegistrationLinkClick(row.cardName)}
+                        onClick={() =>
+                          (fireOfferDeepDive(row.cardId, row.cardName, rowIdx + 1, row.tripSaving),
+                          analyticsService.onCtaClicked({
+                            ctaType: "register_event",
+                            targetCard: row.cardName,
+                            displayedReward: totalNetCashback,
+                            registrationFrictionRatio:
+                              totalNetCashback > 0 ? registrationExtraSaving / totalNetCashback : 0,
+                          }))
+                        }
                         className="inline-flex w-fit shrink-0 items-center justify-center rounded-lg border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/20 dark:border-amber-300/40 dark:text-amber-200 dark:hover:bg-amber-400/15"
                       >
                         點我登錄活動
@@ -1613,7 +1670,14 @@ export function ResultPanel({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
-                      trackConversion(row.cardName, "apply_card");
+                      fireOfferDeepDive(row.cardId, row.cardName, rowIdx + 1, row.tripSaving);
+                      analyticsService.onCtaClicked({
+                        ctaType: "apply_card",
+                        targetCard: row.cardName,
+                        displayedReward: projectedTotalSaving,
+                        registrationFrictionRatio:
+                          totalNetCashback > 0 ? registrationExtraSaving / totalNetCashback : 0,
+                      });
                       logCtaClick("apply_card_recommendation", { cardId: row.cardId, cardName: row.cardName });
                     }}
                     className={cn(
