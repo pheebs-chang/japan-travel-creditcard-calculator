@@ -8,7 +8,7 @@ import {
   TrendingUp,
   AlertTriangle,
   ArrowRight,
-  CreditCard,
+  CreditCard as LucideCreditCard,
   Share2,
   Plane,
   Hotel,
@@ -24,7 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { CREDIT_CARDS } from "@/lib/card-data";
+import { CREDIT_CARDS, type CreditCard } from "@/lib/card-data";
 import {
   CalculationResult,
   calculateOptimalCombination,
@@ -53,6 +53,29 @@ export function trackConversion(
   if (typeof gtag === "function") {
     // 例：gtag("event", "conversion", { send_to: "...", ... });
   }
+}
+
+/** 與「登錄任務」區塊一致：領券／登錄加碼類卡片 */
+function cardNeedsActivityRegistration(card: CreditCard | undefined): boolean {
+  if (!card?.registrationUrl) return false;
+  if (card.id === "cathay-cube") return true;
+  return card.registrationBonus != null;
+}
+
+function activityRegistrationHref(card: CreditCard | undefined): string | null {
+  if (!cardNeedsActivityRegistration(card) || !card) return null;
+  return card.id === "cathay-cube" ? CUBE_COUPON_URL : card.registrationUrl;
+}
+
+/** 計算結果內「活動登錄」連結：供 GA4 / GTM 觀察轉化 */
+export function trackRegistrationLinkClick(cardName: string): void {
+  if (typeof window === "undefined") return;
+  const w = window as Window & { gtag?: (...args: unknown[]) => void; dataLayer?: Record<string, unknown>[] };
+  if (typeof w.gtag === "function") {
+    w.gtag("event", "Registration_Link_Click", { card_name: cardName });
+  }
+  w.dataLayer = w.dataLayer ?? [];
+  w.dataLayer.push({ event: "Registration_Link_Click", card_name: cardName });
 }
 
 /** 與試算引擎同步，供「單卡的全額試算」重跑 */
@@ -936,7 +959,7 @@ export function ResultPanel({
                     </span>
                   )}
                     <span className="inline-flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)] sm:text-2xl">
-                      <CreditCard className="h-7 w-7 shrink-0 text-amber-200 sm:h-8 sm:w-8 drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]" />
+                      <LucideCreditCard className="h-7 w-7 shrink-0 text-amber-200 sm:h-8 sm:w-8 drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]" />
                       <span className="bg-gradient-to-r from-amber-100 via-white to-amber-50 bg-clip-text text-transparent">
                         {c.cardShortName}
                     </span>
@@ -1036,7 +1059,8 @@ export function ResultPanel({
             ? `💳 ${group.cardName} (${cardIndex})`
             : `💳 ${group.cardName}`;
           const groupCardMeta = CREDIT_CARDS.find((c) => c.id === group.cardId);
-          const showRegisterCta = group.cardId.startsWith("esun-") || group.cardId.startsWith("taishin-");
+          const showRegisterCta =
+            !!groupCardMeta && cardNeedsActivityRegistration(groupCardMeta) && !!activityRegistrationHref(groupCardMeta);
 
           const cubeZeroBlock = group.cardId === "cathay-cube" && group.totalNet <= 0;
           const filteredActionNotes =
@@ -1075,13 +1099,16 @@ export function ResultPanel({
                     ))}
                   </div>
                 )}
-                {showRegisterCta && groupCardMeta?.registrationUrl && (
+                {showRegisterCta && groupCardMeta && (
                   <div className="mt-2">
                     <a
-                      href={groupCardMeta.registrationUrl}
+                      href={activityRegistrationHref(groupCardMeta) ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => logCtaClick("group_register", { cardId: group.cardId, cardName: group.cardName })}
+                      onClick={() => {
+                        trackRegistrationLinkClick(group.cardName);
+                        logCtaClick("group_register", { cardId: group.cardId, cardName: group.cardName });
+                      }}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-400/25"
                     >
                       🔗 前往官網登錄活動
@@ -1093,6 +1120,8 @@ export function ResultPanel({
                 {group.steps.map((step) => {
                   const disclaimer = strategyDisclaimerPrefix(step);
                   const icRankTag = transportTopupRankTag(step);
+                  const stepCardMeta = CREDIT_CARDS.find((c) => c.id === step.cardId);
+                  const stepRegHref = activityRegistrationHref(stepCardMeta);
                   const needsApplePayReminder =
                     IC_TOPUP_IDS.has(step.brandId ?? "") &&
                     (step.cardId === "cathay-cube" || step.cardId === "fubon-j");
@@ -1115,9 +1144,22 @@ export function ResultPanel({
                     </span>
                   )}
                 </div>
-                          <p className="mt-1 text-[11px] font-mono text-zinc-300">
-                            消費金額 {formatTWD(step.amount)} / 預計淨回饋{" "}
-                            {step.netCashback > 0 ? `+${formatTWD(step.netCashback)}` : formatTWD(step.netCashback)}
+                          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono text-zinc-300">
+                            <span>
+                              消費金額 {formatTWD(step.amount)} / 預計淨回饋{" "}
+                              {step.netCashback > 0 ? `+${formatTWD(step.netCashback)}` : formatTWD(step.netCashback)}
+                            </span>
+                            {stepRegHref && (
+                              <a
+                                href={stepRegHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => trackRegistrationLinkClick(step.cardName)}
+                                className="inline-flex shrink-0 items-center rounded-md border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200 underline-offset-2 hover:bg-amber-500/20 hover:underline"
+                              >
+                                活動連結
+                              </a>
+                            )}
                           </p>
                           {step.category === "flight" &&
                             step.flightStrategyTogetherNet != null &&
@@ -1279,7 +1321,7 @@ export function ResultPanel({
             {cardBreakdown.map((cb) => (
               <div key={cb.cardId} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary flex-shrink-0">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <LucideCreditCard className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -1478,7 +1520,10 @@ export function ResultPanel({
                     href={task.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => trackConversion(task.cardName, "register_task")}
+                    onClick={() => {
+                      trackRegistrationLinkClick(task.cardName);
+                      trackConversion(task.cardName, "register_task");
+                    }}
                     className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[11px] font-semibold text-amber-600 transition-colors hover:bg-amber-400/20 dark:border-amber-300/40 dark:bg-amber-300/10 dark:text-amber-200 dark:hover:bg-amber-300/20"
                   >
                     點我登錄
@@ -1519,6 +1564,7 @@ export function ResultPanel({
                 CARD_APPLY_BUTTON_CLASS[row.cardId] ??
                 "bg-gradient-to-r from-violet-600 to-indigo-700 hover:opacity-95 shadow-md shadow-violet-900/25";
               const cardMeta = CREDIT_CARDS.find((c) => c.id === row.cardId);
+              const applyRegHref = activityRegistrationHref(cardMeta);
               const shuttle = cardMeta?.perks?.shuttle;
               const lounge = cardMeta?.perks?.lounge;
               return (
@@ -1533,9 +1579,22 @@ export function ResultPanel({
                     </p>
                   )}
                   <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">{row.highlight}</p>
-                  <p className="mt-3 text-lg font-bold font-mono tracking-tight text-violet-700 dark:text-violet-300">
-                    辦卡後，這趟旅程總共省下 {formatTWD(row.tripSaving)}
-                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+                    <p className="text-lg font-bold font-mono tracking-tight text-violet-700 dark:text-violet-300">
+                      辦卡後，這趟旅程總共省下 {formatTWD(row.tripSaving)}
+                    </p>
+                    {applyRegHref && (
+                      <a
+                        href={applyRegHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackRegistrationLinkClick(row.cardName)}
+                        className="inline-flex w-fit shrink-0 items-center justify-center rounded-lg border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/20 dark:border-amber-300/40 dark:text-amber-200 dark:hover:bg-amber-400/15"
+                      >
+                        點我登錄活動
+                      </a>
+                    )}
+                  </div>
                   {(shuttle || lounge) && (
                     <p className="mt-1 text-[12px] font-semibold text-foreground/90">
                       權益亮點：

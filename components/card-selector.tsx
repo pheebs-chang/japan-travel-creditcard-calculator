@@ -1,7 +1,7 @@
 "use client";
 
 // Card selection component with holder count support
-import { Check, BadgeCheck, ExternalLink, Minus, Plus, Users } from "lucide-react";
+import { Check, Minus, Plus, Users } from "lucide-react";
 import { CREDIT_CARDS, CreditCard, getSinopacDisplayMaxSpending } from "@/lib/card-data";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -407,47 +407,6 @@ export function CardBadge({
         </>
       )}
 
-      </div>
-
-      {/* Footer：底邊由外層 p-4 統一 */}
-      <div
-        className={cn(
-          "mt-auto flex min-h-9 shrink-0 items-center justify-between gap-2 border-t pt-2",
-          isInverted ? "border-background/15" : "border-border/60"
-        )}
-      >
-        <div className="flex min-h-6 min-w-0 items-center gap-1.5">
-          <BadgeCheck
-            className={cn(
-              "h-3.5 w-3.5 shrink-0",
-              isInverted ? "text-background/30" : "text-muted-foreground/40"
-            )}
-          />
-          <span className={cn(
-            "text-[10px] font-medium leading-none truncate",
-            isInverted ? "text-background/50" : "text-muted-foreground"
-          )}>
-            需先登錄活動
-          </span>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {/* Registration link */}
-          <a
-            href={card.registrationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Register ${card.id}`}
-            className={cn(
-              "flex items-center justify-center h-6 w-6 rounded-md transition-colors",
-              isInverted
-                ? "text-background/50 hover:bg-background/10 hover:text-background"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-            )}
-          >
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
       </div>
     </div>
   );
