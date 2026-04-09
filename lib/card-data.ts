@@ -60,8 +60,8 @@ export const CREDIT_CARDS: CreditCard[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "dbs-eco",
-    name: "星展eco永續卡",
-    shortName: "星展eco",
+    name: "星展永續卡",
+    shortName: "星展永續卡",
     bank: "星展銀行",
     annualFee: 0,
     color: "bg-emerald-800",
@@ -95,8 +95,8 @@ export const CREDIT_CARDS: CreditCard[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "ctbc-uniopen",
-    name: "中信 UNI$AV卡",
-    shortName: "中信UniOpen",
+    name: "中信 UNI$AV 卡",
+    shortName: "中信 UNI$AV 卡",
     bank: "中國信託",
     annualFee: 0,
     color: "bg-zinc-800",
@@ -140,8 +140,8 @@ export const CREDIT_CARDS: CreditCard[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "taishin-flygo",
-    name: "台新FlyGo卡",
-    shortName: "台新FlyGo",
+    name: "台新 FlyGO卡",
+    shortName: "台新 FlyGO卡",
     bank: "台新銀行",
     annualFee: 0,
     color: "bg-zinc-700",
@@ -250,8 +250,8 @@ export const CREDIT_CARDS: CreditCard[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "cathay-cube",
-    name: "國泰世華 CUBE 卡",
-    shortName: "國泰CUBE",
+    name: "國泰 CUBE 卡",
+    shortName: "國泰 CUBE 卡",
     bank: "國泰世華",
     annualFee: 0,
     color: "bg-zinc-600",

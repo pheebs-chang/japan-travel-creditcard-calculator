@@ -465,12 +465,10 @@ function buildShoppingStrategySummary(steps: WaterfallStep[]): string[] {
     });
     if (ranked.length === 0) continue;
     const preferred = ranked[0];
-    const projectedNet =
-      preferred.amount > 0.01
-        ? Math.round((preferred.net / preferred.amount) * totalAmount)
-        : Math.round(totalNet);
+    // 一店一卡：僅以主力卡之實際分攤淨回饋顯示，不對全額做比例外插（避免拆單誤導）
+    const displayNet = Math.round(preferred.net);
     lines.push(
-      `📍 在 ${store}，建議全額刷 ${preferred.cardName}，預計回饋 ${formatTWD(projectedNet)}。`
+      `📍 在 ${store}，建議全額刷 ${preferred.cardName}，預計回饋 ${formatTWD(displayNet)}。`
     );
     if (preferred.capLikelyExhausted) {
       lines.push(`💡 備註：此筆消費將用盡 ${preferred.cardName} 的回饋上限。`);
@@ -484,29 +482,54 @@ function StatCard({
   value,
   sub,
   highlight,
+  weight = "default",
 }: {
   label: string;
   value: string;
   sub?: string;
   highlight?: boolean;
+  /** default：總消費；soft：海外手續費（降權）；hero：淨省下（加粗加大） */
+  weight?: "default" | "soft" | "hero";
 }) {
+  const isHero = highlight || weight === "hero";
+  const isSoft = weight === "soft";
   return (
     <div
       className={cn(
         "rounded-xl border p-4",
-        highlight
-          ? "border-foreground bg-foreground text-background"
-          : "border-border bg-card"
+        isHero
+          ? "border-foreground bg-foreground text-background shadow-md shadow-black/10"
+          : "border-border bg-card",
+        isSoft && "opacity-90"
       )}
     >
-      <p className={cn("text-xs font-medium", highlight ? "text-background/60" : "text-muted-foreground")}>
+      <p
+        className={cn(
+          "text-xs font-medium",
+          isHero ? "text-background/60" : isSoft ? "text-muted-foreground/80" : "text-muted-foreground"
+        )}
+      >
         {label}
       </p>
-      <p className={cn("text-xl font-bold font-mono mt-1 tracking-tight leading-tight", highlight ? "text-background" : "text-foreground")}>
+      <p
+        className={cn(
+          "font-mono mt-1 tracking-tight leading-tight",
+          isHero
+            ? "text-2xl sm:text-3xl font-black text-background"
+            : isSoft
+              ? "text-base font-semibold text-muted-foreground"
+              : "text-xl font-bold text-foreground"
+        )}
+      >
         {value}
       </p>
       {sub && (
-        <p className={cn("text-[10px] mt-1", highlight ? "text-background/50" : "text-muted-foreground/70")}>
+        <p
+          className={cn(
+            "text-[10px] mt-1",
+            isHero ? "text-background/50" : isSoft ? "text-muted-foreground/60" : "text-muted-foreground/70"
+          )}
+        >
           {sub}
         </p>
       )}
@@ -562,6 +585,8 @@ export function ResultPanel({
     savingsBreakdown,
   } = result;
   const capWarnings = cardBreakdown.filter((c) => c.capReached);
+  const cubeNetCashback = cardBreakdown.find((c) => c.cardId === "cathay-cube")?.netCashback ?? 0;
+  const cubeZeroNetReward = cubeNetCashback <= 0;
   const savingsRate = totalSpending > 0 ? ((totalNetCashback / totalSpending) * 100).toFixed(2) : "0.00";
 
   const url = typeof window !== "undefined" ? window.location.href : "https://card-calc.vercel.app";
@@ -772,8 +797,8 @@ export function ResultPanel({
   const handleCopyStrategy = async () => {
     const flightCard = waterfallSteps.find((s) => s.category === "flight")?.cardShortName ?? (shareTopCards[0]?.cardShortName ?? "推薦卡A");
     const localCard = waterfallSteps.find((s) => s.category === "local")?.cardShortName ?? (shareTopCards[1]?.cardShortName ?? shareTopCards[0]?.cardShortName ?? "推薦卡B");
-    const savings = formatTWD(totalNetCashback > 0 ? totalNetCashback : 0).replace("NT$", "").trim();
-    const lines = `這趟日本行我用 #日本刷卡計算機 算完，預計能省下 NT$ ${savings}！💰 機票用 ${flightCard}、藥妝用 ${localCard} 拿 8.5% 最划算！推薦大家出國前先算一下：${url}`;
+    const savings = formatTWD(totalNetCashback > 0 ? totalNetCashback : 0);
+    const lines = `這趟日本行我用 #日本刷卡計算機 算完，預計能省下 ${savings}！💰 機票用 ${flightCard}、藥妝用 ${localCard} 拿 8.5% 最划算！推薦大家出國前先算一下：${url}`;
 
     try {
       await navigator.clipboard.writeText(lines);
@@ -824,12 +849,14 @@ export function ResultPanel({
             label="海外手續費"
             value={`-${formatTWD(totalForeignFee)}`}
             sub="1.5% 已扣除"
+            weight="soft"
           />
           <StatCard
             label="淨省下"
             value={formatTWD(totalNetCashback > 0 ? totalNetCashback : 0)}
             sub={`回饋率 ${savingsRate}%`}
             highlight
+            weight="hero"
           />
         </div>
         <DataRecencyBlock className="mt-8 text-center text-xs text-muted-foreground/60" />
@@ -1014,10 +1041,18 @@ export function ResultPanel({
           const groupCardMeta = CREDIT_CARDS.find((c) => c.id === group.cardId);
           const showRegisterCta = group.cardId.startsWith("esun-") || group.cardId.startsWith("taishin-");
 
+          const cubeZeroBlock = group.cardId === "cathay-cube" && group.totalNet <= 0;
+          const filteredActionNotes =
+            cubeZeroBlock
+              ? group.actionNotes.filter((n) => n !== CUBE_PRE_SPEND_REMINDER)
+              : group.actionNotes;
           return (
             <div
               key={group.key}
-              className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-[0_8px_24px_rgba(15,23,42,0.28)]"
+              className={cn(
+                "overflow-hidden rounded-2xl border bg-zinc-950 shadow-[0_8px_24px_rgba(15,23,42,0.28)]",
+                cubeZeroBlock ? "border border-red-500/70" : "border-zinc-800"
+              )}
             >
               <div className="border-b border-zinc-800 bg-zinc-900/80 px-4 py-3">
                 <p className="text-sm font-bold text-zinc-100">
@@ -1026,9 +1061,14 @@ export function ResultPanel({
                 <p className="mt-1 text-[9px] text-zinc-400">
                   共 {group.steps.length} 筆消費項目
                 </p>
-                {group.actionNotes.length > 0 && (
+                {cubeZeroBlock && (
+                  <p className="mt-2 rounded-md border border-red-500/50 bg-red-950/30 px-2.5 py-2 text-[11px] font-semibold leading-snug text-red-200">
+                    ⚠️ 務必領取「日本賞」加碼券，否則將失去回饋資格！
+                  </p>
+                )}
+                {filteredActionNotes.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="刷卡前操作提醒">
-                    {group.actionNotes.map((note) => (
+                    {filteredActionNotes.map((note) => (
                       <span
                         key={note}
                         className="inline-flex max-w-full items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold leading-snug text-amber-700 dark:text-amber-400"
@@ -1426,7 +1466,12 @@ export function ResultPanel({
             {registrationTasks.map((task) => (
               <div
                 key={task.cardId}
-                className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/60 px-4 py-4 dark:border-white/15 dark:bg-black/20"
+                className={cn(
+                  "flex flex-col gap-3 rounded-xl border bg-background/60 px-4 py-4 dark:bg-black/20",
+                  task.cardId === "cathay-cube" && cubeZeroNetReward
+                    ? "border border-red-500/65 dark:border-red-500/50"
+                    : "border-border/70 dark:border-white/15"
+                )}
               >
                 <div className="flex min-w-0 flex-row items-center justify-between gap-3">
                   <p className="min-w-0 flex-1 break-words text-left text-xs font-medium text-foreground dark:text-white">
@@ -1448,8 +1493,8 @@ export function ResultPanel({
                     可再省 <span className="text-base font-extrabold">{formatTWD(task.bonus)}</span>
                   </p>
                 ) : task.cardId === "cathay-cube" ? (
-                  <p className="text-sm font-semibold text-amber-400">
-                    ⚠️ 需領取日本賞加碼券，否則將失去回饋資格
+                  <p className="text-sm font-semibold text-red-400">
+                    ⚠️ 務必領取「日本賞」加碼券，否則將失去回饋資格！
                   </p>
                 ) : null}
               </div>

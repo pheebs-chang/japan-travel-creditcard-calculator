@@ -2976,12 +2976,10 @@ export function calculateOptimalCombination(
 }
 
 export function formatTWD(amount: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.round(amount));
+  const rounded = Math.round(amount);
+  const sign = rounded < 0 ? "-" : "";
+  const abs = Math.abs(rounded);
+  return `${sign}$${new Intl.NumberFormat("zh-TW").format(abs)}`;
 }
 
 // ─── Analytics stub ────────────────────────────────────────────────────────

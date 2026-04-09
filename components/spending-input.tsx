@@ -228,6 +228,16 @@ export function SpendingInputPanel({
                 </span>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                console.log("[INSURANCE_CTA] flight_block_insurance_prompt_click");
+                window.alert("保險試算功能即將上線！");
+              }}
+              className="mt-2 w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-left text-[11px] font-medium leading-snug text-foreground/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md transition hover:bg-white/[0.1] dark:border-white/10 dark:bg-white/[0.04]"
+            >
+              🛡️ 機票買好了，那保障呢？檢視此行程的最優保險組合 (班機延誤 / 海外醫療) →
+            </button>
             {partySize > 1 && spending.flight > 0 && (
               <p className="mt-1.5 text-[10px] text-muted-foreground/60">
                 合計 NT${formatNum(spending.flight)}
