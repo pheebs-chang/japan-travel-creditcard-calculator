@@ -14,7 +14,6 @@ function formatCeiling(rule: CreditCard["cashback"][number]): string | null {
 
 interface CardSelectorProps {
   selected: string[];
-  enrolled: string[];
   holderCounts?: Record<string, number>; // cardId -> number of holders in party
   partySize?: number;
   /** 永豐幣倍卡：Level 1 加碼 NT$300／月（刷卡上限約 NT$7,500）；Level 2 NT$800／月（約 NT$20,000） */
@@ -27,14 +26,12 @@ interface CardSelectorProps {
   isUnionJingheNewUser?: boolean;
   onUnionJingheNewUserChange?: (v: boolean) => void;
   onSelectedChange: (selected: string[]) => void;
-  onEnrolledChange: (enrolled: string[]) => void;
   onHolderCountsChange?: (counts: Record<string, number>) => void;
 }
 
 export function CardBadge({
   card,
   selected,
-  enrolled,
   holderCount,
   partySize,
   sinopacDoublebeiLevel,
@@ -46,12 +43,10 @@ export function CardBadge({
   isUnionJingheNewUser,
   onUnionJingheNewUserChange,
   onToggleSelected,
-  onToggleEnrolled,
   onHolderCountChange,
 }: {
   card: CreditCard;
   selected: boolean;
-  enrolled: boolean;
   holderCount: number;
   partySize: number;
   sinopacDoublebeiLevel?: 1 | 2;
@@ -63,7 +58,6 @@ export function CardBadge({
   isUnionJingheNewUser?: boolean;
   onUnionJingheNewUserChange?: (v: boolean) => void;
   onToggleSelected: () => void;
-  onToggleEnrolled: () => void;
   onHolderCountChange: (delta: number) => void;
 }) {
   const isInverted = selected;
@@ -426,18 +420,14 @@ export function CardBadge({
           <BadgeCheck
             className={cn(
               "h-3.5 w-3.5 shrink-0",
-              enrolled
-                ? isInverted ? "text-background" : "text-foreground"
-                : isInverted ? "text-background/30" : "text-muted-foreground/40"
+              isInverted ? "text-background/30" : "text-muted-foreground/40"
             )}
           />
           <span className={cn(
             "text-[10px] font-medium leading-none truncate",
-            enrolled
-              ? isInverted ? "text-background" : "text-foreground"
-              : isInverted ? "text-background/50" : "text-muted-foreground"
+            isInverted ? "text-background/50" : "text-muted-foreground"
           )}>
-            已成功登錄
+            需先登錄活動
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -457,15 +447,6 @@ export function CardBadge({
           >
             <ExternalLink className="h-3 w-3" />
           </a>
-          <Switch
-            checked={enrolled}
-            onCheckedChange={onToggleEnrolled}
-            aria-label={`Enrolled: ${card.id}`}
-            className={cn(
-              "scale-75 origin-right flex-shrink-0",
-              isInverted ? "data-[state=checked]:bg-background" : ""
-            )}
-          />
         </div>
       </div>
     </div>
@@ -474,7 +455,6 @@ export function CardBadge({
 
 export function CardSelector({
   selected,
-  enrolled,
   holderCounts = {},
   partySize = 1,
   sinopacDoublebeiLevel = 1,
@@ -486,18 +466,11 @@ export function CardSelector({
   isUnionJingheNewUser = false,
   onUnionJingheNewUserChange,
   onSelectedChange,
-  onEnrolledChange,
   onHolderCountsChange,
 }: CardSelectorProps) {
   const toggleSelected = (id: string) => {
     onSelectedChange(
       selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]
-    );
-  };
-
-  const toggleEnrolled = (id: string) => {
-    onEnrolledChange(
-      enrolled.includes(id) ? enrolled.filter((e) => e !== id) : [...enrolled, id]
     );
   };
 
@@ -511,7 +484,7 @@ export function CardSelector({
     <>
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-muted-foreground" suppressHydrationWarning>
-          {selected.length}/{CREDIT_CARDS.length} selected, {enrolled.length} enrolled
+          {selected.length}/{CREDIT_CARDS.length} selected
         </span>
         <div className="flex gap-2">
           <button
@@ -539,7 +512,6 @@ export function CardSelector({
             key={card.id}
             card={card}
             selected={selected.includes(card.id)}
-            enrolled={enrolled.includes(card.id)}
             holderCount={holderCounts[card.id] ?? 1}
             partySize={partySize}
             sinopacDoublebeiLevel={sinopacDoublebeiLevel}
@@ -551,7 +523,6 @@ export function CardSelector({
             isUnionJingheNewUser={isUnionJingheNewUser}
             onUnionJingheNewUserChange={onUnionJingheNewUserChange}
             onToggleSelected={() => toggleSelected(card.id)}
-            onToggleEnrolled={() => toggleEnrolled(card.id)}
             onHolderCountChange={(delta) => updateHolderCount(card.id, delta)}
           />
         ))}

@@ -61,7 +61,6 @@ export interface ResultPanelRecommendationContext {
   patternSelections: PatternSelection[];
   selectedBrands: Record<string, string>;
   holderCounts: Record<string, number>;
-  enrolledCards: string[];
   selectedCardIds: string[];
   isDbsEcoNewUser: boolean;
   kumamonWalletPaypayExcluded: boolean;
@@ -557,7 +556,7 @@ export function ResultPanel({
       totalNetCashback: tnc,
       savingsBreakdown: sb,
     } = result;
-    const enrolledSet = new Set(recommendationContext.enrolledCards);
+    const enrolledSet = new Set<string>();
     const currentNet = Math.round(tnc);
     const selectedIds = recommendationContext.selectedCardIds;
 

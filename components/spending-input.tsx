@@ -124,9 +124,9 @@ export function SpendingInputPanel({
   const selectFlightBrand = (brandId: string, unitPrice: number) => {
     onFlightBrandIdChange?.(brandId);
     onChange((prev) => {
-      if (prev.flight) return prev;
       const ps = partySize > 1 ? partySize : 1;
       const mode = prev.flightPurchaseMode ?? "together";
+      // 點選品牌＝帶入該通路範例單價；切換品牌時一併重算，避免舊金額與新品牌不一致
       const total = ps > 1 && mode === "split" ? unitPrice * ps : unitPrice;
       return { ...prev, flight: total };
     });

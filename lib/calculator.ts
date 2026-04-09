@@ -2708,6 +2708,9 @@ export function calculateOptimalCombination(
   partySize: number = 1
 ): CalculationResult | null {
   if (selectedCards.length === 0) return null;
+  // 摩擦分析基線：目前一律視為「尚未完成登錄」，避免把登錄加碼預先計入。
+  void enrolledIds;
+  const effectiveEnrolledIds = new Set<string>();
 
   const cardsForCalc = applySinopacLevel(selectedCards, sinopacLevel).filter((card) => {
     const rawHeld = holderCounts[card.id];
@@ -2778,7 +2781,7 @@ export function calculateOptimalCombination(
           exp.amount,
           scaled,
           cardsForCalc,
-          enrolledIds,
+          effectiveEnrolledIds,
           stepIndexRef,
           effectiveHolderCounts,
           isDbsEcoNewUser,
@@ -2823,7 +2826,7 @@ export function calculateOptimalCombination(
             ticketAmt,
             scaled,
             cardsForCalc,
-            enrolledIds,
+            effectiveEnrolledIds,
             stepIndexRef,
             effectiveHolderCounts,
             isDbsEcoNewUser,
@@ -2896,7 +2899,7 @@ export function calculateOptimalCombination(
 
     const wfParams = [
       cardsForCalc,
-      enrolledIds,
+      effectiveEnrolledIds,
       stepIndexRef,
       effectiveHolderCounts,
       isDbsEcoNewUser,
@@ -2990,7 +2993,7 @@ export function calculateOptimalCombination(
                 chunkAmt,
                 scaled,
                 cardsForCalc,
-                enrolledIds,
+                effectiveEnrolledIds,
                 stepIndexRef,
                 effectiveHolderCounts,
                 isDbsEcoNewUser,
@@ -3059,7 +3062,7 @@ export function calculateOptimalCombination(
               chunkAmt,
               railScaled,
               cardsForCalc,
-              enrolledIds,
+              effectiveEnrolledIds,
               stepIndexRef,
               effectiveHolderCounts,
               isDbsEcoNewUser,
@@ -3195,6 +3198,8 @@ export function logCalculation(payload: {
   holderCountsPerCard: Record<string, number>; // For Supabase: track which cards are commonly shared
   is_kkday_used: boolean;           // For Supabase: track KKday usage rate among users
   is_dbs_eco_new_user: boolean;     // For Supabase: track new-user bonus claims
+  /** 摩擦基準：預設為未勾選任何優惠；使用者經引導完成設定後可設為 false。 */
+  frictionBaseline?: boolean;
   result: CalculationResult;
 }) {
   void payload;

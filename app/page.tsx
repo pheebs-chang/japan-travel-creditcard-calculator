@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { MapPin, Calculator, Users, Minus, Plus } from "lucide-react";
 import { SpendingInputPanel } from "@/components/spending-input";
 import { SpendingPatternPanel } from "@/components/spending-pattern";
@@ -59,13 +59,14 @@ export default function HomePage(props: {
   const [patternAmounts, setPatternAmounts] = useState<Record<string, number>>({});
   const [selectedBrands, setSelectedBrands] = useState<Record<string, string>>({});
   const [selectedCards, setSelectedCards] = useState<string[]>(CREDIT_CARDS.map((c) => c.id));
-  const [enrolledCards, setEnrolledCards] = useState<string[]>([]);
+  const unenrolledCards = useMemo(() => new Set<string>(), []);
   const destination = "日本" as const;
   const [dateRange, setDateRange] = useState<TravelDateRange>(() => {
     const today = new Date().toISOString().slice(0, 10);
     return { from: today, to: today };
   });
   const [partySize, setPartySize] = useState<number>(1);
+  const prevPartySizeRef = useRef(1);
   const [holderCounts, setHolderCounts] = useState<Record<string, number>>({});
   const [flightBrandId, setFlightBrandId] = useState<string | null>(null);
   const [isKumamonFlightJpy, setIsKumamonFlightJpy] = useState(false);
@@ -88,6 +89,20 @@ export default function HomePage(props: {
     const expiryThreshold = new Date("2026-06-30T23:59:59");
     setShowExpirationWarning(now > expiryThreshold);
   }, []);
+
+  // 機票「分開買」：人數變更時維持每人金額不變，重算總額（與試算拆票一致）
+  useEffect(() => {
+    const prev = prevPartySizeRef.current;
+    prevPartySizeRef.current = partySize;
+    if (prev === partySize) return;
+    setSpending((s) => {
+      if ((s.flightPurchaseMode ?? "together") !== "split") return s;
+      const f = s.flight ?? 0;
+      if (f <= 0 || prev < 1) return s;
+      const perPerson = f / prev;
+      return { ...s, flight: perPerson * partySize };
+    });
+  }, [partySize]);
 
   // Merge Step 2 base amounts + Step 3 pattern amounts
   const paymentMergeOpts = useMemo((): MergePatternPaymentOptions => {
@@ -136,7 +151,6 @@ export default function HomePage(props: {
             patternSelections,
             selectedBrands,
             holderCounts,
-            enrolledCards,
             selectedCardIds: selectedCards,
             isDbsEcoNewUser,
             kumamonWalletPaypayExcluded,
@@ -154,7 +168,6 @@ export default function HomePage(props: {
       patternSelections,
       selectedBrands,
       holderCounts,
-      enrolledCards,
       selectedCards,
       isDbsEcoNewUser,
       kumamonWalletPaypayExcluded,
@@ -173,11 +186,10 @@ export default function HomePage(props: {
       return;
     }
     const cards = CREDIT_CARDS.filter((c) => selectedCards.includes(c.id));
-    const enrolledSet = new Set(enrolledCards);
     const calc = calculateOptimalCombination(
       mergedSpending,
       cards,
-      enrolledSet,
+      unenrolledCards,
       patternSelections,
       selectedBrands,
       holderCounts,
@@ -194,7 +206,6 @@ export default function HomePage(props: {
     canCalculate,
     mergedSpending,
     selectedCards,
-    enrolledCards,
     patternSelections,
     selectedBrands,
     holderCounts,
@@ -213,11 +224,10 @@ export default function HomePage(props: {
   const handleCalculate = useCallback(() => {
     if (!canCalculate) return;
     const cards = CREDIT_CARDS.filter((c) => selectedCards.includes(c.id));
-    const enrolledSet = new Set(enrolledCards);
     const calc = calculateOptimalCombination(
       mergedSpending,
       cards,
-      enrolledSet,
+      unenrolledCards,
       patternSelections,
       selectedBrands,
       holderCounts,
@@ -238,12 +248,13 @@ export default function HomePage(props: {
         spending: mergedSpending,
         patternAmounts,
         selectedCards,
-        enrolledCards,
+        enrolledCards: [],
         selectedBrands,
         travelPartySize: partySize,
         holderCountsPerCard: holderCounts,
         is_kkday_used: isKkdayUsed,
         is_dbs_eco_new_user: isDbsEcoNewUser,
+        frictionBaseline: true,
         result: calc,
       });
     }
@@ -251,7 +262,6 @@ export default function HomePage(props: {
     canCalculate,
     mergedSpending,
     selectedCards,
-    enrolledCards,
     patternAmounts,
     patternSelections,
     selectedBrands,
@@ -396,7 +406,6 @@ export default function HomePage(props: {
 
             <CardSelector
               selected={selectedCards}
-              enrolled={enrolledCards}
               holderCounts={holderCounts}
               partySize={partySize}
               sinopacDoublebeiLevel={sinopacLevel}
@@ -408,7 +417,6 @@ export default function HomePage(props: {
               isUnionJingheNewUser={isUnionJingheNewUser}
               onUnionJingheNewUserChange={setIsUnionJingheNewUser}
               onSelectedChange={setSelectedCards}
-              onEnrolledChange={setEnrolledCards}
               onHolderCountsChange={setHolderCounts}
             />
 
