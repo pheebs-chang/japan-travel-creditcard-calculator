@@ -1492,7 +1492,7 @@ export function ResultPanel({
                   <p className="text-sm font-semibold text-emerald-400">
                     可再省 <span className="text-base font-extrabold">{formatTWD(task.bonus)}</span>
                   </p>
-                ) : task.cardId === "cathay-cube" ? (
+                ) : task.cardId === "cathay-cube" && cubeZeroNetReward ? (
                   <p className="text-sm font-semibold text-red-400">
                     ⚠️ 務必領取「日本賞」加碼券，否則將失去回饋資格！
                   </p>
