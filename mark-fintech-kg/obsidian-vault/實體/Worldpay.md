@@ -1,0 +1,12 @@
+---
+kind: company
+mentions: 2
+---
+# Worldpay
+
+## 事實
+- Visa於2025年10月與Cloudflare、Worldpay合作推出Trusted Agent Protocol，底層實作IETF RFC 9421。（[[2026-05-14 當 AI 開始刷卡：KYA 框架如何成為下一個十年支付戰場的護城河]]）
+
+## 出現在
+- [[2026-05-07 BVNK：一家年化處理 300 億美元的倫敦新創如何成為支付巨頭的「保險單」]]
+- [[2026-05-14 當 AI 開始刷卡：KYA 框架如何成為下一個十年支付戰場的護城河]]
