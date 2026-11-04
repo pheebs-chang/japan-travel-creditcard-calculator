@@ -4,22 +4,43 @@ source: https://www.markreadfintech.com/p/catena-labsai-agent-4800-ai
 ---
 # Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構
 
-## 提到的概念與實體
-[[代理式 AI]] [[可驗證憑證]] [[KYC]] [[AML]] [[穩定幣]] [[國家信託銀行]] [[MCP]] [[代理商務]] [[Catena Labs]] [[OCC]] [[Circle]] [[USDC]] [[a16z crypto]] [[Coinbase Ventures]] [[General Catalyst]] [[Crossmint]] [[Stripe]] [[Visa]] [[Mastercard]] [[FDIC]]
+## 段落與節點
+每一行是一段原文（只留開頭），後面是這段話提到的節點。
 
-## 事實
-- Catena Labs 累計募資 4,800 萬美元，種子輪 1,800 萬美元由 a16z crypto 領投。（[[Catena Labs]] [[a16z crypto]]）
-- Catena Labs 於 2026 年 5 月宣布完成 3,000 萬美元 A 輪，由 Acrew Capital 與 a16z crypto 領投。（[[Catena Labs]] [[a16z crypto]]）
-- A 輪參投方包括 Breyer Capital、General Catalyst、QED Investors、Oak HC/FT、Fin Capital、Coinbase Ventures 和 IDG Capital。（[[Catena Labs]] [[General Catalyst]] [[Coinbase Ventures]]）
-- Catena Labs 向 OCC 申請設立 Catena Trust Bank, National Association，申請文件日期為 2026 年 5 月 18 日，公開公告於 5 月 20 日刊登。（[[Catena Labs]] [[OCC]]）
-- OCC 文件寫明擬議的 Catena Trust Bank 不會有 FDIC 存款保險。（[[FDIC]] [[國家信託銀行]]）
-- Catena 目前不直接持有銀行牌照，核心金融與託管服務仍透過受監管合作夥伴提供。（[[Catena Labs]]）
-- ACK-ID 基於 W3C 的 DIDs 與 Verifiable Credentials 標準建立從真實法律實體到代理的證明鏈。（[[可驗證憑證]]）
-- Catena 推出 @agentcommercekit/ack-pay SDK，支援建立支付請求、簽署 JWT token、驗證付款請求、建立與驗證付款收據，並整合 Zod v3、Zod v4、Valibot。（）
-- Catena Platform 替代理開設獨立金融虛擬帳戶，支援法幣與穩定幣資金託管，可發起 ACH、電匯或穩定幣支付。（[[穩定幣]]）
-- 共同創辦人兼 CEO Sean Neville 是 Circle 共同創辦人之一；CTO Matt Venables 曾任 Circle 產品工程高級副總裁。（[[Circle]]）
-- 首席法律兼商務官 Sharda Caro Del Castillo 擁有超過 25 年金融科技法律與合規經驗，曾任 Affirm 首席法律官。（）
-- Deterministic policies 包含金額限制、交易對象限制、頻率限制與審計紀錄四個層次。（）
+- 第 2 段「市場痛點：AI Agent 可以 24 小時自動執行任務，但傳統銀行仍以人類身份、人工授權與慢速清算為核心，現有 MCP 也無法處理金融級 …」→ [[代理式 AI]] [[KYC]] [[MCP]] [[AML]]
+- 第 4 段「資本驗證：Catena Labs 已累計募資 4,800 萬美元，A 輪 3,000 萬美元由 Acrew Capital 與 a16z c…」→ [[General Catalyst]] [[a16z crypto]] [[Coinbase Ventures]] [[Catena Labs]]
+- 第 9 段「但只要任務開始碰到錢，問題馬上變質。譬如說，讓 AI Agent 幫你查三家供應商報價，風險還算可控。讓它直接付款給供應商，就進入另一個世界…」→ [[代理式 AI]] [[KYC]]
+- 第 10 段「金融系統從來不只是一套付款按鈕，它背後是一整組身份、授權、限額、監控、審計與責任歸屬機制，這也是 Catena Labs 值得關注的地方。C…」→ [[代理式 AI]] [[Catena Labs]]
+- 第 12 段「現在很多 AI Agent 架構都建立在 Model Context Protocol（MCP）這類工具對接標準之上。MCP 可以讓代理呼叫…」→ [[代理式 AI]] [[MCP]]
+- 第 13 段「MCP 本身不負責解決這些問題，這讓 AI Agent 出現一個很尷尬的斷點：它在資訊世界裡越來越能幹，到了金融世界卻像一個沒有身份證、沒有…」→ [[代理式 AI]] [[MCP]] [[授權書]]
+- 第 14 段「Catena Labs 的核心判斷是，AI Agent 要真正參與商業活動，必須先有金融身份。這裡的身份不能只是一組 API key；它必須…」→ [[代理式 AI]] [[Catena Labs]]
+- 第 18 段「Catena Labs 對 AI Agent 的金融化問題，有一個簡單的拆法。AI 模型本身是非確定性的。同樣的任務、相近的輸入，不同時間可…」→ [[代理式 AI]] [[Catena Labs]]
+- 第 33 段「Catena Labs 的技術底層，是它推出的 Agent Commerce Kit（ACK）。這是一套開源代理商務框架，主要由兩個協定組成…」→ [[代理商務]] [[Catena Labs]]
+- 第 35 段「ACK-ID 的核心，是讓每一個 AI Agent 擁有可以驗證的數位身份。它基於 W3C 的去中心化身份識別碼（DIDs）與可驗證憑證（V…」→ [[代理式 AI]] [[可驗證憑證]]
+- 第 42 段「這樣設計的好處，是它可以支援多種支付方式。法幣可以走 ACH、電匯或卡網，數位資產可以走 USDC 這類穩定幣網路。對代理來說，底層 rai…」→ [[穩定幣]] [[USDC]]
+- 第 52 段「共同創辦人兼 CEO Sean Neville，是 Circle 的共同創辦人之一。Circle 後來成為 USDC 背後最重要的公司之一，…」→ [[穩定幣]] [[USDC]] [[Circle]]
+- 第 53 段「這段背景對 Catena 很重要，穩定幣早期面對的問題，和 AI Agent 金融化有相似之處。當時市場要解釋的是，一個運行在區塊鏈上的美元…」→ [[穩定幣]] [[代理式 AI]]
+- 第 56 段「CTO Matt Venables 也來自 Circle。他曾任 Circle 產品工程高級副總裁，參與 USDC 早期核心技術架構開發。C…」→ [[USDC]] [[Circle]] [[PayPal]] [[Block]] [[Brex]] [[Meta]]
+- 第 59 段「另一個關鍵人物是 Sharda Caro Del Castillo。她擔任 Catena 的首席法律兼商務官，過去有超過 25 年金融科技法…」→ [[PayPal]] [[Wells Fargo]]
+- 第 60 段「這個組合很少見，一般 AI 新創團隊通常強在模型、產品或成長。Catena 的核心團隊則集中在穩定幣、支付、帳本、合規與監管。這些能力看起來…」→ [[穩定幣]] [[代理式 AI]]
+- 第 62 段「這條路很難，但也對應到更大的市場位置，如果 AI Agent 未來真的成為企業營運的一部分，金融基礎設施不會只是一個附加功能。它會變成代理商…」→ [[代理式 AI]] [[代理商務]]
+- 第 63 段「Catena Labs 融資與 OCC 牌照：4800 萬美元如何走向 Catena Trust Bank…」→ [[OCC]] [[Catena Labs]]
+- 第 65 段「Catena Labs 到目前為止已經完成兩輪重要融資，種子輪金額為 1,800 萬美元，由 a16z crypto 領投。2026 年 5…」→ [[General Catalyst]] [[a16z crypto]] [[Coinbase Ventures]] [[Catena Labs]]
+- 第 67 段「投資人組合也值得看的原因是 a16z crypto 連續兩輪支持，顯示 crypto VC 把 AI Agent 與鏈上支付、穩定幣清算的結…」→ [[穩定幣]] [[代理式 AI]] [[General Catalyst]] [[a16z crypto]]
+- 第 69 段「但 Catena 真正的大動作，是 2026 年 5 月的 OCC 申請。根據公開申請文件，文件日期為 2026 年 5 月 18 日，公開…」→ [[OCC]] [[國家信託銀行]]
+- 第 72 段「Catena 申請國家信託銀行牌照，代表它想往更底層走，如果獲得 OCC 批准，Catena Trust Bank 將能在聯邦監管框架下提供…」→ [[穩定幣]] [[OCC]] [[KYC]] [[FDIC]] [[國家信託銀行]]
+- 第 76 段「第三，它有機會定義 AI Agent 的金融身份標準。當代理身份可以和受監管金融機構的 KYC 流程結合，ACK-ID 就不只是技術憑證，也…」→ [[代理式 AI]] [[KYC]]
+- 第 82 段「第一類競爭者，是像 Crossmint 這樣的代理支付與錢包基礎設施公司。它們強在讓 AI Agent 更快取得支付工具，例如錢包、卡片、穩…」→ [[穩定幣]] [[代理式 AI]] [[Crossmint]]
+- 第 83 段「第二類競爭者，是 Stripe、Visa、Mastercard 這些傳統支付網路與大型支付平台。它們擁有商戶網路、支付路由、風控能力與企業客…」→ [[Visa]] [[Stripe]] [[Mastercard]] [[代理式 AI]]
+- 第 85 段「Catena 的獨特位置，在於它試圖把這幾塊拼在一起，它有開源協定，能吸引開發者。它有商業平台，能服務企業。它有穩定幣與帳本背景，理解機器速…」→ [[穩定幣]] [[OCC]]
+- 第 89 段「OCC 對新型金融機構的審查不會只看技術願景。它會看資本、治理、風控、合規能力、業務範圍與管理團隊。Catena 有強團隊與資金支持，但國家…」→ [[OCC]] [[國家信託銀行]]
+- 第 108 段「Catena 團隊的 USDC 背景，讓這家公司特別值得觀察。穩定幣過去常被放在加密交易、跨境匯款、美元資產配置的脈絡裡討論。這些場景都成立…」→ [[穩定幣]] [[USDC]] [[代理式 AI]]
+- 第 111 段「但穩定幣只有清算速度還不夠。金融機構還需要知道誰在用、為什麼用、用到哪裡去。Catena 把 ACK-ID、ACK-Pay 和信託銀行牌照放…」→ [[穩定幣]] [[代理商務]]
+- 第 112 段「這件事如果做成，穩定幣的敘事會從「更快的美元」往前走一步，變成「AI Agent 的資金執行環境」。…」→ [[穩定幣]] [[代理式 AI]]
+- 第 114 段「Catena 最有趣的地方，是它沒有只停在產品層。很多新創會先做一個好用工具，再慢慢補合規。Catena 的路徑比較重，從一開始就把開源協定…」→ [[穩定幣]] [[OCC]]
+- 第 121 段「Catena Labs 是一家聚焦 AI Agent 金融基礎設施的 fintech 公司。它的核心定位是建立代理身份、付款收據、資金規則與…」→ [[代理式 AI]] [[Catena Labs]]
+- 第 125 段「Catena Labs 向 OCC 申請 Catena Trust Bank，代表它想從 BaaS 合作模式往受聯邦監管的信託銀行層移動。這…」→ [[穩定幣]] [[OCC]] [[KYC]] [[Catena Labs]]
+- 第 127 段「Crossmint 更接近 AI Agent 的支付工具與錢包基礎設施，重點在於讓代理能付款。Catena Labs 的切入點更偏底層，重點…」→ [[代理式 AI]] [[Crossmint]] [[Catena Labs]]
 
 ## 作者觀點
 - 作者認為 AI Agent 進入金融後，效率退居第二，第一題是問責。

@@ -1,10 +1,20 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 4
 ---
 # AWS
 
-## 事實
+分類：[[美國]] · [[科技平台／AI 公司]]（周邊）
+
+## 誰對它做了什麼
+- [[DORA]] → 影響
+
+## 相關事實
 - AWS聯合Coinbase與Stripe於2026年5月7日發表Amazon Bedrock AgentCore Payments，整合x402。（[[2026-05-14 當 AI 開始刷卡：KYA 框架如何成為下一個十年支付戰場的護城河]]）
 
 ## 出現在

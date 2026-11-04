@@ -1,13 +1,20 @@
 ---
-kind: protocol
+region: "跨國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "鏈上金融"
 mentions: 4
 ---
 # Aave
 
-## 關係
+分類：[[跨國]] · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 屬於 → [[DeFi]]
 
-## 事實
+## 相關事實
 - 全球穩定幣總市值已突破 2,000 億美元，但 Aave 與 Compound 的 USDC 存款年化收益約 2%，聯準會基準利率則維持在 4-5%。（[[2026-02-05 AlloyX：從加密新創到 3.5 億美元併購案，RWA 賽道的香港黑馬]]）
 - Kelp DAO遭駭2.92億美元、Aave吞下近2億壞帳，全產業成立DeFi United救援基金。（[[2026-04-26 一週金融科技新聞 244｜FinLLM國家隊、全齡金融]]）
 - Whop Treasury 於 3 月 25 日推出，賣家可將餘額轉為 Plasma 鏈上的 USDT0 存入 Aave，上線時標榜年化收益最高 6%，無存款保險。（[[2026-10-29 Whop：從賣搶鞋機器人起家，替 2.5 萬名網路賣家收款、找流量、發錢給切片剪輯師]]）

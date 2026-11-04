@@ -1,15 +1,26 @@
 ---
-kind: protocol
+region: "美國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 6
 ---
 # AP2
 
 Google 的 Agent Payments Protocol，以加密簽章委託書證明用戶授權。
 
-## 關係
+分類：[[美國]]
+
+## 它對誰做了什麼
 - 整合 → [[x402]]
 
-## 事實
+## 誰對它做了什麼
+- [[Google]] → 推出/發布
+- [[Crossmint]] → 整合
+
+## 相關事實
 - AP2 的委託書分為 Intent Mandate、Cart Mandate、Payment Mandate 三層。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - Coinbase 已整合 x402 推出 Agentic Wallets，Google 發布支援穩定幣的代理支付協議 AP2。（[[2026-03-15 一週金融科技新聞 238｜AI代理微支付、代幣化閘道]]）
 - Google AP2 聯合超過 60 家組織開發，包含 Mastercard、American Express、PayPal、Salesforce 與 Coinbase。（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）

@@ -1,13 +1,20 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "中游｜資金中介"
+sector: "資產管理／基金／投信"
+blockchain: "無"
 mentions: 5
 ---
 # BlackRock
 
-## 關係
+分類：[[美國]] · [[資產管理／基金／投信]]（中游｜資金中介）
+
+## 它對誰做了什麼
 - 加入 → [[Open Standard]]
 
-## 事實
+## 相關事實
 - Anthropic 9 月 14 日推出 Claude for Financial Advisors，涵蓋 BlackRock、Charles Schwab、Addepar、Orion 等服務。（[[2026-09-20 一週金融科技新聞 265｜加密支付、股票上鏈]]）
 - 逾 20 家基石投資人（含 BlackRock、國際金融公司）承諾認購 365 億披索，約佔基本發行量的 68.8%。（[[2026-10-08 GCash：4,150 萬人的主帳戶要上市，最終定價只有上限價的六成六]]）
 

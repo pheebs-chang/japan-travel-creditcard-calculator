@@ -1,16 +1,23 @@
 ---
-kind: concept
+region: "跨國"
+region_detail: null
+entity_type: "概念"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 3
 ---
 # RAG
 
 檢索增強生成，先從內部驗證知識庫檢索再生成回答以降低幻覺
 
-## 關係
+分類：[[跨國]]
+
+## 它對誰做了什麼
 - 降低 → [[幻覺]]
 - 消除 → [[代理式 AI]]
 
-## 事實
+## 相關事實
 - 本集討論三大關鍵技術使AI代理現在才落地，包含SLM、RAG與分層隱私架構。（[[2026-04-15 EP49.【知識深談】從前端客服到後台自動化：代理式 AI 重塑銀行的底層防線]]）
 
 ## 出現在

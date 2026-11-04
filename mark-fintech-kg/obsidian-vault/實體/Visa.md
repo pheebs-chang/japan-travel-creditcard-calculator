@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "上游｜金融基礎設施"
+sector: "支付網路／卡組織／跨行網路"
+blockchain: "無"
 mentions: 33
 ---
 # Visa
 
-## 關係
+分類：[[美國]] · [[支付網路／卡組織／跨行網路]]（上游｜金融基礎設施）
+
+## 它對誰做了什麼
 - 合作 → [[Bridge]]
 - 擴展 → [[機器支付協議]]
 - 推出 → [[Visa Intelligent Commerce]]
@@ -17,7 +24,17 @@ mentions: 33
 - 警告脫媒/研究 → [[AI 代理支付]]
 - 推進 → [[KYA]]
 
-## 事實
+## 誰對它做了什麼
+- [[Rain]] → 合作/結算
+- [[PayPay]] → 合作
+- [[MaiCoin]] → 合作
+- [[Mastercard]] → 對比
+- [[X Money]] → 合作
+
+## 相關政策事件
+- 2025-03 歐盟｜監理方向｜ECB首席經濟學家Lane警告依賴美國卡組織（[[2026-03-12 歐洲支付獨立戰：16 家銀行出資 6.69 億歐元，用 Wero 撬動 Visa 與 Mastercard 的 24 兆歐元帝國]]）
+
+## 相關事實
 - UCP 聯盟包含 Shopify、Walmart、Target、Etsy、Wayfair、Visa、Mastercard、American Express、Adyen 乃至 Stripe，超過 20 家夥伴。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 信用卡感應由台新銀行與 Visa、Mastercard、JCB 進行半年試營運，北捷預計 7 月全面開放並新增銀聯、大來卡、發現卡及 Apple Pay ECP。（[[2026-01-29 北捷「乘車碼」正式上路：ABT 架構如何改寫通勤體驗]]）
 - Visa 與 Stripe 旗下的 Bridge 宣布將穩定幣 Visa 卡擴展至全球逾 100 個國家。（[[2026-03-08 一週金融科技新聞 237｜加密直連聯準會、預測市場攻華爾街]]）

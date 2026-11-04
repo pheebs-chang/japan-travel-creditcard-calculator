@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "其他國外"
+region_detail: "瑞士"
+entity_type: "公司／機構"
+layer: "中游｜資金中介"
+sector: "保險"
+blockchain: "無"
 mentions: 2
 ---
 # Zurich
 
-## 事實
+分類：[[其他國外]] · [[保險]]（中游｜資金中介）
+
+## 相關事實
 - 2025 年 AXA、Allianz、Munich Re、Zurich 與 Chubb 合計控有 35.5% 市場份額，AXA 以 9.34% 居首。（[[2026-06-25 參數型保險的革命：當颱風還沒走，理賠金已經到帳]]）
 - The Insurer 報導 Beazley 提供承保能量，單一保單最高 5,000 萬美元；Zurich 於 2026 年 10 月 1 日以 81 億英鎊完成收購 Beazley。（[[2026-10-20 AIUC：先扛過上千次紅隊攻擊才能投保，AI 代理的「驗車制度」怎麼運作]]）
 

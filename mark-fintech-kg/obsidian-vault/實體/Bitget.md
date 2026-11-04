@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "其他國外"
+region_detail: "塞席爾"
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # Bitget
 
-## 事實
+分類：[[其他國外]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 相關事實
 - 幣安、Bybit、Bitget、MEXC 在 SpaceX 掛牌當天取消代幣化 Pre-IPO 認購並全額退款，因上游 xStocks 拿不到足夠配額並把現貨優先給 Kraken 客戶。（[[2026-06-14 一週金融科技新聞 251｜AI 代理管錢、代幣化搶 IPO 翻車]]）
 - Bitget 遭駭後暫停提領，Magic Eden 因舊支付合約遺留授權出現風險。（[[2026-09-27 一週金融科技新聞 266｜存款代幣、AI 代理購物]]）
 

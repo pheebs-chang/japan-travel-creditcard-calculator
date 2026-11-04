@@ -1,16 +1,28 @@
 ---
-kind: protocol
+region: "跨國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 3
 ---
 # UCP
 
 Google 的通用商務協議，定位為「商務世界的 DNS」的開放標準。
 
-## 關係
+分類：[[跨國]]
+
+## 它對誰做了什麼
 - 整合 → [[MCP]]
 - 對比 → [[ACP]]
 
-## 事實
+## 誰對它做了什麼
+- [[Google]] → 推出/發布
+- [[Shopify]] → 支持
+- [[Walmart]] → 支持
+
+## 相關事實
 - 2026 年 1 月 11 日 Sundar Pichai 在 NRF 2026 宣布 Google 的 UCP。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - UCP 聯盟包含 Shopify、Walmart、Target、Etsy、Wayfair、Visa、Mastercard、American Express、Adyen 乃至 Stripe，超過 20 家夥伴。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 逾百萬家 Shopify 商戶的商品將陸續接入 ChatGPT 即時結帳，且 Shopify 全平台商家自動具備 UCP 支援。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）

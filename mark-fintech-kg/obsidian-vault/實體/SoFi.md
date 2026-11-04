@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "中游｜資金中介"
+sector: "純網銀／數位銀行"
+blockchain: "無"
 mentions: 5
 ---
 # SoFi
 
-## 事實
+分類：[[美國]] · [[純網銀／數位銀行]]（中游｜資金中介）
+
+## 相關事實
 - SoFi 10 月 22 日宣布推出 SoFi Earn（代號 SOFIE），每單位代表 SoFi Bank 的一美元存款，公告年化收益率 4.40%。（[[2026-10-25 一週金融科技新聞 270｜金融資安修補、存款代幣化]]）
 - SOFIE 自公告起向 SoFi Crypto 會員分批開放，推展期至十一月。（[[2026-10-25 一週金融科技新聞 270｜金融資安修補、存款代幣化]]）
 

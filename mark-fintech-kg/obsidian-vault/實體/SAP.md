@@ -1,10 +1,21 @@
 ---
-kind: company
+region: "歐盟"
+region_detail: "德國"
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 2
 ---
 # SAP
 
-## 事實
+分類：[[歐盟]] · [[科技平台／AI 公司]]（周邊）
+
+## 誰對它做了什麼
+- [[SUPLEX]] → 整合
+- [[中國信託]] → 合作
+
+## 相關事實
 - BSOS 的 SUPLEX 平台整合 SAP ERP，已與 Adidas、Intel 合作，完成超過 2,000 萬美元交易量，服務超過 350 家企業。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）
 - 中國信託銀行與 SAP、IBM 推出數位化供應鏈金融方案，透過 SAP BTP 平台 6 到 8 週即可完成部署與 ERP 對接。（[[2026-03-24 貨櫃裡的金融革命：IoT、區塊鏈與即時結算如何讓全球供應鏈的錢動起來]]）
 

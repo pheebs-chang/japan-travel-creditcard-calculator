@@ -1,12 +1,22 @@
 ---
-kind: concept
+region: "跨國"
+region_detail: null
+entity_type: "概念"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 4
 ---
 # AI 幻覺
 
 LLM 是預測下一個字的機率性機器，是在模仿推理而非進行推理，因而會產生錯誤內容。
 
-## 事實
+分類：[[跨國]]
+
+## 相關政策事件
+- 2026-04 美國｜監理方向｜波克夏與安達獲准縮減或終止AI相關風險承保（[[2026-06-30 Corgi：一隻柯基如何用 AI 重做企業保險，把兩週流程變成十分鐘]]）
+
+## 相關事實
 - Amazon 測試的 AI 購物代理曾對一家文具店下單其未販售的商品。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 
 ## 出現在

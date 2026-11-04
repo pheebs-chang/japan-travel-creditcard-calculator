@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "英國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "金融科技技術供應商"
+blockchain: "無"
 mentions: 2
 ---
 # Sumsub
 
-## 關係
+分類：[[英國]] · [[金融科技技術供應商]]（周邊）
+
+## 它對誰做了什麼
 - 疊加 → [[KYC]]
 
 ## 出現在

@@ -1,10 +1,20 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "技術"
 mentions: 3
 ---
 # Chainalysis
 
-## 事實
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[技術]]
+
+## 誰對它做了什麼
+- [[Polymarket]] → 合作
+
+## 相關事實
 - Polymarket 4月30日與Chainalysis簽約導入機構級交易監控，並進行4億美元新一輪募資、目標150億美元估值。（[[2026-05-03 一週金融科技新聞 245｜保險地端 AI、預測市場掛 ETF]]）
 - 台灣刑事警察局與國稅局已引入Chainalysis、TRM Labs及CT Wallet Scan等鏈上追蹤工具。（[[2026-05-26 2026 加密貨幣報稅指南：OECD CARF 上路後，台灣散戶的「灰色報稅季」倒數]]）
 

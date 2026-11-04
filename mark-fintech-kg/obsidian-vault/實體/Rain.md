@@ -1,16 +1,27 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 3
 ---
 # Rain
 
-## 關係
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 合作/結算 → [[Visa]]
 - 使用 → [[USDC]]
 - 對比 → [[Bridge]]
 - 合作 → [[Western Union]]
 
-## 事實
+## 誰對它做了什麼
+- [[Lightspeed]] → 投資
+- [[Coinbase Ventures]] → 投資
+
+## 相關事實
 - Rain 提供由穩定幣支持的 Visa 企業信用卡，支持全球 1.5 億商戶並實現 7x24 小時鏈上結算。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）
 - 2026 年 1 月，Rain 完成 2.5 億美元融資，估值達 19.5 億美元。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）
 - 企業存入 100 萬美元 USDC，年化收益率假設 5%，每月約產生 4,166 美元利息。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）

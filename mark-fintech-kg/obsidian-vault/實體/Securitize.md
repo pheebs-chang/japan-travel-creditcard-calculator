@@ -1,13 +1,23 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # Securitize
 
-## 關係
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 合作 → [[貝萊德]]
 
-## 事實
+## 誰對它做了什麼
+- [[NYSE]] → 合作
+
+## 相關事實
 - 貝萊德的 BUIDL 透過 Securitize 上架 Uniswap，鏈上規模近 22 億美元，100% 以美國國庫券與現金為儲備，並同步購入 UNI，UNI 單日跳漲逾 23%。（[[2026-02-15 一週金融科技新聞 234｜內控三長入法、AI 代理經濟成形]]）
 
 ## 出現在

@@ -1,10 +1,20 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 3
 ---
 # Apple Pay
 
-## 事實
+分類：[[美國]] · [[科技平台／AI 公司]]（周邊）
+
+## 相關政策事件
+- 2026-03-12 歐盟｜法條法案｜歐盟DMA強制Apple開放iPhone NFC晶片（[[2026-03-12 歐洲支付獨立戰：16 家銀行出資 6.69 億歐元，用 Wero 撬動 Visa 與 Mastercard 的 24 兆歐元帝國]]）
+
+## 相關事實
 - 悠遊卡採用 MIFARE 規格，進入 Apple Pay 交通卡需高額權利金或大規模晶片升級，北捷改走 EMV 繞道戰略。（[[2026-01-29 北捷「乘車碼」正式上路：ABT 架構如何改寫通勤體驗]]）
 - 台新銀行為首階段得標廠商，透過雙北每日 200 萬人次通勤軌跡結合 Richart 數據，並為 Apple Pay ECP 測試期間唯一特權夥伴。（[[2026-01-29 北捷「乘車碼」正式上路：ABT 架構如何改寫通勤體驗]]）
 

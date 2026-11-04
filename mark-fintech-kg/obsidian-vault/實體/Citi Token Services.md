@@ -1,10 +1,17 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "中游｜資金中介"
+sector: "商業銀行"
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # Citi Token Services
 
-## 關係
+分類：[[美國]] · [[商業銀行]]（中游｜資金中介） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 屬於 → [[存款代幣]]
 
 ## 出現在

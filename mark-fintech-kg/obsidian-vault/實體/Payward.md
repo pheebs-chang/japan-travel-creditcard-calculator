@@ -1,14 +1,24 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 4
 ---
 # Payward
 
-## 關係
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 母公司為 → [[Kraken]]
 - 合作 → [[Nasdaq]]
 
-## 事實
+## 誰對它做了什麼
+- [[Kraken]] → 母公司為/擁有
+
+## 相關事實
 - 那斯達克與 Kraken 母公司 Payward 合作，以 xStocks 框架共建股票代幣化閘道，預計 2027 年上半年上線。（[[2026-03-15 一週金融科技新聞 238｜AI代理微支付、代幣化閘道]]）
 - Kraken 於 2026 年 3 月 18 日宣布暫停 IPO，四個月前以 200 億美元估值融資 8 億美元，其中 Citadel Securities 投資 2 億美元，2025 年 11 月已秘密遞交 S-1。（[[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車]]）
 - 2026 年 3 月 Kraken 母公司 Payward 宣布與 Nasdaq 合作開發股票轉換閘道，Nasdaq 代幣化設計預定 2027 年上半年運作。（[[2026-08-06 代幣化股票你買到的是真的股權還是衍生品？]]）

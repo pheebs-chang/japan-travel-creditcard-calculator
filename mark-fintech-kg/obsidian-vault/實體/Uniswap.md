@@ -1,10 +1,20 @@
 ---
-kind: protocol
+region: "跨國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # Uniswap
 
-## 事實
+分類：[[跨國]] · [[鏈上金融]]
+
+## 誰對它做了什麼
+- [[BUIDL]] → 上架
+
+## 相關事實
 - 貝萊德的 BUIDL 透過 Securitize 上架 Uniswap，鏈上規模近 22 億美元，100% 以美國國庫券與現金為儲備，並同步購入 UNI，UNI 單日跳漲逾 23%。（[[2026-02-15 一週金融科技新聞 234｜內控三長入法、AI 代理經濟成形]]）
 - BUIDL 在 Uniswap 的交易僅限資產 500 萬美元以上的合格投資人；貝萊德管理 11 兆美元資產。（[[2026-02-15 一週金融科技新聞 234｜內控三長入法、AI 代理經濟成形]]）
 - 新版 Stock Tokens 開放符合資格的使用者在超過 120 個國家透過 Robinhood Wallet 使用，可在 Uniswap、1inch 等 DEX 交易。（[[2026-08-06 代幣化股票你買到的是真的股權還是衍生品？]]）

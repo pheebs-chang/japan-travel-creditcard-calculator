@@ -1,14 +1,24 @@
 ---
-kind: product
+region: "台灣"
+region_detail: null
+entity_type: "產品／服務"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # SUPLEX
 
-## 關係
+分類：[[台灣]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 整合 → [[SAP]]
 - 連結 → [[供應鏈金融]]
 
-## 事實
+## 誰對它做了什麼
+- [[BSOS]] → 推出
+
+## 相關事實
 - BSOS 的 SUPLEX 平台整合 SAP ERP，已與 Adidas、Intel 合作，完成超過 2,000 萬美元交易量，服務超過 350 家企業。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）
 
 ## 出現在

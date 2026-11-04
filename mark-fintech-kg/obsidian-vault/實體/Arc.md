@@ -1,13 +1,23 @@
 ---
-kind: protocol
+region: "美國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "技術"
 mentions: 3
 ---
 # Arc
 
-## 關係
+分類：[[美國]] · [[技術]]
+
+## 它對誰做了什麼
 - 使用 → [[USDC]]
 
-## 事實
+## 誰對它做了什麼
+- [[Circle]] → 預售/推出
+
+## 相關事實
 - Circle 預告推出 cirBTC，首發於以太坊及自家 Arc 鏈，鎖定場外交易平台、造市商與借貸協議等機構客群。（[[2026-04-05 一週金融科技新聞 241｜虛擬資產專法、SWIFT上鏈]]）
 - Circle Arc區塊鏈代幣預售2.22億美元、完全稀釋估值30億美元，a16z crypto領投7,500萬美元。（[[2026-05-17 一週金融科技新聞 247｜TISA稅優、AI進帳本]]）
 - Circle 的 Arc 主網上線以 USDC 支付交易費，並傳出擬收購新加坡支付公司 Tazapay。（[[2026-09-20 一週金融科技新聞 265｜加密支付、股票上鏈]]）

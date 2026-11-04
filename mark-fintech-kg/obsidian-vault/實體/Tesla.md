@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "其他企業／顧問"
+blockchain: "無"
 mentions: 2
 ---
 # Tesla
 
-## 事實
+分類：[[美國]] · [[其他企業／顧問]]（周邊）
+
+## 相關事實
 - 國泰金控與 BSOS、宅電發表電動車車聯網區塊鏈金融平臺，串接 Tesla 官方 API。（[[2026-03-24 貨櫃裡的金融革命：IoT、區塊鏈與即時結算如何讓全球供應鏈的錢動起來]]）
 
 ## 出現在

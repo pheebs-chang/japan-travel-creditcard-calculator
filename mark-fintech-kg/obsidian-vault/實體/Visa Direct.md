@@ -1,10 +1,21 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "上游｜金融基礎設施"
+sector: "支付網路／卡組織／跨行網路"
+blockchain: "無"
 mentions: 2
 ---
 # Visa Direct
 
-## 事實
+分類：[[美國]] · [[支付網路／卡組織／跨行網路]]（上游｜金融基礎設施）
+
+## 誰對它做了什麼
+- [[BVNK]] → 整合
+- [[X Money]] → 依賴
+
+## 相關事實
 - Visa Ventures於2025年5月成為BVNK戰略股東；Visa Direct 2025年處理12.6億筆交易、接入12億個端點。（[[2026-05-07 BVNK：一家年化處理 300 億美元的倫敦新創如何成為支付巨頭的「保險單」]]）
 - X Money 底層由新澤西州的 Cross River Bank 提供，並透過 Visa Direct 完成即時清算。（[[2026-07-14 網友轉 25 美元給世界首富：X Money 憑什麼掀翻美國支付？]]）
 

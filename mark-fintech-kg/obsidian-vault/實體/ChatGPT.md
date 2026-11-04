@@ -1,10 +1,23 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 2
 ---
 # ChatGPT
 
-## 事實
+分類：[[美國]] · [[科技平台／AI 公司]]（周邊）
+
+## 誰對它做了什麼
+- [[盈透證券]] → 整合
+
+## 相關政策事件
+- 2026-07-12 英國｜監理方向｜FCA警告金融業導入大模型如軍備競賽（[[2026-07-12 一週金融科技新聞 255｜開放證券2.0、社群變銀行]]）
+
+## 相關事實
 - OpenAI 與 Stripe 於 2025 年 9 月發布 ACP 並在 ChatGPT 啟用即時結帳，三個月內已有數十萬款商品可購買。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 逾百萬家 Shopify 商戶的商品將陸續接入 ChatGPT 即時結帳，且 Shopify 全平台商家自動具備 UCP 支援。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 盈透證券在 6 月初上線的 Claude 之外新增 ChatGPT 與 Grok 代理交易，資產類別擴到選擇權、期貨與期貨選擇權，AI 指令集中在 AI Instructions 分頁須用戶確認。（[[2026-06-28 一週金融科技新聞 253｜四貸同堂、AI 下單]]）

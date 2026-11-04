@@ -1,14 +1,21 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "金融科技技術供應商"
+blockchain: "無"
 mentions: 2
 ---
 # Posh AI
 
-## 關係
+分類：[[美國]] · [[金融科技技術供應商]]（周邊）
+
+## 它對誰做了什麼
 - 競爭 → [[Kasisto]]
 - 競爭 → [[Talkdesk]]
 
-## 事實
+## 相關事實
 - Posh AI 成立於 2018 年，由 Karan Kashyap 與 Matt McEachern 共同創辦，早期在波士頓 DCU 金融科技創新中心孵育。（[[2026-01-15 Posh AI：銀行客服 AI 247 自動化，如何同時兼顧合規與效率？]]）
 - 截至 2026 年初，Posh AI 已獲得超過 4,500 萬美元資金，服務超過 100 家北美金融機構。（[[2026-01-15 Posh AI：銀行客服 AI 247 自動化，如何同時兼顧合規與效率？]]）
 - Posh AI 目標市場為資產規模約 5 億到 100 億美元的信用合作社與社區銀行。（[[2026-01-15 Posh AI：銀行客服 AI 247 自動化，如何同時兼顧合規與效率？]]）

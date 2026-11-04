@@ -1,10 +1,21 @@
 ---
-kind: protocol
+region: "跨國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "技術"
 mentions: 5
 ---
 # Base
 
-## 事實
+分類：[[跨國]] · [[技術]]
+
+## 誰對它做了什麼
+- [[Robinhood Chain]] → 對比
+- [[Coinbase]] → 推出
+
+## 相關事實
 - ERC-8004 主網上線後將優先擴展至 Coinbase 的 Base，後續覆蓋其他主要 L2；8004scan.io 同步上線作為代理的 Etherscan。（[[2026-02-12 ERC-8004 是什麼？以太坊 AI 代理標準主網上線，三大註冊表打造機器信任層]]）
 - Stripe 推出 AI 代理支付測試版，透過 x402 支援 Base 鏈 USDC 結算；Coinbase 發布 Agentic Wallets，支援 EVM 鏈與 Solana。（[[2026-02-15 一週金融科技新聞 234｜內控三長入法、AI 代理經濟成形]]）
 - AgentCore在Base網路上結算約需200毫秒，單筆交易成本不到一美分。（[[2026-05-14 當 AI 開始刷卡：KYA 框架如何成為下一個十年支付戰場的護城河]]）

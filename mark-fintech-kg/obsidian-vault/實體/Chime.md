@@ -1,13 +1,23 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "中游｜資金中介"
+sector: "純網銀／數位銀行"
+blockchain: "無"
 mentions: 4
 ---
 # Chime
 
-## 關係
+分類：[[美國]] · [[純網銀／數位銀行]]（中游｜資金中介）
+
+## 它對誰做了什麼
 - 使用 → [[Sierra]]
 
-## 事實
+## 誰對它做了什麼
+- [[Sierra]] → 服務
+
+## 相關事實
 - Chime 導入 Sierra 後案件解決率從 50% 提升至 70% 以上。（[[2026-02-24 當 AI 坐上駕駛座：AI 客服新創 Sierra 估值爆衝關鍵]]）
 - Chime 2025 年 6 月 12 日上市，估值 116 億美元，較 2021 年 250 億美元折價 54%，首日上漲 37%。（[[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車]]）
 

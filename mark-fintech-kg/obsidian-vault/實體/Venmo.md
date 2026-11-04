@@ -1,10 +1,20 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "下游｜通路與應用"
+sector: "電子支付／錢包"
+blockchain: "無"
 mentions: 2
 ---
 # Venmo
 
-## 事實
+分類：[[美國]] · [[電子支付／錢包]]（下游｜通路與應用）
+
+## 誰對它做了什麼
+- [[X Money]] → 對比
+
+## 相關事實
 - X 平台約有 5.7 億到 6 億月活用戶，Venmo 活躍用戶約 1 億。（[[2026-07-14 網友轉 25 美元給世界首富：X Money 憑什麼掀翻美國支付？]]）
 
 ## 出現在

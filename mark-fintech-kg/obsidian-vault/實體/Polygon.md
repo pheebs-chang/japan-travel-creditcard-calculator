@@ -1,13 +1,20 @@
 ---
-kind: protocol
+region: "跨國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "技術"
 mentions: 3
 ---
 # Polygon
 
-## 關係
+分類：[[跨國]] · [[技術]]
+
+## 它對誰做了什麼
 - 支援 → [[AP4M]]
 
-## 事實
+## 相關事實
 - RYT 於 2025 年 10 月正式上線 Polygon，對應華夏基金管理的實體貨幣市場基金，投資美國國債與高評級商業票據。（[[2026-02-05 AlloyX：從加密新創到 3.5 億美元併購案，RWA 賽道的香港黑馬]]）
 
 ## 出現在

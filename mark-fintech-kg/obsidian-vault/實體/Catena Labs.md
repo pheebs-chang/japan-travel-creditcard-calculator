@@ -1,10 +1,22 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # Catena Labs
 
-## 事實
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 誰對它做了什麼
+- [[a16z crypto]] → 投資
+- [[Coinbase Ventures]] → 投資
+- [[General Catalyst]] → 投資
+
+## 相關事實
 - Catena Labs 累計募資 4,800 萬美元，種子輪 1,800 萬美元由 a16z crypto 領投。（[[2026-06-09 Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構]]）
 - Catena Labs 於 2026 年 5 月宣布完成 3,000 萬美元 A 輪，由 Acrew Capital 與 a16z crypto 領投。（[[2026-06-09 Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構]]）
 - A 輪參投方包括 Breyer Capital、General Catalyst、QED Investors、Oak HC/FT、Fin Capital、Coinbase Ventures 和 IDG Capital。（[[2026-06-09 Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構]]）

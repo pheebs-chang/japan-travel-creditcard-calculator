@@ -1,10 +1,20 @@
 ---
-kind: concept
+region: "跨國"
+region_detail: null
+entity_type: "概念"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 2
 ---
 # 超級 App
 
 以Gold訂閱為中樞，把券商、銀行、交易所、信用卡、退休帳戶整合進同一個App的貨幣化系統
+
+分類：[[跨國]]
+
+## 誰對它做了什麼
+- [[Robinhood]] → 發展
 
 ## 出現在
 - [[2026-04-28 Robinhood：從迷因股券商到金融超級 App，420 萬訂閱戶怎麼撬動華爾街]]

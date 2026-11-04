@@ -1,14 +1,24 @@
 ---
-kind: company
+region: "其他國外"
+region_detail: "塞席爾"
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 5
 ---
 # OKX
 
-## 關係
+分類：[[其他國外]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 受制於 → [[CARF]]
 - 支援 → [[AP4M]]
 
-## 事實
+## 誰對它做了什麼
+- [[ICE]] → 投資/合資
+
+## 相關事實
 - ICE 宣布戰略投資加密交易所 OKX，CFTC 主席預告將在一個月內發布加密永續合約合法化指引。（[[2026-03-08 一週金融科技新聞 237｜加密直連聯準會、預測市場攻華爾街]]）
 - Binance、Bybit、OKX背後的核心司法管轄區全數承諾於2028年啟動首次CARF資訊交換。（[[2026-05-26 2026 加密貨幣報稅指南：OECD CARF 上路後，台灣散戶的「灰色報稅季」倒數]]）
 - AP4M 首批響應機構超過 30 家，包括 Adyen、Stripe、Checkout.com、Coinbase、OKX、Aave Labs、Polygon、Solana Foundation。（[[2026-06-14 一週金融科技新聞 251｜AI 代理管錢、代幣化搶 IPO 翻車]]）

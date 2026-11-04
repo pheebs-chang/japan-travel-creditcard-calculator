@@ -4,24 +4,13 @@ source: https://www.markreadfintech.com/p/newfront-20-agentic-ai
 ---
 # Newfront：服務 20% 美國獨角獸，Agentic AI 如何重寫兆元保險經紀產業
 
-## 提到的概念與實體
-[[代理式 AI]] [[模型漂移]] [[Blackstone]] [[Y Combinator]] [[高盛]] [[BENJI]] [[麥肯錫]] [[OpenAI]]
+## 段落與節點
+每一行是一段原文（只留開頭），後面是這段話提到的節點。
 
-## 事實
-- WTW於2025年12月10日宣布以13億美元收購Newfront，2026年1月27日完成交易。（）
-- Newfront於2017年在舊金山成立，共同創辦人為Spike Lipkin與Gordon Wintrob。（）
-- 2021年8月Newfront與ABD Insurance & Financial Services合併，合併後估值13.5億美元。（）
-- 2022年D輪由高盛與B Capital領投2億美元，估值達22億美元。（[[高盛]]）
-- Newfront服務全美約20%的獨角獸、超過950家創投支持客戶與超過150家上市公司，客戶留存率99%，年管理保費約30億美元。（）
-- Contract Review將第三方合約保險條款比對從數小時或數天壓縮到20秒。（）
-- Benji導入後每年為HR團隊節省高達4週工作量。（[[BENJI]]）
-- Newfront 2018至2024年有機營收CAGR為20%，2026年擬制營收約2.5億美元，調整後EBITDA利潤率約26%（約7,200萬美元）。（）
-- WTW對價結構為預付10.5億美元（約9億現金加1.5億股權）、或有對價2.5億、超額成長激勵1.5億、人才留任池1億美元。（）
-- 加計3,500萬美元目標成本綜效後，13億美元對應約12倍EBITDA，WTW預期2028年底前實現綜效。（）
-- Marsh McLennan市值約910億美元、Aon約750億美元、WTW約275億美元。（）
-- Aon以130億美元收購NFP，Arthur J. Gallagher以134.5億美元收購AssuredPartners，Marsh McLennan以77.5億美元併購McGriff。（）
-- Newfront商業保險部門佔營收約58%，總體薪酬部門約42%；WTW預計2026年整合成本約1.25億美元。（）
-- Newfront利用過去25年的歷史企業訴訟數據做機器學習分析，預測IPO公司的D&O最大曝險。（）
+- 第 24 段「Newfront 把 Agentic AI 整合到核心營運的方式，可從其公開的技術堆疊看出：結合機器學習、生成式 AI 與電腦視覺，搭配 G…」→ [[代理式 AI]] [[模型漂移]]
+- 第 44 段「未來的保險購買旅程也正發生不可逆的結構性改變。麥肯錫的 Claims 2030 報告指出，到 2030 年 Y 與 Z 世代(數位原住民)將…」→ [[代理式 AI]] [[McKinsey]]
+- 第 48 段「從支付、財富管理到保險，Fintech 各個次產業都在經歷一次底層架構從人力作業遷移到結構化資料 + AI 工作流的躍遷。Plaid 把銀行…」→ [[Stripe]] [[Plaid]]
+- 第 55 段「Newfront 是 2017 年在舊金山成立的科技原生保險經紀商(Modern Insurance Brokerage)，由 Spike …」→ [[代理式 AI]] [[Blackstone]]
 
 ## 作者觀點
 - Newfront併購象徵保險經紀產業從勞力密集進入算力密集的典範轉移。

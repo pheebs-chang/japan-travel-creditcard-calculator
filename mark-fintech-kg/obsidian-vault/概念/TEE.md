@@ -1,12 +1,19 @@
 ---
-kind: concept
+region: "跨國"
+region_detail: null
+entity_type: "概念"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 3
 ---
 # TEE
 
 可信執行環境，讓代理在硬體加固環境運行並提供遠程認證
 
-## 事實
+分類：[[跨國]]
+
+## 相關事實
 - 日本 NISA 每年額度 360 萬日圓，免的是帳戶內約 20.315% 的資本利得與股利稅，投入不能抵稅。（[[2026-10-23 每年 2.4 萬、鎖到 60 歲：TISA 2.0 租稅優惠到底划不划算？]]）
 
 ## 出現在

@@ -1,10 +1,20 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "下游｜通路與應用"
+sector: "收單／支付服務商"
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # USDPT
 
-## 事實
+分類：[[美國]] · [[收單／支付服務商]]（下游｜通路與應用） · [[鏈上金融]]
+
+## 誰對它做了什麼
+- [[Western Union]] → 發行
+
+## 相關事實
 - Western Union 2026 年 3 月宣布與 Crossmint 合作，支援其在 Solana 上發行的美元穩定幣 USDPT，並連結全球 200 多個國家超過 36 萬個現金提款據點。（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）
 
 ## 出現在

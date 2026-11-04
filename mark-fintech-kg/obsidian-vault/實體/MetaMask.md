@@ -1,10 +1,17 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "技術"
 mentions: 6
 ---
 # MetaMask
 
-## 事實
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[技術]]
+
+## 相關事實
 - 日本羽田機場本週開放 USDC 交易，MetaMask 穩定幣支付正式落地；巴西國會推動禁止演算法穩定幣。（[[2026-02-08 一週金融科技新聞 233｜碎片化保險、加密銀行化啟動]]）
 - Consensys 2022 年以 70 億美元估值融資 4.5 億美元，MetaMask 月活躍用戶超過 3,000 萬，MetaMask Swaps 抽 0.875% 手續費。（[[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車]]）
 - 在 MetaMask、Brave、Autograph 等 Web3 錢包入金場景，卡片與 Apple Pay 交易遭拒率平均高達五成。（[[2026-06-18 Sardine：用「打字節奏」攔下詐騙，把 50% 拒付率壓到 0.0003% 的風控基礎設施]]）

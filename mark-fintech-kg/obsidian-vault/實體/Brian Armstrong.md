@@ -1,14 +1,24 @@
 ---
-kind: person
+region: "美國"
+region_detail: null
+entity_type: "人物"
+layer: null
+sector: null
+blockchain: "鏈上金融"
 mentions: 3
 ---
 # Brian Armstrong
 
-## 關係
+分類：[[美國]] · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 反對 → [[CLARITY 法案]]
 - 領導 → [[Coinbase]]
 
-## 事實
+## 相關政策事件
+- 2026-01 美國｜法條法案｜參院農業委員會以 12 比 11 通過 CLARITY 版本（[[2026-09-29 國會喊停、SEC 開工：CLARITY 法案參院挫敗，美國加密監管走向雙軌時代]]）
+
+## 相關事實
 - CLARITY Act 參議院銀行委員會原定 1 月 15 日投票，因 Coinbase 執行長公開反對而延後。（[[2026-01-18 一週金融科技新聞 230｜支付防詐升級、穩定幣監管分歧]]）
 
 ## 出現在

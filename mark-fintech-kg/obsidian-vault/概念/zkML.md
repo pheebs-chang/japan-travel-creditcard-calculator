@@ -1,10 +1,17 @@
 ---
-kind: concept
+region: "跨國"
+region_detail: null
+entity_type: "概念"
+layer: null
+sector: null
+blockchain: "技術"
 mentions: 2
 ---
 # zkML
 
 零知識機器學習，以零知識證明保證輸出由特定模型產生
+
+分類：[[跨國]] · [[技術]]
 
 ## 出現在
 - [[2026-02-12 ERC-8004 是什麼？以太坊 AI 代理標準主網上線，三大註冊表打造機器信任層]]

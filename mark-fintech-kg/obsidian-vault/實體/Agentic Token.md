@@ -1,10 +1,20 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "上游｜金融基礎設施"
+sector: "支付網路／卡組織／跨行網路"
+blockchain: "無"
 mentions: 2
 ---
 # Agentic Token
 
 萬事達卡智慧代理代碼，為每個 AI 代理獨立發放，確保代理身份可識別、交易可追溯
+
+分類：[[美國]] · [[支付網路／卡組織／跨行網路]]（上游｜金融基礎設施）
+
+## 誰對它做了什麼
+- [[Mastercard]] → 發放/推出
 
 ## 出現在
 - [[2026-03-29 一週金融科技新聞 240｜AI代理刷卡、穩定幣禁息]]

@@ -1,14 +1,24 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 3
 ---
 # USAT
 
-## 關係
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 遵循 → [[GENIUS 法案]]
 - 挑戰 → [[USDC]]
 
-## 事實
+## 誰對它做了什麼
+- [[Tether]] → 推出
+
+## 相關事實
 - Tether 推出 USAT，由 Anchorage Digital Bank 發行，首階段於 Bybit、Crypto.com、Kraken、OKX 與 MoonPay 上線。（[[2026-02-01 一週金融科技新聞 232｜台股制度鬆綁、亞資中心擴張]]）
 - MiCA 要求穩定幣歸類為電子貨幣代幣並取得 EMI 牌照，Tether 轉而與 Anchorage 銀行在美國發行合規版 USAT。（[[2026-07-07 穩定幣圈地戰：Visa、PayPal、三星為何搶著自己發幣，把你的錢包鎖進他們的生態]]）
 

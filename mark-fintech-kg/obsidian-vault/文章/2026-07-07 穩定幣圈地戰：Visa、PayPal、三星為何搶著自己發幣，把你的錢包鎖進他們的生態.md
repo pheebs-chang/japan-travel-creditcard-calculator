@@ -4,25 +4,75 @@ source: https://www.markreadfintech.com/p/visapaypal
 ---
 # 穩定幣圈地戰：Visa、PayPal、三星為何搶著自己發幣，把你的錢包鎖進他們的生態
 
-## 提到的概念與實體
-[[穩定幣]] [[代理商務]] [[Open USD]] [[Open Standard]] [[Circle]] [[USDC]] [[Tether]] [[USDT]] [[Coinbase]] [[Visa]] [[Mastercard]] [[Stripe]] [[BlackRock]] [[Google]] [[三星電子]] [[Shopify]] [[PayPal]] [[PYUSD]] [[Venmo]] [[Paxos]] [[Robinhood]] [[USDG]] [[Maple Finance]] [[Robinhood Chain]] [[摩根大通]] [[JPM Coin]] [[Jeremy Allaire]] [[星展銀行]] [[Bridge]] [[GENIUS 法案]] [[MiCA]] [[OCC]] [[矽谷銀行]] [[USAT]] [[虛擬資產服務法]] [[金管會]] [[中央銀行]]
+## 段落與節點
+每一行是一段原文（只留開頭），後面是這段話提到的節點。
 
-## 事實
-- 2026 年 6 月 30 日 Visa、Mastercard、Stripe、BlackRock、Coinbase、Google、三星電子等超過 140 家企業宣布推出美元穩定幣 Open USD，Circle 股價當天重挫約 17%，跌至約 62 美元，較 5 月中高點腰斬。（[[Open USD]] [[Circle]] [[Open Standard]]）
-- 到 2026 年中全球穩定幣市場規模突破 3,120 億美元，樂觀預估 2030 年上看 4 兆美元。（[[穩定幣]]）
-- Coinbase 可分走存放於其平台 USDC 約一半的儲備利息，2024 年 Circle 付給 Coinbase 9.08 億美元分銷費用，佔 Circle 營收五成以上。（[[Coinbase]] [[Circle]] [[USDC]]）
-- 2023 年矽谷銀行倒閉期間，Circle 因部分儲備暴露於該行，USDC 一度脫錨跌到 0.86 美元。（[[USDC]] [[矽谷銀行]] [[Circle]]）
-- Facebook 的 Libra（後更名 Diem）2019 年登場，遭各國央行與監理機關圍剿，2022 年拆售。（）
-- 摩根大通 2019 年推出僅限機構客戶、在私有鏈流通的 JPM Coin。（[[摩根大通]] [[JPM Coin]]）
-- PYUSD 由 Paxos 發行，2026 年已擴展到約 70 個市場，並與 Braintree 清算網路整合。（[[PayPal]] [[PYUSD]] [[Paxos]]）
-- Robinhood 整合 Paxos 發行的 USDG，Robinhood Earn 向存入 USDG 的零售用戶提供高達約 7% 年化，透過 Morpho 保險庫與 Spark 路由，Maple 在 Robinhood Chain 部署 syrupUSDG。（[[Robinhood]] [[USDG]] [[Maple Finance]]）
-- USDG 的平台夥伴最多可獲得其引導餘額所生收益的 100%。（[[USDG]]）
-- 法國興業 SG-FORGE 發行 EURCV 與 USDCV；德意志銀行 DWS 與 Flow Traders、Galaxy Digital 成立 AllUnity 發行歐元穩定幣 EURAU，取得 BaFin 的 EMI 授權並符合 MiCA。（）
-- Open Standard 由 Stripe 於 2024 年收購的 Bridge 團隊主導，Stripe 承諾把 Open USD 設為平台預設幣。（[[Open Standard]] [[Bridge]] [[Stripe]] [[Open USD]]）
-- GENIUS 法案 2025 年簽署，要求發行主體為受聯邦監管的儲蓄機構子公司或 OCC 特許信託機構，儲備不低於 1:1，並對非金融主業上市公司設防火牆。（[[GENIUS 法案]] [[OCC]]）
-- MiCA 要求穩定幣歸類為電子貨幣代幣並取得 EMI 牌照，Tether 轉而與 Anchorage 銀行在美國發行合規版 USAT。（[[MiCA]] [[Tether]] [[USAT]]）
-- 台灣 2026 年 6 月 30 日三讀的虛擬資產服務法要求穩定幣發行人向金管會申請許可且須先經央行同意，準備資產十足並信託保管，發行人不得支付任何形式的利息或收益，子法最快 2027 年第一季上路。（[[虛擬資產服務法]] [[金管會]] [[中央銀行]] [[穩定幣]]）
-- 假設平台引導 100 億美元穩定幣餘額，在 4% 美債殖利率下儲備一年產生約 4 億美元利息。（）
+- 第 2 段「收益分潤： Open USD 由 140 家巨頭共推，把儲備利息回饋給合夥人、鑄造零手續費，直接拆掉發行商靠利差獨吞的商業模式，Circle…」→ [[Circle]] [[Open USD]]
+- 第 3 段「鎖定飛輪： 發自有幣的真正目的不是利息，而是掌握帳戶餘額沉澱。Robinhood 用 USDG 給散戶約 7% 年化，把資產牢牢鎖進自家鏈上…」→ [[Robinhood]] [[USDG]]
+- 第 4 段「利差紅利： 穩定幣儲備買美國國債，一年產出數十億美元利息。這筆錢過去由發行商賺走，但連 Circle 都得把其中約一半分給通路夥伴 Coin…」→ [[穩定幣]] [[Coinbase]] [[Circle]]
+- 第 5 段「產業圈地： 從跨國銀行（法國興業 EURCV）、資產管理（德意志銀行 DWS 的 EURAU）、支付（PayPal PYUSD）到硬體帝國（…」→ [[PayPal]] [[PYUSD]]
+- 第 6 段「難但值得： 美國 GENIUS 法案與歐盟 MiCA 雙重門檻，加上流動性冷啟動，自建其實很難。但即使降息、利差收窄，業務融合與客戶黏著仍撐…」→ [[GENIUS 法案]] [[MiCA]] [[歐盟]]
+- 第 7 段「2026 年 6 月 30 日，一份成員名單震動了整個支付產業。Visa、Mastercard、Stripe、BlackRock、Coinb…」→ [[穩定幣]] [[Visa]] [[Coinbase]] [[Stripe]] [[Mastercard]] [[Circle]] [[Google]] [[BlackRock]] [[三星電子]] [[Open USD]]
+- 第 8 段「這個反應說明了一件事。市場突然意識到，過去兩年撐起 Circle 商業模式的那根支柱，也就是獨吞儲備利息，正被一個 140 家企業的聯盟公開…」→ [[穩定幣]] [[Circle]]
+- 第 10 段「當這麼多重量級玩家不約而同想「自己發幣」，背後就不是跟風，而是一套經過精算的戰略。這篇文章要回答三個問題。第一，明明有現成的 USDT、US…」→ [[USDC]] [[USDT]]
+- 第 14 段「穩定幣的商業模式其實很單純。用戶把美元交給發行商，發行商鑄造出等值的數位代幣，再把背後的實體儲備投入高流動性的美國國債或貨幣市場基金。用戶手…」→ [[穩定幣]] [[Circle]] [[Tether]]
+- 第 15 段「這門生意對某些企業格外刺眼，因為它們本來就手握大量在途資金。支付處理商、電商平台與券商的帳上，隨時躺著客戶尚未動用的餘額，也就是所謂的浮存（…」→ [[穩定幣]] [[Stripe]] [[Shopify]] [[代幣化]]
+- 第 17 段「最鮮明的案例藏在 Circle 與 Coinbase 的分潤合約裡。USDC 雖然由 Circle 發行，但存放在 Coinbase 平台上…」→ [[穩定幣]] [[Coinbase]] [[USDC]] [[Circle]]
+- 第 18 段「第二個動機是成本與流動性的限制。在企業級的跨境資金調撥、商戶結算與供應鏈金融裡，高頻而大額的鑄造與贖回是日常。既有發行商對大額鑄贖設有門檻，…」→ [[Open USD]] [[供應鏈金融]]
+- 第 19 段「第三個動機更隱蔽，卻更致命，那就是決策權的旁落。依賴單一發行商，意味著企業必須被動接受對方的產品路線、鏈上支持決策，以及風控黑名單政策。一旦…」→ [[USDC]] [[Circle]] [[矽谷銀行]]
+- 第 23 段「但為什麼偏偏是 2026 年。答案在於監理環境的成熟。過去穩定幣長期處在無牌照的灰色地帶，合規風險讓傳統金融與大型上市公司不敢貿然下場。20…」→ [[穩定幣]] [[GENIUS 法案]] [[MiCA]] [[歐盟]]
+- 第 43 段「Libra 的死因不是技術，而是它的規模與野心觸動了貨幣主權的神經。一家握有數十億用戶的社群平台，若真的發行一種跨國流通的貨幣，等於在主權國…」→ [[Visa]] [[央行]]
+- 第 44 段「Libra 之後，銀行業其實沒有停手，只是換了姿勢。摩根大通早在 2019 年就推出僅限機構客戶、在私有鏈上流通的 JPM Coin，用來處…」→ [[穩定幣]] [[摩根大通]] [[JPM Coin]]
+- 第 46 段「如果說 Libra 是先烈，Circle 就是這波浪潮裡最尷尬的既得利益者。USDC 一度是機構眼中最合規、最乾淨的美元穩定幣，Circle…」→ [[穩定幣]] [[USDC]] [[Circle]]
+- 第 47 段「問題在於，它的整套商業模式都建立在「不分潤」這個前提上。當 Open USD 用「分潤加零手續費」正面攻擊，Circle 的護城河瞬間顯得脆…」→ [[USDC]] [[Circle]] [[Open USD]] [[Jeremy Allaire]]
+- 第 48 段「值得關注的是 Circle 的聯盟裡，赫然坐著 Coinbase。這家每年從 Circle 分得約九億美元、與 USDC 深度綁定的夥伴，如…」→ [[Coinbase]] [[USDC]] [[Circle]]
+- 第 50 段「看懂鎖定整個生態係循環，PayPal 是最好的教材。它的 PYUSD 委託信託機構 Paxos 發行，部署於公鏈並延伸到主流二層網路，202…」→ [[PayPal]] [[Paxos]] [[PYUSD]]
+- 第 51 段「關鍵不在 PYUSD 本身，而在它接上的生態。PayPal 手握 PayPal 與 Venmo 兩大零售與商戶網路，數以億計的用戶餘額原本就…」→ [[PayPal]] [[PYUSD]] [[Venmo]]
+- 第 53 段「如果 PayPal 示範了鎖定的「支付版」，Robinhood 就示範了它的「收益版」，而且把每一環都攤開給你看。…」→ [[Robinhood]] [[PayPal]]
+- 第 54 段「Robinhood 沒有選擇自建，而是整合了 Paxos 發行、透過 Global Dollar Network（GDN）推廣的 USDG。…」→ [[穩定幣]] [[Robinhood]] [[Paxos]] [[Robinhood Chain]] [[USDG]] [[Maple Finance]]
+- 第 55 段「把這串流程接起來，就是一個運轉中的循環：用戶為了 7% 年化把錢存進 USDG，資金路由到 Morpho 與 Spark 生收益，同時 sy…」→ [[Robinhood]] [[Robinhood Chain]] [[USDG]]
+- 第 57 段「在 Open USD 的名單裡，Visa 與 Mastercard 的角色和其他人不太一樣。對國際卡組織來說，穩定幣既是機會，也是威脅。它們…」→ [[穩定幣]] [[Visa]] [[Mastercard]] [[Open USD]]
+- 第 58 段「面對這個威脅，兩家國際卡組織選擇的不是抵抗，而是把自己嵌進新軌道。與其等別人用穩定幣顛覆，不如親自參與底層基礎設施的制定，確保未來的清算流量…」→ [[穩定幣]] [[Visa]] [[Mastercard]] [[USDG]] [[Open USD]]
+- 第 61 段「法國興業銀行旗下的 SG-FORGE，自主發行了 EURCV 與 USDCV 穩定幣，合規架構部署於 Ethereum、Solana、Ste…」→ [[穩定幣]] [[SWIFT]] [[Solana]] [[代幣化]]
+- 第 62 段「另一個案例是德意志銀行資產管理子公司 DWS。它與造市商 Flow Traders、加密金融公司 Galaxy Digital 共同成立 A…」→ [[穩定幣]] [[MiCA]] [[代幣化]] [[歐盟]]
+- 第 65 段「三星電子加入了 Open Standard 聯盟，與 Visa、Stripe 共同推動 Open USD 的底層基礎設施。它的算盤很清楚：把…」→ [[穩定幣]] [[Visa]] [[Stripe]] [[三星電子]] [[Open Standard]] [[Open USD]]
+- 第 66 段「至於 Paxos，它是整張版圖的隱形樞紐。PYUSD 與 USDG 背後的發行方都是它。當一家企業想要自有品牌穩定幣，卻不想自己去申請牌照、…」→ [[穩定幣]] [[Paxos]] [[USDG]] [[PYUSD]]
+- 第 67 段「版圖上還有一批值得一提的名字。新加坡星展銀行（DBS）參與 USDG 網路，把穩定幣接進它的機構託管與財資服務；拉丁美洲的 Mercado …」→ [[穩定幣]] [[星展銀行]] [[Shopify]] [[USDG]]
+- 第 72 段「第二條是委託代工，PayPal 與 Robinhood 走的是這條。企業出品牌與通路，把發行、儲備管理與合規交給 Paxos 這類白牌信託機…」→ [[Robinhood]] [[PayPal]] [[Paxos]]
+- 第 73 段「第三條是加入聯盟共建，Open USD 就是代表。眾多企業共組一家獨立公司 Open Standard，由合夥人共組董事會治理，用集體的既有…」→ [[Open Standard]] [[Open USD]]
+- 第 74 段「Open USD 背後的 Open Standard 並非臨時拼湊。它由支付基礎設施公司 Bridge 的原班人馬主導，而 Bridge 正…」→ [[穩定幣]] [[Stripe]] [[Bridge]] [[Open Standard]] [[Open USD]]
+- 第 77 段「穩定幣發行商收到用戶的美元後，把它們投入短期美國國債等優質資產。在高利率環境下，這筆儲備一年能產生數個百分點的利息。傳統模式裡，這筆利息全歸…」→ [[穩定幣]] [[USDG]] [[Open USD]]
+- 第 79 段「讓我們算一筆，假設一個平台引導了 100 億美元的穩定幣餘額，在 4% 的美債殖利率下，這筆儲備一年產生約 4 億美元利息。傳統模式裡這 4…」→ [[穩定幣]] [[Coinbase]] [[Circle]] [[Open USD]]
+- 第 80 段「收益怎麼落到用戶手上，Robinhood 提供了最具體的技術範本。它不是自己憑空生出 7% 年化，而是把 USDG 存款透過 Morpho …」→ [[穩定幣]] [[Robinhood]] [[USDG]] [[Maple Finance]]
+- 第 81 段「可程式化這個特性，是穩定幣和傳統電子貨幣最本質的差異。傳統銀行帳戶裡的一塊錢，只能被動地被轉帳或扣款；穩定幣裡的一塊錢，卻能被寫進智慧合約，…」→ [[穩定幣]] [[代理式 AI]]
+- 第 84 段「第一道是法規。穩定幣市場已經告別無牌照經營的灰色地帶。2025 年在美國簽署生效的 GENIUS 法案，替支付型穩定幣建立了統一的聯邦框架，…」→ [[穩定幣]] [[GENIUS 法案]] [[OCC]]
+- 第 85 段「歐洲這邊，MiCA 框架要求在歐洲經濟區運作的穩定幣被歸類為電子貨幣代幣（EMT），並取得成員國監理機關頒發的 EMI 牌照。發行商必須承諾…」→ [[穩定幣]] [[MiCA]] [[Tether]] [[USDT]] [[USAT]]
+- 第 87 段「第二道是資本與流動性。發行穩定幣需要雄厚的儲備託管能力，並承擔銀行擠兌與資金託管的雙重風險。USDC 在 SVB 事件中脫錨的教訓還很新，如…」→ [[穩定幣]] [[USDC]] [[歐盟]]
+- 第 88 段「流動性還有一個更棘手的「冷啟動」難題。發行代幣只是第一步，真正難的是說服各大去中心化金融協議、交易所、商戶網關與造市商，為你的幣提供足夠的買…」→ [[Solana]] [[Base]] [[Open Standard]]
+- 第 89 段「流動性之外還有一層人的慣性。終端用戶與商戶早已習慣 USDT 與 USDC，遷移到新幣需要理由。新幣發行初期若沒有足夠的承兌場景與交易對，很…」→ [[USDC]] [[Robinhood]] [[USDT]] [[PayPal]] [[Venmo]]
+- 第 90 段「第三道是聯盟治理本身。共治模式能確保中立、避免單一發行商壟斷產品路線，卻也埋著決策癱瘓的隱患。聯盟成員如 Visa、Mastercard、S…」→ [[Visa]] [[Stripe]] [[Mastercard]] [[Google]] [[Tether]]
+- 第 95 段「從目前的實際布局來看，這批企業有很強的意願把穩定幣當成長期戰略支柱，原因不在利息，而在它們正在完成的一件更大的事：把支付底層設施代幣化。…」→ [[穩定幣]] [[代幣化]]
+- 第 96 段「Stripe 已經把 Open USD 定位成平台商戶的「預設穩定幣」。Stripe 把穩定幣嵌入日常的跨國商戶結算、海外自由接案者發薪與跨…」→ [[穩定幣]] [[Stripe]] [[Open USD]]
+- 第 97 段「更根本的支撐，來自於剛剛提到的循環。對 PayPal 與 Robinhood 這類玩家，自有幣帶來的客戶黏著、餘額沉澱與鏈上收益生態，是一套…」→ [[穩定幣]] [[Robinhood]] [[PayPal]]
+- 第 98 段「還有一層更遠的下注，關於 AI。Google、三星、IBM 這些科技巨頭看上穩定幣，是為了即將爆發的 AI 代理商務（Agentic Com…」→ [[穩定幣]] [[代理式 AI]] [[Google]] [[IBM]] [[機器對機器支付]]
+- 第 101 段「若把時間拉開來看，這場圈地戰會分三個階段推進。短期的一到兩年，是聯盟成形與流動性搶奪，Open USD 與 USDG 這類網路會用零手續費和…」→ [[穩定幣]] [[SWIFT]] [[USDG]] [[Open USD]] [[供應鏈金融]]
+- 第 103 段「Libra 在 2019 年做的事，和 Visa 們在 2026 年做的事，本質沒有天差地別，都是讓大企業把貨幣清算納進自己的體系。但 Li…」→ [[Visa]] [[GENIUS 法案]] [[Open USD]]
+- 第 104 段「這場戰爭到底在爭什麼。表面上大家在搶發幣權，實際上在搶的是「誰有資格收鑄幣稅」。過去這個特權屬於發行商，Tether 與 Circle 靠獨…」→ [[Circle]] [[Tether]] [[Open USD]]
+- 第 105 段「把視線拉回台灣。台灣的2026/06/30 三讀通過的虛擬資產服務法，對穩定幣做了一個很有意思的選擇。它把穩定幣定義為「表彰與法定貨幣價值連…」→ [[金管會]] [[穩定幣]] [[虛擬資產服務法]] [[央行]]
+- 第 106 段「把這一條，和全球這波圈地戰擺在一起看，反差非常尖銳。驅動 Open USD、驅動 Robinhood 7% 年化、驅動整個鎖定飛輪的核心引擎…」→ [[穩定幣]] [[央行]] [[Robinhood]] [[Open USD]]
+- 第 111 段「有三個核心動機。第一是把儲備利息收回來，穩定幣的儲備會買美國國債生利息，這筆錢過去由發行商賺走，而且連 Circle 都得把其中約一半分給通…」→ [[穩定幣]] [[Coinbase]] [[Circle]]
+- 第 113 段「差別在收益分配與控制權。USDT 與 USDC 是「發行商獨佔」模式，儲備利息全歸發行商，使用者只能被動接受它的產品路線與風控政策。企業自發…」→ [[穩定幣]] [[USDC]] [[USDT]]
+- 第 115 段「Open USD 是 2026 年 6 月 30 日，由 Visa、Mastercard、Stripe、BlackRock、Coinbase…」→ [[穩定幣]] [[Visa]] [[Coinbase]] [[USDC]] [[Stripe]] [[Mastercard]] [[Circle]] [[Google]] [[BlackRock]] [[Open Standard]] [[Open USD]]
+- 第 119 段「分產業來看。支付與金融科技有 PayPal 的 PYUSD；數位券商有 Robinhood 整合的 USDG；跨國銀行有法國興業 SG-FO…」→ [[Robinhood]] [[PayPal]] [[Paxos]] [[USDG]] [[Open USD]] [[PYUSD]]
+- 第 121 段「相當困難，要跨過三道牆。法規上，美國 GENIUS 法案限制非金融巨頭直接發行，歐盟 MiCA 要求取得電子貨幣機構（EMI）牌照。資本與流…」→ [[GENIUS 法案]] [[MiCA]] [[Paxos]] [[歐盟]]
+- 第 123 段「可以，但門檻很高。2026 年 6 月 30 日三讀通過的《虛擬資產服務法》規定，發行穩定幣須向金管會申請許可，且事前須經中央銀行同意；準備…」→ [[金管會]] [[穩定幣]] [[虛擬資產服務法]] [[央行]]
+
+## 政策事件
+- 2026-06-30 台灣｜法條法案｜立法院三讀通過虛擬資產服務法
+- 2026 歐盟｜法條法案｜MiCA 由實施階段邁入全面執法
+- 2026-07-07 歐盟｜監理方向｜AllUnity的EURAU獲BaFin EMI授權
+- 2025-07 美國｜法條法案｜GENIUS Act簽署生效
+- 2019 跨國｜監理方向｜各國央行與監理機關圍剿Facebook Libra
 
 ## 作者觀點
 - 作者認為這場戰爭表面在搶發幣權，實際在搶誰有資格收鑄幣稅，Open USD 把發行商從收租者打回工具人，價值流向最靠近用戶、最能鎖住餘額的一端。

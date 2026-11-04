@@ -1,15 +1,31 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "金融科技技術供應商"
+blockchain: "無"
 mentions: 2
 ---
 # Sierra
 
-## 關係
+分類：[[美國]] · [[金融科技技術供應商]]（周邊）
+
+## 它對誰做了什麼
 - 服務 → [[Rocket Mortgage]]
 - 服務 → [[Ramp]]
 - 服務 → [[Chime]]
 
-## 事實
+## 誰對它做了什麼
+- [[Bret Taylor]] → 共同創辦/創辦
+- [[Sequoia Capital]] → 投資
+- [[Ramp]] → 使用
+- [[Chime]] → 使用
+- [[Brex]] → 使用
+- [[Rocket Mortgage]] → 使用
+- [[Talkdesk]] → 競爭
+
+## 相關事實
 - Sierra 成立 21 個月 ARR 突破 1 億美元，累計融資 6.35 億美元，估值從種子輪約 10 億美元升至 100 億美元。（[[2026-02-24 當 AI 坐上駕駛座：AI 客服新創 Sierra 估值爆衝關鍵]]）
 - 2024 年 2 月 Sierra 完成 1.1 億美元種子輪（Sequoia 與 Benchmark 領投），同年 10 月 Greenoaks 領投 1.75 億美元 A 輪估值 45 億美元，2025 年 9 月 3.5 億美元 B 輪估值 100 億美元。（[[2026-02-24 當 AI 坐上駕駛座：AI 客服新創 Sierra 估值爆衝關鍵]]）
 - Sierra 的模型星座同時使用超過 15 個不同的 AI 模型。（[[2026-02-24 當 AI 坐上駕駛座：AI 客服新創 Sierra 估值爆衝關鍵]]）

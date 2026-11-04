@@ -1,15 +1,26 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 13
 ---
 # OpenAI
 
-## 關係
+分類：[[美國]] · [[科技平台／AI 公司]]（周邊）
+
+## 它對誰做了什麼
 - 推出 → [[ACP]]
 - 合作 → [[Paradigm]]
 - 使用 → [[Tempo]]
 
-## 事實
+## 誰對它做了什麼
+- [[Mastercard]] → 合作
+- [[國泰金]] → 合作
+
+## 相關事實
 - OpenAI 與 Stripe 於 2025 年 9 月發布 ACP 並在 ChatGPT 啟用即時結帳，三個月內已有數十萬款商品可購買。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 商家須在 chatgpt.com/merchants 註冊並將產品數據推送至 OpenAI 的中央索引庫。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - EVMBench 從 40 場審計競賽中精選 120 個漏洞樣本，涵蓋漏洞偵測、程式碼修補與漏洞重現三類任務，已於 GitHub 開源。（[[2026-02-22 一週金融科技新聞 235｜AI進軍區塊鏈、全天候加密交易]]）

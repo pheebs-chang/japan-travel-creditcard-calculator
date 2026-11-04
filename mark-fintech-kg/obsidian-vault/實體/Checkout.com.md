@@ -1,11 +1,21 @@
 ---
-kind: company
+region: "英國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "下游｜通路與應用"
+sector: "收單／支付服務商"
+blockchain: "無"
 mentions: 3
 ---
 # Checkout.com
 
-## 關係
+分類：[[英國]] · [[收單／支付服務商]]（下游｜通路與應用）
+
+## 它對誰做了什麼
 - 支援 → [[AP4M]]
+
+## 誰對它做了什麼
+- [[Mastercard]] → 整合
 
 ## 出現在
 - [[2026-05-14 當 AI 開始刷卡：KYA 框架如何成為下一個十年支付戰場的護城河]]

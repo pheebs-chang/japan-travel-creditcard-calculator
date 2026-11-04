@@ -1,15 +1,28 @@
 ---
-kind: protocol
+region: "美國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "技術"
 mentions: 4
 ---
 # Tempo
 
-## 關係
+分類：[[美國]] · [[技術]]
+
+## 它對誰做了什麼
 - 推出 → [[機器支付協議]]
 - 支援 → [[USDC]]
 - 支援 → [[USDT]]
 
-## 事實
+## 誰對它做了什麼
+- [[Stripe]] → 孵化/合作
+- [[Paradigm]] → 孵化/共建
+- [[OpenAI]] → 使用
+- [[Anthropic]] → 使用
+
+## 相關事實
 - Stripe 與 Paradigm 孵化的 Tempo 上線主網並推出 MPP，主打次秒級結算、手續費低於 0.001 美元，上線之初整合超過 100 項服務。（[[2026-03-22 一週金融科技新聞 239｜養龍蝦進金融、加密資產大分類]]）
 - Visa 已擴展 MPP 以支援其卡片網路，Mastercard、Revolut、Nubank、渣打銀行正探索將跨境匯款轉向 Tempo。（[[2026-03-22 一週金融科技新聞 239｜養龍蝦進金融、加密資產大分類]]）
 - DoorDash 4月21日傳出與Tempo合作，讓近百萬名外送員與商家以穩定幣領薪及結算，業務遍及全球40多個國家。（[[2026-04-26 一週金融科技新聞 244｜FinLLM國家隊、全齡金融]]）

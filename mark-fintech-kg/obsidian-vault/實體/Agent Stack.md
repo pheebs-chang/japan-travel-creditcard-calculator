@@ -1,13 +1,23 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # Agent Stack
 
-## 關係
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 整合 → [[x402]]
 
-## 事實
+## 誰對它做了什麼
+- [[Circle]] → 發布
+
+## 相關事實
 - Circle於5月11日公布Q1營收6.94億美元並發布Agent Stack五大模組。（[[2026-05-17 一週金融科技新聞 247｜TISA稅優、AI進帳本]]）
 
 ## 出現在

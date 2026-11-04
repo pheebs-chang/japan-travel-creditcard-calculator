@@ -1,13 +1,20 @@
 ---
-kind: person
+region: "其他國外"
+region_detail: "薩爾瓦多"
+entity_type: "人物"
+layer: null
+sector: null
+blockchain: "鏈上金融"
 mentions: 2
 ---
 # Paolo Ardoino
 
-## 關係
+分類：[[其他國外]] · [[鏈上金融]]
+
+## 它對誰做了什麼
 - 領導 → [[Tether]]
 
-## 事實
+## 相關事實
 - Tether 於 2026 年 2 月 25 日宣布投資 Whop，估值 16 億美元；Tether 執行長 Paolo Ardoino 為 Whop 董事。（[[2026-10-29 Whop：從賣搶鞋機器人起家，替 2.5 萬名網路賣家收款、找流量、發錢給切片剪輯師]]）
 
 ## 出現在

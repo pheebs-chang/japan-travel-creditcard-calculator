@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "上游｜金融基礎設施"
+sector: "支付網路／卡組織／跨行網路"
+blockchain: "無"
 mentions: 25
 ---
 # Mastercard
 
-## 關係
+分類：[[美國]] · [[支付網路／卡組織／跨行網路]]（上游｜金融基礎設施）
+
+## 它對誰做了什麼
 - 收購 → [[BVNK]]
 - 合作 → [[星展銀行]]
 - 推出 → [[Agent Pay]]
@@ -23,7 +30,14 @@ mentions: 25
 - 推進 → [[KYA]]
 - 發表 → [[Verifiable Intent]]
 
-## 事實
+## 誰對它做了什麼
+- [[聯卡中心]] → 合辦
+- [[Visa]] → 對比
+
+## 相關政策事件
+- 2025-03 歐盟｜監理方向｜ECB首席經濟學家Lane警告依賴美國卡組織（[[2026-03-12 歐洲支付獨立戰：16 家銀行出資 6.69 億歐元，用 Wero 撬動 Visa 與 Mastercard 的 24 兆歐元帝國]]）
+
+## 相關事實
 - UCP 聯盟包含 Shopify、Walmart、Target、Etsy、Wayfair、Visa、Mastercard、American Express、Adyen 乃至 Stripe，超過 20 家夥伴。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 信用卡感應由台新銀行與 Visa、Mastercard、JCB 進行半年試營運，北捷預計 7 月全面開放並新增銀聯、大來卡、發現卡及 Apple Pay ECP。（[[2026-01-29 北捷「乘車碼」正式上路：ABT 架構如何改寫通勤體驗]]）
 - 歐元區 64% 的卡片交易由 Visa 與 Mastercard 處理，20 個成員國中有 13 國的所有卡片交易完全依賴國際卡組織。（[[2026-03-12 歐洲支付獨立戰：16 家銀行出資 6.69 億歐元，用 Wero 撬動 Visa 與 Mastercard 的 24 兆歐元帝國]]）

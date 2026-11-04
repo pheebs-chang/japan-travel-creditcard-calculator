@@ -1,13 +1,23 @@
 ---
-kind: product
+region: "美國"
+region_detail: null
+entity_type: "產品／服務"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 2
 ---
 # Grok
 
-## 關係
+分類：[[美國]] · [[科技平台／AI 公司]]（周邊）
+
+## 它對誰做了什麼
 - 屬於 → [[xAI]]
 
-## 事實
+## 誰對它做了什麼
+- [[盈透證券]] → 整合
+
+## 相關事實
 - 盈透證券在 6 月初上線的 Claude 之外新增 ChatGPT 與 Grok 代理交易，資產類別擴到選擇權、期貨與期貨選擇權，AI 指令集中在 AI Instructions 分頁須用戶確認。（[[2026-06-28 一週金融科技新聞 253｜四貸同堂、AI 下單]]）
 
 ## 出現在

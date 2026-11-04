@@ -1,10 +1,17 @@
 ---
-kind: concept
+region: "跨國"
+region_detail: null
+entity_type: "概念"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 2
 ---
 # AML
 
 反洗錢規範；銀行要確認交易是否符合此類規範
+
+分類：[[跨國]]
 
 ## 出現在
 - [[2026-06-09 Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構]]

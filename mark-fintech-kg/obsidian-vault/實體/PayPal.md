@@ -1,13 +1,23 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "下游｜通路與應用"
+sector: "電子支付／錢包"
+blockchain: "無"
 mentions: 8
 ---
 # PayPal
 
-## 關係
+分類：[[美國]] · [[電子支付／錢包]]（下游｜通路與應用）
+
+## 它對誰做了什麼
 - 發行/推出 → [[PYUSD]]
 
-## 事實
+## 誰對它做了什麼
+- [[Stripe]] → 收購
+
+## 相關事實
 - 萬事達卡收購穩定幣基礎設施新創 BVNK；PayPal 將 PYUSD 擴展至全球 70 國。（[[2026-03-22 一週金融科技新聞 239｜養龍蝦進金融、加密資產大分類]]）
 - 萬事達卡在新加坡設立 AI 卓越中心，並與 Google、OpenAI、PayPal 深化合作。（[[2026-03-29 一週金融科技新聞 240｜AI代理刷卡、穩定幣禁息]]）
 - Google AP2 聯合超過 60 家組織開發，包含 Mastercard、American Express、PayPal、Salesforce 與 Coinbase。（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）

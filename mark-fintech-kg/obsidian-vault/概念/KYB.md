@@ -1,10 +1,23 @@
 ---
-kind: concept
+region: "跨國"
+region_detail: null
+entity_type: "概念"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 2
 ---
 # KYB
 
 Know Your Business，驗證企業實體合法性與最終受益人的框架
+
+分類：[[跨國]]
+
+## 誰對它做了什麼
+- [[KYA]] → 延伸
+
+## 相關政策事件
+- 2026-09 亞洲｜監理方向｜菲律賓央行就強化支付交易完整性通函草案徵詢意見（[[2026-10-08 GCash：4,150 萬人的主帳戶要上市，最終定價只有上限價的六成六]]）
 
 ## 出現在
 - [[2026-05-14 當 AI 開始刷卡：KYA 框架如何成為下一個十年支付戰場的護城河]]

@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "加密原生企業"
+blockchain: "技術"
 mentions: 3
 ---
 # Crossmint
 
-## 關係
+分類：[[美國]] · [[加密原生企業]]（周邊） · [[技術]]
+
+## 它對誰做了什麼
 - 取得授權 → [[MiCA]]
 - 合作 → [[Western Union]]
 - 整合 → [[x402]]
@@ -14,7 +21,17 @@ mentions: 3
 - 對比 → [[Stripe]]
 - 對比 → [[Skyfire]]
 
-## 事實
+## 誰對它做了什麼
+- [[Ribbit Capital]] → 領投
+- [[Franklin Templeton]] → 投資
+- [[Deloitte]] → 使用
+- [[Mastercard]] → 選入
+
+## 相關政策事件
+- 2026-01 歐盟｜監理方向｜西班牙CNMV授予Crossmint MiCA授權（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）
+- 2026-04-07 其他國外｜政策｜馬紹爾群島推區塊鏈主權基本收入計畫ENRA（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）
+
+## 相關事實
 - Crossmint 2022 年成立於紐約，起初為 NFT 支付結帳工具，截至 2026 年已服務超過 4 萬家企業與開發者。（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）
 - 2024 年 2 月 Crossmint 併購 Y Combinator 孵化的 NFT 支付新創 Winter，帶入 Adidas、Red Bull、Etihad Airways、Johnnie Walker、AC Milan 等客戶。（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）
 - Crossmint 系統支援 50 多條區塊鏈路由，將傳統電匯手續費降低 50% 至 70%，結算時間從 3 到 5 個工作天壓縮至亞秒級。（[[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路]]）

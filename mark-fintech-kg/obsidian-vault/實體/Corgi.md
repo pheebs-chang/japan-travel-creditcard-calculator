@@ -1,14 +1,24 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "中游｜資金中介"
+sector: "保險"
+blockchain: "無"
 mentions: 2
 ---
 # Corgi
 
-## 關係
+分類：[[美國]] · [[保險]]（中游｜資金中介）
+
+## 它對誰做了什麼
 - 加入 → [[Y Combinator]]
 - 服務 → [[Deel]]
 
-## 事實
+## 相關政策事件
+- 2025-07 美國｜監理方向｜Corgi獲監管批准成為持牌保險承保商（[[2026-06-30 Corgi：一隻柯基如何用 AI 重做企業保險，把兩週流程變成十分鐘]]）
+
+## 相關事實
 - Corgi 由 Nico Laqua 與 Emily Yuan 於 2024 年在舊金山創立，進入 Y Combinator 2024 年夏季梯隊，創業時 Laqua 26 歲。（[[2026-06-30 Corgi：一隻柯基如何用 AI 重做企業保險，把兩週流程變成十分鐘]]）
 - Corgi 於 2025 年 7 月取得承保牌照，擁有並營運承保載體 Technology Risk Retention Group, Inc.（TRRG）。（[[2026-06-30 Corgi：一隻柯基如何用 AI 重做企業保險，把兩週流程變成十分鐘]]）
 - 傳統手動核保 D&O 通常需兩到四週，Corgi 五分鐘填報、十分鐘內報價、當日綁定生效並即時簽發 COI。（[[2026-06-30 Corgi：一隻柯基如何用 AI 重做企業保險，把兩週流程變成十分鐘]]）

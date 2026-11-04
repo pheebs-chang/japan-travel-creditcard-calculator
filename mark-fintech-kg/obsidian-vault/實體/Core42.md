@@ -1,10 +1,20 @@
 ---
-kind: company
+region: "其他國外"
+region_detail: "阿聯酋"
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 2
 ---
 # Core42
 
-## 事實
+分類：[[其他國外]] · [[科技平台／AI 公司]]（周邊）
+
+## 相關政策事件
+- 2026-05-12 其他國外｜政策｜CBUAE 與 Core42 推出主權金融雲 SFCSI（[[2026-05-12 FinLLM 專案：16 家金融機構共建台灣金融 AI 主權，7,000 萬預算夠嗎？]]）
+
+## 相關事實
 - CBUAE與Core42推出全球首個主權金融雲服務基礎設施，算力來自G42的Condor Galaxy，模型層為Jais。（[[2026-05-12 FinLLM 專案：16 家金融機構共建台灣金融 AI 主權，7,000 萬預算夠嗎？]]）
 
 ## 出現在

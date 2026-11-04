@@ -1,10 +1,21 @@
 ---
-kind: protocol
+region: "跨國"
+region_detail: null
+entity_type: "協議／技術標準"
+layer: null
+sector: null
+blockchain: "技術"
 mentions: 6
 ---
 # Solana
 
-## 事實
+分類：[[跨國]] · [[技術]]
+
+## 誰對它做了什麼
+- [[PayFi]] → 首選
+- [[事件合約]] → 部署於
+
+## 相關事實
 - 2024 年 7 月，Solana 基金會主席 Lily Liu 在巴黎 EthCC 大會上首次系統性提出 PayFi 概念。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）
 - Solana 憑藉 Sealevel 並行處理技術，實際吞吐量超過 2,000 TPS，單筆交易成本低於 0.01 美元，確認時間 400-600 毫秒。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）
 - Solana 在 2022 年曾發生多次宕機事件。（[[2026-03-10 PayFi 是什麼？搞懂支付金融與 DeFi 的關鍵差異]]）

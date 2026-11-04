@@ -1,15 +1,25 @@
 ---
-kind: company
+region: "其他國外"
+region_detail: "加拿大"
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 7
 ---
 # Shopify
 
-## 關係
+分類：[[其他國外]] · [[科技平台／AI 公司]]（周邊）
+
+## 它對誰做了什麼
 - 支持 → [[UCP]]
 - 支持 → [[ACP]]
 - 提供 → [[Shop Pay]]
 
-## 事實
+## 誰對它做了什麼
+- [[Google]] → 合作
+
+## 相關事實
 - UCP 聯盟包含 Shopify、Walmart、Target、Etsy、Wayfair、Visa、Mastercard、American Express、Adyen 乃至 Stripe，超過 20 家夥伴。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 逾百萬家 Shopify 商戶的商品將陸續接入 ChatGPT 即時結帳，且 Shopify 全平台商家自動具備 UCP 支援。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - Google 與 Shopify 共同開源 UCP 與 AP2，AP2 以 CartMandate 與 PaymentMandate 雙重簽章驗證付款。（[[2026-07-02 一筆比一美分還小的交易！AP4M 揭開機器支付 M2M 的清算戰場]]）

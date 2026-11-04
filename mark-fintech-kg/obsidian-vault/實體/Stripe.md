@@ -1,10 +1,17 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "下游｜通路與應用"
+sector: "收單／支付服務商"
+blockchain: "無"
 mentions: 25
 ---
 # Stripe
 
-## 關係
+分類：[[美國]] · [[收單／支付服務商]]（下游｜通路與應用）
+
+## 它對誰做了什麼
 - 共同推出 → [[ACP]]
 - 採用 → [[x402]]
 - 支援 → [[USDC]]
@@ -17,7 +24,14 @@ mentions: 25
 - 加入 → [[Open Standard]]
 - 收購 → [[PayPal]]
 
-## 事實
+## 誰對它做了什麼
+- [[Bridge]] → 隸屬
+- [[Klarna]] → 合作
+- [[Crossmint]] → 對比
+- [[Patrick Collison]] → 主持
+- [[X Money]] → 取代
+
+## 相關事實
 - OpenAI 與 Stripe 於 2025 年 9 月發布 ACP 並在 ChatGPT 啟用即時結帳，三個月內已有數十萬款商品可購買。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - UCP 聯盟包含 Shopify、Walmart、Target、Etsy、Wayfair、Visa、Mastercard、American Express、Adyen 乃至 Stripe，超過 20 家夥伴。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - Stripe 推出 AI 代理支付測試版，透過 x402 支援 Base 鏈 USDC 結算；Coinbase 發布 Agentic Wallets，支援 EVM 鏈與 Solana。（[[2026-02-15 一週金融科技新聞 234｜內控三長入法、AI 代理經濟成形]]）

@@ -1,8 +1,15 @@
 ---
-kind: person
+region: "美國"
+region_detail: null
+entity_type: "人物"
+layer: null
+sector: null
+blockchain: "無"
 mentions: 2
 ---
 # Jeremy Allaire
+
+分類：[[美國]]
 
 ## 出現在
 - [[2026-05-17 一週金融科技新聞 247｜TISA稅優、AI進帳本]]

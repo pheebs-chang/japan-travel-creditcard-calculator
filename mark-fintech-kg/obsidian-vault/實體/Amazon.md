@@ -1,14 +1,24 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 3
 ---
 # Amazon
 
-## 關係
+分類：[[美國]] · [[科技平台／AI 公司]]（周邊）
+
+## 它對誰做了什麼
 - 推出 → [[Rufus]]
 - 起訴/控告 → [[Perplexity]]
 
-## 事實
+## 相關政策事件
+- 2026-08-04 美國｜監理方向｜第九巡迴法院撤銷對 Comet 的初步禁令（[[2026-10-15 亞馬遜把 AI 擋在門外：從 Meta Muse 封鎖事件，看代理商務的入口主權、協議洗牌與拒付責任]]）
+
+## 相關事實
 - Amazon 於 2025 年 11 月對 Perplexity 提起訴訟，指控其 Comet 代理程式未經授權抓取數據。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - 2026 年起 Amazon 大幅調漲 SP-API 使用費，增加第三方開發 AI 工具成本。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - Amazon 測試的 AI 購物代理曾對一家文具店下單其未販售的商品。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）

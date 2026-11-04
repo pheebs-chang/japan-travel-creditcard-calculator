@@ -1,17 +1,30 @@
 ---
-kind: company
+region: "美國"
+region_detail: null
+entity_type: "公司／機構"
+layer: "周邊"
+sector: "科技平台／AI 公司"
+blockchain: "無"
 mentions: 14
 ---
 # Google
 
-## 關係
+分類：[[美國]] · [[科技平台／AI 公司]]（周邊）
+
+## 它對誰做了什麼
 - 推出/發布 → [[UCP]]
 - 推出/發布 → [[AP2]]
 - 組成聯盟 → [[AI 代理支付]]
 - 合作 → [[Shopify]]
 - 加入 → [[Open Standard]]
 
-## 事實
+## 誰對它做了什麼
+- [[Mastercard]] → 合作
+
+## 相關政策事件
+- 2026-04-23 歐盟｜監理方向｜歐洲三大監管機構指定 Google Cloud 為 CTPP（[[2026-04-23 合規變成競爭武器：歐洲 PSD3 與 DORA 如何讓 Fintech 市場變成贏者全拿]]）
+
+## 相關事實
 - 2026 年 1 月 11 日 Sundar Pichai 在 NRF 2026 宣布 Google 的 UCP。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）
 - ERC-8004 擴展 Google 主導的 A2A 協議：A2A 定義代理如何通訊，ERC-8004 定義代理如何互信。（[[2026-02-12 ERC-8004 是什麼？以太坊 AI 代理標準主網上線，三大註冊表打造機器信任層]]）
 - Coinbase 已整合 x402 推出 Agentic Wallets，Google 發布支援穩定幣的代理支付協議 AP2。（[[2026-03-15 一週金融科技新聞 238｜AI代理微支付、代幣化閘道]]）
