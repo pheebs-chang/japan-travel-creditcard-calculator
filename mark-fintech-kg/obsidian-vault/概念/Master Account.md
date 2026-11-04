@@ -1,0 +1,16 @@
+---
+region: "美國"
+entity_type: "概念"
+mentions: 1
+source: 逐段標記新增
+---
+# Master Account
+
+分類：[[美國]]
+
+## 提到它的段落（5）
+- [[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車#^p6|2026-04-02 ¶6]] 合規即護城河： Circle 的 GENIUS 法案背書、BitGo 的 OCC 牌照、Kraken 的 Fed Master Accoun…
+- [[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車#^p8|2026-04-02 ¶8]] 2026 年 3 月 18 日 Kraken 這家估值衝上 200 億美元、剛拿到堪薩斯城聯邦準備銀行 Master Account 的美國…
+- [[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車#^p58|2026-04-02 ¶58]] Kraken 的故事已經在文章開頭講過：200 億美元估值、Fed Master Account、Citadel Securities 的戰…
+- [[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車#^p60|2026-04-02 ¶60]] Kraken 的選擇是理性的防禦性撤退。它手中握著足夠的牌，包括 Fed Master Account 帶來的直接接入 Fedwire 結算…
+- [[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車#^p102|2026-04-02 ¶102]] 另外是合規成本的「馬太效應」。GENIUS 法案讓穩定幣合法化，同時把合規門檻拉到了只有巨頭才能負擔的高度。100% 流動資產支持、反洗錢監…

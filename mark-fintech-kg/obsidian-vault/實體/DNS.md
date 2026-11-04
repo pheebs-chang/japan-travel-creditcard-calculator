@@ -1,0 +1,16 @@
+---
+region: "跨國"
+entity_type: "協議／技術標準"
+mentions: 1
+source: 逐段標記新增
+---
+# DNS
+
+分類：[[跨國]]
+
+## 提到它的段落（5）
+- [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p10|2026-01-22 ¶10]] Pichai 宣布的「通用商務協議」（Universal Commerce Protocol, UCP），一個試圖成為「商務世界的 DNS」…
+- [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p18|2026-01-22 ¶18]] 協議對決：圍牆花園 vs. 商務 DNS…
+- [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p33|2026-01-22 ¶33]] Google 的 UCP：去中心化的商務 DNS…
+- [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p34|2026-01-22 ¶34]] Google 的 UCP 則承襲了 WWW 的精神。X 平台上的開發者將其比喻為「商務世界的 DNS」。…
+- [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p129|2026-01-22 ¶129]] Google 說 UCP 是「商務世界的 DNS」，聽起來很去中心化對吧？但別忘了，DNS 的根伺服器也是有人在管的。當 Google 掌握…

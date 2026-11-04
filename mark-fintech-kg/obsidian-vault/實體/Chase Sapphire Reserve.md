@@ -1,0 +1,16 @@
+---
+region: "美國"
+entity_type: "產品／服務"
+mentions: 1
+source: 逐段標記新增
+---
+# Chase Sapphire Reserve
+
+分類：[[美國]]
+
+## 提到它的段落（5）
+- [[2026-01-27 Bilt Rewards：讓房租變里程，4 年從 0 到 3,000 億估值的金融科技獨角獸#^p8|2026-01-27 ¶8]] 紐約曼哈頓，一個普通的月初。28 歲的 Sarah 是一名科技公司的產品經理，年薪六位數，信用分數超過 750。她剛用 Chase Sapp…
+- [[2026-01-27 Bilt Rewards：讓房租變里程，4 年從 0 到 3,000 億估值的金融科技獨角獸#^p90|2026-01-27 ¶90]] 許多 Bilt 用戶發展出了一套最優化策略：用 Bilt 卡支付房租（為了積分），每月再刷 5 筆小額交易（通常是幾美元的 Amazon 禮…
+- [[2026-01-27 Bilt Rewards：讓房租變里程，4 年從 0 到 3,000 億估值的金融科技獨角獸#^p91|2026-01-27 ¶91]] 為什麼？因為那些卡在特定類別的回饋更高。Amex Gold 的餐飲和超市是 4 倍點數，Chase Sapphire Reserve 的旅遊…
+- [[2026-01-27 Bilt Rewards：讓房租變里程，4 年從 0 到 3,000 億估值的金融科技獨角獸#^p106|2026-01-27 ¶106]] Palladium 卡直接瞄準了 Chase Sapphire Reserve 和 Amex Platinum 的市場。它的邏輯是既然用戶無…
+- [[2026-01-27 Bilt Rewards：讓房租變里程，4 年從 0 到 3,000 億估值的金融科技獨角獸#^p150|2026-01-27 ¶150]] Bilt 真正的競爭來自間接競爭者，高階旅遊信用卡。Chase Sapphire Reserve、Amex Platinum、Capital…

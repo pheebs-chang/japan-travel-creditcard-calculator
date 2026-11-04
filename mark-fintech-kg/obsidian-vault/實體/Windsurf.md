@@ -1,0 +1,16 @@
+---
+region: "美國"
+entity_type: "公司／機構"
+mentions: 1
+source: 逐段標記新增
+---
+# Windsurf
+
+分類：[[美國]]
+
+## 提到它的段落（5）
+- [[2026-07-21 Rillet 是什麼？讓 CFO 對 AI 問帳的 AI 原生會計系統，把月結從三週縮到三天#^p5|2026-07-21 ¶5]] 模式升級：客戶一年內從 100 家暴衝到 500 家以上，Mercor、Postscript、Windsurf 都在名單上；2026 年 3…
+- [[2026-07-21 Rillet 是什麼？讓 CFO 對 AI 問帳的 AI 原生會計系統，把月結從三週縮到三天#^p22|2026-07-21 ¶22]] 真正讓 Rillet 從「自動化工具」躍升為「AI 原生平台」的，是它率先推出的 Rillet Model Context Protocol…
+- [[2026-07-21 Rillet 是什麼？讓 CFO 對 AI 問帳的 AI 原生會計系統，把月結從三週縮到三天#^p32|2026-07-21 ¶32]] 實務表現替這套打法背書。截至 2026 年年中，Rillet 的客戶總數從 2025 年初的 100 家爆發式增長到 500 家以上，當中也…
+- [[2026-07-21 Rillet 是什麼？讓 CFO 對 AI 問帳的 AI 原生會計系統，把月結從三週縮到三天#^p33|2026-07-21 ¶33]] 這份客戶名單透露的訊息比數字本身更值得玩味。Mercor、Decagon、Function Health、Windsurf 這批公司有個共同…
+- [[2026-07-21 Rillet 是什麼？讓 CFO 對 AI 問帳的 AI 原生會計系統，把月結從三週縮到三天#^p62|2026-07-21 ¶62]] MCP（Model Context Protocol）是 Rillet 推出的開放協定，讓 Claude、Cursor、Windsurf 等…

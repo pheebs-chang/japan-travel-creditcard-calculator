@@ -1,0 +1,12 @@
+---
+region: "美國"
+entity_type: "公司／機構"
+mentions: 1
+source: 逐段標記新增
+---
+# Addepar
+
+分類：[[美國]]
+
+## 提到它的段落（1）
+- [[2026-09-20 一週金融科技新聞 265｜加密支付、股票上鏈#^p29|2026-09-20 ¶29]] 【4】Anthropic 於 9 月 14 日推出 Claude for Financial Advisors，整合金融平台連接器與顧問工作…

@@ -1,0 +1,12 @@
+---
+region: "跨國"
+entity_type: "公司／機構"
+mentions: 1
+source: 逐段標記新增
+---
+# BlockyDevs
+
+分類：[[跨國]]
+
+## 提到它的段落（1）
+- [[2026-07-02 一筆比一美分還小的交易！AP4M 揭開機器支付 M2M 的清算戰場#^p39|2026-07-02 ¶39]] Hedera 同樣支援 x402，但在「誰來付 Gas Fee」這個老問題上提了個巧解：部分簽署交易（Partially Signed Tr…

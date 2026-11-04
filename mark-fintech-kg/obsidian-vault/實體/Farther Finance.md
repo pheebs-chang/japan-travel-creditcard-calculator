@@ -1,0 +1,16 @@
+---
+region: "美國"
+entity_type: "公司／機構"
+mentions: 1
+source: 逐段標記新增
+---
+# Farther Finance
+
+分類：[[美國]]
+
+## 提到它的段落（5）
+- [[2026-09-22 Savvy Wealth：90 億美元資產的 AI 原生 RIA，如何讓華爾街顧問集體搬家#^p53|2026-09-22 ¶53]] 財富科技競合格局：Farther、Altruist 與三個會斷的地方…
+- [[2026-09-22 Savvy Wealth：90 億美元資產的 AI 原生 RIA，如何讓華爾街顧問集體搬家#^p57|2026-09-22 ¶57]] Savvy 最直接的對手是 Farther Finance，兩家同樣是科技型自營 RIA，同樣在挖華爾街出走的明星顧問。Farther 在 …
+- [[2026-09-22 Savvy Wealth：90 億美元資產的 AI 原生 RIA，如何讓華爾街顧問集體搬家#^p67|2026-09-22 ¶67]] 過去十年的財富科技投資人都在打客戶端。Wealthfront 與 Betterment 那一代的論述是用演算法把顧問這個成本項目拿掉，直接用…
+- [[2026-09-22 Savvy Wealth：90 億美元資產的 AI 原生 RIA，如何讓華爾街顧問集體搬家#^p85|2026-09-22 ¶85]] Savvy Wealth 與 Farther Finance、Altruist 差在哪裡？…
+- [[2026-09-22 Savvy Wealth：90 億美元資產的 AI 原生 RIA，如何讓華爾街顧問集體搬家#^p86|2026-09-22 ¶86]] Farther 與 Savvy 最像，都是自營式科技 RIA，都在挖華爾街顧問，Farther 規模較大且已是獨角獸。Altruist 則不…
