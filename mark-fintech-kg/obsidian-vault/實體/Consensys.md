@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Consensys
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（17）
 - [[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車#^p5|2026-04-02 ¶5]] 華爾街全面介入： JPMorgan 與 Goldman Sachs 包辦 Circle、BitGo、Consensys 等指標 IPO 承銷…

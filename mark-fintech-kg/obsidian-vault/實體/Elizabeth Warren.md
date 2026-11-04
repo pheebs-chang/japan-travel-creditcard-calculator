@@ -9,7 +9,7 @@ mentions: 3
 ---
 # Elizabeth Warren
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 它對誰做了什麼
 - 質疑 → [[X Money]]

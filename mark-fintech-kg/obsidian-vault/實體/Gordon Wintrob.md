@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Gordon Wintrob
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（4）
 - [[2026-05-28 Newfront：服務 20% 美國獨角獸，Agentic AI 如何重寫兆元保險經紀產業#^p6|2026-05-28 ¶6]] Newfront 創辦故事：Spike Lipkin 與 Gordon Wintrob 如何看見兆元保險科技痛點…

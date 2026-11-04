@@ -11,7 +11,7 @@ mentions: 3
 
 OpenAI 與 Stripe 的代理商務協議，採封閉的 App Store 模式。
 
-分類：[[跨國]]
+分類：[[地區・跨國|跨國]]
 
 ## 誰對它做了什麼
 - [[OpenAI]] → 推出

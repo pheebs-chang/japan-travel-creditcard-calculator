@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Amazon Bedrock AgentCore Payments
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（7）
 - [[2026-05-14 當 AI 開始刷卡：KYA 框架如何成為下一個十年支付戰場的護城河#^p5|2026-05-14 ¶5]] 戰國格局： Visa TAP、Mastercard Agent Pay、Google AP2、AWS x402+AgentCore、ERC-…

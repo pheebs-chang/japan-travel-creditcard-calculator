@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Google DeepMind
 
-分類：[[英國]]
+分類：[[地區・英國|英國]]
 
 ## 提到它的段落（3）
 - [[2026-01-01 Harmonic：如何用「數學超級智能」終結 AI 幻覺#^p94|2026-01-01 ¶94]] Google DeepMind Gemini 2.0：AlphaProof 的完全體…

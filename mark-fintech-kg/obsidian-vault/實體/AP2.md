@@ -11,7 +11,7 @@ mentions: 8
 
 Google 的 Agent Payments Protocol，以加密簽章委託書證明用戶授權。
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 它對誰做了什麼
 - 整合 → [[x402]]

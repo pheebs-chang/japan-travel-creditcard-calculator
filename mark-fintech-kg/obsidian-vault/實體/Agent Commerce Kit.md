@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Agent Commerce Kit
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（2）
 - [[2026-06-09 Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構#^p32|2026-06-09 ¶32]] Agent Commerce Kit：ACK-ID 與 ACK-Pay 讓代理有身份，也有收據…

@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Global Money Platform
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（4）
 - [[2026-10-18 一週金融科技新聞 269｜代理AI安全、穩定幣收付#^p6|2026-10-18 ¶6]] Mastercard 與 BVNK 本週推出的 Global Money Platform，則把法幣與穩定幣收付放進同一套 API。＃267…

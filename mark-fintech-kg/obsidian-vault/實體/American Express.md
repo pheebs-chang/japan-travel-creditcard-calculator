@@ -9,7 +9,7 @@ mentions: 4
 ---
 # American Express
 
-分類：[[美國]] · [[支付網路／卡組織／跨行網路]]（上游｜金融基礎設施）
+分類：[[地區・美國|美國]] · [[產業鏈・支付網路／卡組織／跨行網路|支付網路／卡組織／跨行網路]]（上游｜金融基礎設施）
 
 ## 相關事實
 - UCP 聯盟包含 Shopify、Walmart、Target、Etsy、Wayfair、Visa、Mastercard、American Express、Adyen 乃至 Stripe，超過 20 家夥伴。（[[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包]]）

@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Visa Flexible Credential
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（3）
 - [[2026-04-14 BNPL 終局：Affirm 申請銀行牌照、Klarna 存款破 140 億，先買後付正在變成什麼？#^p37|2026-04-14 ¶37]] 第一是 Klarna Card。這張由 Visa「靈活憑證技術」（Flexible Credential）驅動的實體與虛擬卡片，預設為簽帳金…

@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Acrew Capital
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（2）
 - [[2026-06-09 Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構#^p4|2026-06-09 ¶4]] 資本驗證：Catena Labs 已累計募資 4,800 萬美元，A 輪 3,000 萬美元由 Acrew Capital 與 a16z c…

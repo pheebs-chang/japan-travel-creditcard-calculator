@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # DNS
 
-分類：[[跨國]]
+分類：[[地區・跨國|跨國]]
 
 ## 提到它的段落（5）
 - [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p10|2026-01-22 ¶10]] Pichai 宣布的「通用商務協議」（Universal Commerce Protocol, UCP），一個試圖成為「商務世界的 DNS」…

@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Capability Manifest
 
-分類：[[跨國]]
+分類：[[地區・跨國|跨國]]
 
 ## 提到它的段落（6）
 - [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p3|2026-01-22 ¶3]] 技術與門檻： UCP 核心技術為 Capability Manifest + MCP，但商家整合門檻較高；ACP 則依賴 共享支付代幣（SP…

@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Robinhood Assets（Jersey）Limited
 
-分類：[[其他國外]]
+分類：[[地區・其他國外|其他國外]]
 
 ## 提到它的段落（3）
 - [[2026-08-06 代幣化股票你買到的是真的股權還是衍生品？#^p55|2026-08-06 ¶55]] 產品由 Robinhood Assets（Jersey）Limited 發行，官方法律性質是 Tokenized Debt Securiti…

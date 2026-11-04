@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # App Store
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（2）
 - [[2026-01-22 AI 購物大戰開打：Google 與 OpenAI 爭奪你的錢包#^p20|2026-01-22 ¶20]] OpenAI/Stripe 的 ACP：極致效率的 App Store 模式…

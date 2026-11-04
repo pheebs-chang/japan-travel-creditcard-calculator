@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Sean Neville
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（3）
 - [[2026-06-09 Catena Labs：AI Agent 金融信任層，4800 萬美元押注 AI 原生金融機構#^p50|2026-06-09 ¶50]] Sean Neville 的 Circle 經驗…

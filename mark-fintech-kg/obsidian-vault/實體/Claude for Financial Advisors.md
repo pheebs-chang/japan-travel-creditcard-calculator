@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Claude for Financial Advisors
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（4）
 - [[2026-09-20 一週金融科技新聞 265｜加密支付、股票上鏈#^p5|2026-09-20 ¶5]] AI 理財這邊，Anthropic 推出 Claude for Financial Advisors，把顧問原本使用的託管、投資組合與客戶管…

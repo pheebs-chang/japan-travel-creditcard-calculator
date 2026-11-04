@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Master Account
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（5）
 - [[2026-04-02 2025-2026 加密 IPO 浪潮：從 Circle 破冰到 Kraken 急煞車#^p6|2026-04-02 ¶6]] 合規即護城河： Circle 的 GENIUS 法案背書、BitGo 的 OCC 牌照、Kraken 的 Fed Master Accoun…

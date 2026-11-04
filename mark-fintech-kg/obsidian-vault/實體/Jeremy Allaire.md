@@ -9,7 +9,7 @@ mentions: 2
 ---
 # Jeremy Allaire
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（2）
 - [[2026-05-17 一週金融科技新聞 247｜TISA稅優、AI進帳本#^p23|2026-05-17 ¶23]] 亮點在 Nanopayments：最小支付額壓到 0.000001 USDC、免 gas、支援 Arbitrum、Base、Ethereum…

@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # GOAT SDK
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（2）
 - [[2026-04-07 Crossmint：當 AI 代理需要一張信用卡，這家公司造了整條金融高速公路#^p52|2026-04-07 ¶52]] 為降低開發門檻，Crossmint 釋出了開源工具包 GOAT SDK（Greatest Of All Time Agentic Toolk…

@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # Gemini 2.0
 
-分類：[[美國]]
+分類：[[地區・美國|美國]]
 
 ## 提到它的段落（3）
 - [[2026-01-01 Harmonic：如何用「數學超級智能」終結 AI 幻覺#^p94|2026-01-01 ¶94]] Google DeepMind Gemini 2.0：AlphaProof 的完全體…

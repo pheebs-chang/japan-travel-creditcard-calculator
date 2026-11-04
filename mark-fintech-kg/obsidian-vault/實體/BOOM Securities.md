@@ -6,7 +6,7 @@ source: 逐段標記新增
 ---
 # BOOM Securities
 
-分類：[[亞洲]]
+分類：[[地區・亞洲|亞洲]]
 
 ## 提到它的段落（4）
 - [[2026-04-16 Clear Street：從零架一本即時帳本，清算速度快到傳統銀行的批次系統追不上#^p5|2026-04-16 ¶5]] 模式升級：2026 年 2 月收購香港 BOOM Securities 進軍亞太，3 月推出 Clear Street Digital 整合…
